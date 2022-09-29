@@ -9,6 +9,10 @@ md.exe: $(OBJ)
 
 test: $(OBJ)
 	mpic++ $(options) --pedantic-error $(OBJ) -o test.exe
+	./test.exe
+
+run: md.exe
+	mpirun -np 4 ./md.exe
 
 clean:
 	rm -f md.exe *.o
