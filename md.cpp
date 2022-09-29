@@ -56,7 +56,7 @@ void MD::makeconf(void) {
 
     // 等間隔分割
 
-    for (int i; i<N; i++) {
+    for (int i=0; i<N; i++) {
         int iy = static_cast<int>(i/xppl);
         int ix = i%xppl;
         double x = ix * pitch;
@@ -74,5 +74,6 @@ void MD::makeconf(void) {
 
 void MD::run(void) {
     makeconf();
+    assert(sysp->N != 0);
     obs->export_cdview(vars->atoms);
 }

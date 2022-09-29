@@ -19,6 +19,7 @@ void Observer::export_cdview(std::vector<Atom> atoms) {
         ofs << "0" << " ";
         ofs << a.x << " ";
         ofs << a.y << " ";
+        ofs << "0" << " ";
         ofs << std::endl;
         ++i;
     }

@@ -9,6 +9,7 @@ int main(int argc, char **argv) {
 
     MD *md = new MD();
     md->set_params(1000, 10, 0.0020);
+    md->set_box(100, 10, 10, 3.5);
     md->run();
 
     delete md;

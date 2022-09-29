@@ -6,7 +6,7 @@ class Systemparam {
 public:
     double xl;
     double yl;
-    double N;
+    int N = 0;
     double cutoff;
     double margin;
     
