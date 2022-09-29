@@ -75,5 +75,5 @@ void MD::makeconf(void) {
 void MD::run(void) {
     makeconf();
     assert(sysp->N != 0);
-    obs->export_cdview(vars->atoms);
+    obs->export_cdview(vars->atoms, *sysp);
 }
