@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+## User Defined
+# Visualization
+*.cdv
+*.png
+
+# Output
+*.dat
