@@ -18,6 +18,12 @@ public:
     void export_cdview(void);
     int number_of_atoms(void) {return static_cast<int>(atoms.size());}
     void set_initial_velocity(const double);
+
+    double xp_max;
+    double xp_min;
+    double yp_max;
+    double yp_min;
+
 };
 
 // ========================================================================

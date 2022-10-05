@@ -1,6 +1,3 @@
-#include <iostream>
-#include <fstream>
-#include <random>
 #include "systemparam.hpp"
 #include "variables.hpp"
 
@@ -16,4 +13,4 @@ void Variables::add_atoms(int id, double x, double y) {
     atoms.push_back(a);
 }
 
-
+// =================================

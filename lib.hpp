@@ -10,5 +10,6 @@
 #include <fstream>
 #include <iostream>
 #include <random>
+#include <filesystem>
 
 #include <mpi.h>

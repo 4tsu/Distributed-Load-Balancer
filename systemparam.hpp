@@ -1,5 +1,5 @@
 #pragma once
-
+#include "mpiinfo.hpp"
 // ====================================================
 
 class Systemparam {
@@ -9,6 +9,7 @@ public:
     int N = 0;
     double cutoff;
     double margin;
+    int myN;
     
     double CL2;
     double RC2;
@@ -21,7 +22,7 @@ public:
     double y_max;
     double y_min;
 
-    void set_params(int N, double xl, double yl, double cutoff);
+    void set_params(int N, double xl, double yl, double cutoff, int procs);
     void calc_params(void);
 
 };

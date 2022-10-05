@@ -2,6 +2,7 @@
 #include "variables.hpp"
 #include "observer.hpp"
 #include "systemparam.hpp"
+#include "mpiinfo.hpp"
 
 // =======================================
 
@@ -10,6 +11,7 @@ private:
     Variables *vars;
     Observer *obs;
     Systemparam *sysp;
+    MPIinfo mi;
     void makeconf(void);
     void periodic(void);
     void update_position(void);
@@ -21,7 +23,7 @@ private:
     int sdd_type = 0;
 
 public:
-    MD(void);
+    MD(MPIinfo mi);
     ~MD(void);
     void run(void);
     void set_params(int STEPS, int OB_INTERVAL, double dt);
@@ -29,5 +31,7 @@ public:
     void set_margin(double margin);
     void set_sdd(int sdd_type);
 };
+
+// ---------------------------------------
 
 // =======================================
