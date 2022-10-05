@@ -55,22 +55,24 @@ void MD::makeconf(void) {
     // 等間隔分割
 
     for (int i=0; i<N; i++) {
-        int j = myN*mi.rank + i;
-        int jy = static_cast<int>(j/xppl);
-        int jx = j%xppl;
-        double x = jx * pitch;
-        double y = jy * pitch;
+        static int my_id = 0;
+        int iy = static_cast<int>(i/xppl);
+        int ix = i%xppl;
+        double x = ix * pitch;
+        double y = iy * pitch;
 
         // どのプロセスに分配するかを判断する
         int lpx = sysp->xl/mi.npx;
         int lpy = sysp->yl/mi.npy;
-        int jp = static_cast<int>(floor(y/lpy)*mi.npy + floor(x/lpx));
-        if (jp==mi.rank) {
+        int ip = static_cast<int>(floor(y/lpy)*mi.npx + floor(x/lpx));
+        if (ip==mi.rank) {
             x += x_min;
             y += y_min;
-            vars->add_atoms(j,x,y);
+            int id = myN*mi.rank + my_id;
+            vars->add_atoms(id,x,y);
             assert(x_min<=x && x<=x_max);
             assert(y_min<=y && y<=y_max);
+            my_id++;
         }
     }
 }
@@ -78,7 +80,11 @@ void MD::makeconf(void) {
 void MD::run(void) {
     // 結果出力が追記なので、事前に削除しておく
     for (const auto & file : std::filesystem::directory_iterator(".")) {
-        std::cout << file.path() << std::endl;
+        std::string path = file.path();
+        int word_pos = path.find(".cdv");
+        if (std::string::npos != word_pos) {
+            std::filesystem::remove(path);
+        }
     }
 
     makeconf();

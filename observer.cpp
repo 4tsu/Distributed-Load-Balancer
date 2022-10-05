@@ -16,12 +16,13 @@ void Observer::export_cdview(std::vector<Atom> atoms, Systemparam sysp, MPIinfo 
         ofs << "#box_sz=0" << std::endl;
         ofs << "#box_ez=0" << std::endl;
     }
+    MPI_Barrier(MPI_COMM_WORLD);
     for (auto &a : atoms) {
-        ofs << a.id << " ";
-        ofs << "0"  << " ";
-        ofs << a.x  << " ";
-        ofs << a.y  << " ";
-        ofs << "0"  << " ";
+        ofs << a.id     << " ";
+        ofs << mi.rank  << " ";
+        ofs << a.x      << " ";
+        ofs << a.y      << " ";
+        ofs << "0"      << " ";
         ofs << std::endl;
     }
 }
