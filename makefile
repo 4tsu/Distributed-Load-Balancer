@@ -1,14 +1,14 @@
 SRC=$(shell ls *.cpp)
-OBJ=$(SRC:.cpp=.o)
-options=-std=c++17 -Wall -Wextra
+options = -std=c++17 -Wall -Wextra -include lib.hpp
 
+.PHONY : all
 all: md.exe
 
-md.exe: $(OBJ)
-	mpic++ $(options) -O3 $(OBJ) -o $@
+md.exe: $(SRC)
+	mpic++ $(options) -O3 $(SRC) -o $@
 
-test: $(OBJ)
-	mpic++ $(options) --pedantic-error $(OBJ) -o test.exe
+test: $(SRC)
+	mpic++ $(options) --pedantic-error $(SRC) -o test.exe
 	./test.exe
 
 run: md.exe
