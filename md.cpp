@@ -19,6 +19,7 @@ MD::~MD(void){
 }
 
 // -----------------------------------------------------
+
 // MDクラスメンバ関数
 void MD::set_params(int STEPS, int OB_INTERVAL, double dt) {
     this->STEPS = STEPS;
@@ -26,18 +27,26 @@ void MD::set_params(int STEPS, int OB_INTERVAL, double dt) {
     this->dt = dt;
 }
 
+
+
 void MD::set_box(int N, double xl, double yl, double cutoff) {
     sysp->set_params(N, xl, yl, cutoff, mi.procs);
     sysp->calc_params();
 }
 
+
+
 void MD::set_margin(double margin) {
     sysp->margin = margin;
 }
 
+
+
 void MD::set_sdd(int sdd_type) {
     this->sdd_type = sdd_type;
 }
+
+
 
 void MD::makeconf(void) {
     int N = sysp->N;
@@ -53,7 +62,6 @@ void MD::makeconf(void) {
     double pitch = std::min(xl/xppl, yl/yppl);
 
     // 等間隔分割
-
     for (int i=0; i<N; i++) {
         static int my_id = 0;
         int iy = static_cast<int>(i/xppl);
@@ -77,16 +85,21 @@ void MD::makeconf(void) {
     }
 }
 
+
+
 void MD::run(void) {
     // 結果出力が追記なので、事前に削除しておく
-    for (const auto & file : std::filesystem::directory_iterator(".")) {
-        std::string path = file.path();
-        int word_pos = path.find(".cdv");
-        if (std::string::npos != word_pos) {
-            std::filesystem::remove(path);
+    if (mi.rank == 0) {
+        for (const auto & file : std::filesystem::directory_iterator(".")) {
+            std::string path = file.path();
+            int word_pos = path.find(".cdv");
+            if (std::string::npos != word_pos) {
+                std::filesystem::remove(path);
+            }
         }
     }
 
+    // MD
     makeconf();
     assert(sysp->N != 0);
     obs->export_cdview(vars->atoms, *sysp, mi);

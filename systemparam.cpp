@@ -10,6 +10,8 @@ void Systemparam::set_params(int N, double xl, double yl, double cutoff, int pro
     this->myN = static_cast<int>(N/procs);
 }
 
+
+
 void Systemparam::calc_params(void) {
     double cutoff = this->cutoff;
     double CL2 = (cutoff * cutoff);
@@ -30,6 +32,8 @@ void Systemparam::calc_params(void) {
     this->y_max =  yl/2;
     this->y_min = -yl/2;
 }
+
+
 
 void adjust_periodic(double &dx, double &dy, Systemparam sysp) {
     const double xl = sysp.xl;
