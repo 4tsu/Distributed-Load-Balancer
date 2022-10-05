@@ -9,7 +9,7 @@ md.exe: $(SRC)
 
 test: $(SRC)
 	mpic++ $(options) --pedantic-error $(SRC) -o test.exe
-	./test.exe
+	mpirun -np 4 ./test.exe
 
 run: md.exe
 	mpirun -np 4 ./md.exe
