@@ -12,6 +12,7 @@ struct DomainPair{
 class DomainPairList {
 public:
     std::vector<DomainPair> dplist;
+    std::vector<DomainPair> dplist_reverse;
     void make_list(MPIinfo);
 };
 

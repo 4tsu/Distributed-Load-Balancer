@@ -3,6 +3,17 @@
 
 // =================================
 
+/* やってみた残骸
+MPI_Datatype MPI_Atom;
+const int blocklength[] = {1,3,3};
+const int displacements[] = {8,48,0};
+MPI_Datatype types[] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE};
+MPI_Type_create_struct(3, blocklength, displacements, types, &MPI_Atom);
+MPI_Type_commit(&MPI_Atom);
+*/
+
+// ---------------------------------
+
 void Variables::add_atoms(int id, double x, double y) {
     Atom a;
     a.id = id;

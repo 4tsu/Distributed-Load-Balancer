@@ -92,6 +92,91 @@ void MD::make_pair(void) {
     // centerとradiusを計算済みである事を仮定
     // domainpairlistの作成
     dpl->make_list(mi);
+    // 他領域粒子情報をすべて持ってくる
+    // あらかじめ、送受信のデータ容量だけやりとりしておく
+    MPI_Request ireq;
+    MPI_Status st;
+    std::vector<MPI_Request> mpi_send_requests;
+    for (auto &l : dpl->dplist_reverse) {
+        assert(l.i == mi.rank);
+        int my_n = vars->number_of_atoms();
+        MPI_Isend(&my_n, 1, MPI_INT, l.j, 0, MPI_COMM_WORLD, &ireq);
+        mpi_send_requests.push_back(ireq);
+    }
+
+    std::vector<int> other_n_vec(dpl->dplist.size());
+    std::vector<MPI_Request> mpi_recv_requests;
+    int other_count = 0;
+    for (auto &l : dpl->dplist) {
+        assert(l.i == mi.rank);
+        int other_n;
+        MPI_Irecv(&other_n_vec[other_count], 1, MPI_INT, l.j, 0, MPI_COMM_WORLD, &ireq);
+        mpi_recv_requests.push_back(ireq);
+        other_count++;
+    }
+    for (auto &req : mpi_recv_requests) {
+        MPI_Wait(&req, &st);
+    }
+    for (auto &req : mpi_send_requests) {
+        MPI_Wait(&req, &st);
+    }
+
+    // まずは自分が送る分
+    mpi_send_requests.clear();
+    // 構造体をバラしてから送信する
+    std::vector<int> sendbuf_id(vars->number_of_atoms());
+    std::vector<double> sendbuf(vars->number_of_atoms()*4);
+    Atom *atoms = vars->atoms.data();
+    for (int i=0; i<vars->number_of_atoms(); i++) {
+        sendbuf_id[i] = atoms[i].id;
+        sendbuf[i*4+0] = atoms[i].x;
+        sendbuf[i*4+1] = atoms[i].y;
+        sendbuf[i*4+2] = atoms[i].vx;
+        sendbuf[i*4+3] = atoms[i].vy;
+    }
+    for (auto &l : dpl->dplist_reverse) {
+        MPI_Isend(sendbuf_id.data(), sendbuf_id.size(), MPI_INT, 
+                  l.j, 0, MPI_COMM_WORLD, &ireq);
+        mpi_send_requests.push_back(ireq);
+        MPI_Isend(sendbuf.data(), sendbuf.size(), MPI_DOUBLE, 
+                  l.j, 0, MPI_COMM_WORLD, &ireq);
+        mpi_send_requests.push_back(ireq);
+    }
+    
+    // そして受け取る分
+    mpi_recv_requests.clear();
+    int sum_recv = std::accumulate(other_n_vec.begin(), other_n_vec.end(), 0);
+    other_count = 0;
+    int start_position = 0;
+    std::vector<int> recvbuf_id(sum_recv);
+    std::vector<double> recvbuf(sum_recv*4);
+    for (auto &l : dpl->dplist) {
+        MPI_Irecv(&recvbuf_id[start_position], other_n_vec[other_count], MPI_INT, 
+                  l.j, 0, MPI_COMM_WORLD, &ireq);
+        mpi_recv_requests.push_back(ireq);
+        MPI_Irecv(&recvbuf[start_position*4], other_n_vec[other_count]*4, MPI_DOUBLE, 
+                  l.j, 0, MPI_COMM_WORLD, &ireq);
+        mpi_recv_requests.push_back(ireq);
+        start_position += other_n_vec[other_count];
+        other_count++;
+    }
+    
+    for (auto &req : mpi_recv_requests) {
+        MPI_Wait(&req, &st);
+    }
+    for (auto &req : mpi_send_requests) {
+        MPI_Wait(&req, &st);
+    }
+    // 受け取ったデータを構造体に戻す
+    for (int i=0; i<sum_recv; i++) {
+        Atom a;
+        a.id = recvbuf_id[i];
+        a.x = recvbuf[i*4+0];
+        a.y = recvbuf[i*4+1];
+        a.vx = recvbuf[i*4+2];
+        a.vy = recvbuf[i*4+3];
+        vars->other_atoms.push_back(a);
+    }
     // ローカルにペアリスト作成
     pl->make_pair(vars, sysp);
 }

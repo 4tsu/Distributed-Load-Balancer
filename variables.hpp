@@ -5,8 +5,8 @@
 
 struct Atom {
     int id;
-    double  x,  y,  z;
-    double vx, vy, vz;
+    double  x,  y;
+    double vx, vy;
 };
 
 class Variables {
