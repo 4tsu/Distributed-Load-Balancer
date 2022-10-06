@@ -9,6 +9,7 @@ void set_dp(DomainPair &dp, int ip, int jp) {
 
 // --------------------------------------------
 
+// 仮として、手動でリストを構築している
 void DomainPairList::make_list(MPIinfo mi) {
     DomainPair dp;
     if (mi.rank == 0) {
