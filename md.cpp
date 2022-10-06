@@ -93,7 +93,7 @@ void MD::run(void) {
         for (const auto & file : std::filesystem::directory_iterator(".")) {
             std::string path = file.path();
             int word_pos = path.find(".cdv");
-            if (std::string::npos != word_pos) {
+            if (word_pos != std::string::npos) {
                 std::filesystem::remove(path);
             }
         }
