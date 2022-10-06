@@ -35,9 +35,15 @@ void Systemparam::calc_params(void) {
 
 
 
-void adjust_periodic(double &dx, double &dy, Systemparam sysp) {
-    const double xl = sysp.xl;
-    const double yl = sysp.yl;
+void Systemparam::calc_margin(void) {
+    this->co_margin = margin + cutoff;
+}
+
+
+
+void periodic_distance(double &dx, double &dy, Systemparam *sysp) {
+    const double xl = sysp->xl;
+    const double yl = sysp->yl;
     const double xlh = xl * 0.5;
     const double ylh = yl * 0.5;
     if (dx < -xlh) dx += xl;

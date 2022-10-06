@@ -1,14 +1,11 @@
 #include "md.hpp"
-#include "systemparam.hpp"
-#include "observer.hpp"
-#include "variables.hpp"
-
-// =====================================================
 
 MD::MD(MPIinfo mi){
     vars = new Variables();
     sysp = new Systemparam();
     obs = new Observer();
+    dpl = new DomainPairList();
+    pl = new PairList();
     this->mi = mi;
 }
 
@@ -16,6 +13,8 @@ MD::~MD(void){
     delete vars;
     delete obs;
     delete sysp;
+    delete dpl;
+    delete pl;
 }
 
 // -----------------------------------------------------
@@ -38,6 +37,7 @@ void MD::set_box(int N, double xl, double yl, double cutoff) {
 
 void MD::set_margin(double margin) {
     sysp->margin = margin;
+    sysp->calc_margin();
 }
 
 
@@ -87,6 +87,24 @@ void MD::makeconf(void) {
 
 
 
+// ペアリスト作成・更新
+void MD::make_pair(void) {
+    // centerとradiusを計算済みである事を仮定
+    // domainpairlistの作成
+    dpl->make_list(mi);
+    // ローカルにペアリスト作成
+    pl->make_pair(vars, sysp);
+}
+
+
+
+// ペアリスト作成・更新
+void MD::check_pairlist(void) {
+
+}
+
+
+
 void MD::run(void) {
     // 結果出力が追記なので、同名ファイルは事前に削除しておく
     if (mi.rank == 0) {
@@ -110,7 +128,9 @@ void MD::run(void) {
     vars->set_initial_velocity(1.0, mi); // 初速決定
      //最初のペアリスト作成
     assert(sysp->N != 0);
-    
+    this->make_pair();
+    std::cout << mi.rank << " pairlist " << pl->list.size() << std::endl;
+    std::cout << mi.rank << " other_atoms " << vars->other_atoms.size() << std::endl;
     // step 0 情報の出力
     obs->export_cdview(vars->atoms, *sysp, mi);
 

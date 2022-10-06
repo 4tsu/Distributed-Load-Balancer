@@ -3,6 +3,8 @@
 #include "observer.hpp"
 #include "systemparam.hpp"
 #include "mpiinfo.hpp"
+#include "pairlist.hpp"
+#include "domainpair.hpp"
 
 // =======================================
 
@@ -11,12 +13,16 @@ private:
     Variables *vars;
     Observer *obs;
     Systemparam *sysp;
+    DomainPairList *dpl;
+    PairList *pl;
     MPIinfo mi;
     void makeconf(void);
     void periodic(void);
     void update_position(void);
     void calculate_force(void);
     void calculate(void);
+    void make_pair(void);
+    void check_pairlist(void);
     int steps;
     int ob_interval;
     int dt;
@@ -33,5 +39,7 @@ public:
 };
 
 // ---------------------------------------
+
+
 
 // =======================================

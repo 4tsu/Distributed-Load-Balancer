@@ -1,5 +1,6 @@
 #pragma once
 #include "mpiinfo.hpp"
+
 // ====================================================
 
 class Systemparam {
@@ -9,6 +10,7 @@ public:
     int N = 0;
     double cutoff;
     double margin;
+    double co_margin;
     int myN;
     
     double CL2;
@@ -24,9 +26,10 @@ public:
 
     void set_params(int N, double xl, double yl, double cutoff, int procs);
     void calc_params(void);
+    void calc_margin(void);
 
 };
 
-void adjust_periodic(double &dx, double &dy, Systemparam sysp);
+void periodic_distance(double &dx, double &dy, Systemparam*);
 
 // ====================================================
