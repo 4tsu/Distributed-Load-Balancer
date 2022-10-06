@@ -1,7 +1,12 @@
 {
     "cSpell.words": [
+        "Irecv",
+        "Isend",
         "sysp",
         "xppl",
         "yppl"
-    ]
+    ],
+    "files.associations": {
+        "ostream": "cpp"
+    }
 }
