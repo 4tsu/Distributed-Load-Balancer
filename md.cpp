@@ -21,9 +21,9 @@ MD::~MD(void){
 // -----------------------------------------------------
 
 // MDクラスメンバ関数
-void MD::set_params(int STEPS, int OB_INTERVAL, double dt) {
-    this->STEPS = STEPS;
-    this->OB_INTERVAL = OB_INTERVAL;
+void MD::set_params(int steps, int ob_interval, double dt) {
+    this->steps = steps;
+    this->ob_interval = ob_interval;
     this->dt = dt;
 }
 
@@ -88,7 +88,7 @@ void MD::makeconf(void) {
 
 
 void MD::run(void) {
-    // 結果出力が追記なので、事前に削除しておく
+    // 結果出力が追記なので、同名ファイルは事前に削除しておく
     if (mi.rank == 0) {
         for (const auto & file : std::filesystem::directory_iterator(".")) {
             std::string path = file.path();
@@ -100,10 +100,24 @@ void MD::run(void) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // MD
+    
+    
+    /// MD
+    // 初期配置orデータ読み込み
     makeconf();
+    
+     // ロードバランサー選択
+    vars->set_initial_velocity(1.0, mi); // 初速決定
+     //最初のペアリスト作成
     assert(sysp->N != 0);
+    
+    // step 0 情報の出力
     obs->export_cdview(vars->atoms, *sysp, mi);
+
+    // 計算ループ
+    for (int step=1; step<=steps; step++) {
+        vars->time += dt;
+    }
 }
 
 
