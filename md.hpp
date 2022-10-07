@@ -29,7 +29,6 @@ private:
     int sdd_type = 0;
     void communicate_atoms(void);
     void communicate_force(void);
-    std::vector<Atom> sending_force;
 
 public:
     MD(MPIinfo mi);

@@ -20,7 +20,7 @@ void set_pair(Pair &pair, int i, int j, int idi, int idj);
 class PairList {
 public:
     std::vector<Pair> list;
-    std::vector<Pair> other_list;
+    std::vector<std::vector<Pair>> other_list;
     void make_pair(Variables*, Systemparam*);
 };
 

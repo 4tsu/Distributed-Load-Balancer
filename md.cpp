@@ -166,18 +166,28 @@ void MD::make_pair(void) {
             MPI_Wait(&req, &st);
         }
         // 受け取ったデータを構造体に戻す
-        for (int i=0; i<sum_recv; i++) {
-            Atom a;
-            a.id = recvbuf_id[i];
-            a.x = recvbuf[i*4+0];
-            a.y = recvbuf[i*4+1];
-            a.vx = recvbuf[i*4+2];
-            a.vy = recvbuf[i*4+3];
-            vars->other_atoms.push_back(a);
+        vars->other_atoms.clear();
+        other_count = 0;
+        int bias = 0;
+        for (auto &dp : dpl->dplist) {
+            std::vector<Atom> one_other_atom;
+            for (int i=0; i<other_n_vec[other_count]; i++) {
+                Atom a;
+                a.id = recvbuf_id[bias + i];
+                a.x = recvbuf[(bias+i)*4+0];
+                a.y = recvbuf[(bias+i)*4+1];
+                a.vx = recvbuf[(bias+i)*4+2];
+                a.vy = recvbuf[(bias+i)*4+3];
+                one_other_atom.push_back(a);
+            }
+            bias += other_n_vec[other_count];
+            vars->other_atoms.push_back(one_other_atom);
         }
     }
     // ローカルにペアリスト作成
     pl->make_pair(vars, sysp);
+    std::cerr << vars->other_atoms.size() << " == " << dpl->dplist.size() << std::endl;
+    assert(pl->other_list.size() == dpl->dplist.size());
 }
 
 
@@ -234,29 +244,33 @@ void MD::calculate_force(void) {
         atoms[pl.j].x -= df * dx;
         atoms[pl.j].y -= df * dy;
     }
+    vars->sending_force.clear();
     // 自領域-他領域粒子ペア
-    Atom *other_atoms = vars->other_atoms.data();
-    std::vector<Atom> sending_force;
-    for (auto &pl : pl->other_list) {
-        Atom ia = atoms[pl.i];
-        Atom ja = other_atoms[pl.j];
-        assert(pl.idi == ia.id);
-        assert(pl.idj == ja.id);
-        double dx = ja.x - ia.x;
-        double dy = ja.y - ia.y;
-        periodic_distance(dx, dy, sysp);
-        double r = sqrt(dx*dx + dy*dy);
-        if (r > sysp->cutoff)
-            continue;
-        
-        double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
-        atoms[pl.i].x += df * dx;
-        atoms[pl.i].y += df * dy;
-        Atom sa;
-        sa.id = ja.id;
-        sa.vx = ja.vx - df * dx;
-        sa.vy = ja.vy - df * dy;
-        sending_force.push_back(sa);
+    for (int i=0; i<pl->other_list.size(); i++) {
+        Atom *one_other_atoms = vars->other_atoms[i].data();
+        std::vector<Force> one_sending_force;
+        for (auto &pl : pl->other_list[i]) {
+            Atom ia = atoms[pl.i];
+            Atom ja = one_other_atoms[pl.j];
+            assert(pl.idi == ia.id);
+            assert(pl.idj == ja.id);
+            double dx = ja.x - ia.x;
+            double dy = ja.y - ia.y;
+            periodic_distance(dx, dy, sysp);
+            double r = sqrt(dx*dx + dy*dy);
+            if (r > sysp->cutoff)
+                continue;
+            
+            double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
+            atoms[pl.i].x += df * dx;
+            atoms[pl.i].y += df * dy;
+            Force sf;
+            sf.id = ja.id;
+            sf.vx = ja.vx - df * dx;
+            sf.vy = ja.vy - df * dy;
+            one_sending_force.push_back(sf);
+        }
+        vars->sending_force.push_back(one_sending_force);
     }
 }
 
@@ -324,7 +338,7 @@ void MD::run(void) {
         // this->communicate_force();
         this->update_position(0.5);
         // this->communicate_atoms();
-        if (mi.rank==0) std::cerr << "(" << vars->atoms[0].x << vars->atoms[0].y << ")" << std::endl;
+        // if (mi.rank==0) std::cerr << "(" << vars->atoms[0].x << vars->atoms[0].y << ")" << std::endl;
         // 情報の出力
         if (step % ob_interval == 0) {
             obs->export_cdview(vars->atoms, *sysp, mi);
