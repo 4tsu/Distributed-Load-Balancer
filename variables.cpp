@@ -59,4 +59,16 @@ void Variables::set_initial_velocity(const double V0, MPIinfo mi) {
     }
 }
 
+
+
+double Variables::max_velocity(void) {
+    double max_v = 0;
+    for (auto &a : atoms) {
+        double v = sqrt(a.vx*a.vx + a.vy*a.vy);
+        if (max_v < v)
+            max_v = v;
+    }
+    return max_v;
+}
+
 // =================================

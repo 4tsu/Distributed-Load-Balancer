@@ -21,6 +21,7 @@ public:
     int number_of_other_atoms(void) {return static_cast<int>(other_atoms.size());}
     void set_initial_velocity(const double, MPIinfo);
     double margin_life;
+    double max_velocity(void);
 
     double xp_max;
     double xp_min;

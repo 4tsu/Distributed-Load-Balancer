@@ -184,7 +184,17 @@ void MD::make_pair(void) {
 
 // ペアリスト作成・更新
 void MD::check_pairlist(void) {
-
+    double local_max = vars->max_velocity();
+    double global_max;
+    MPI_Allreduce(&local_max, &global_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    vars->margin_life -= global_max*2.0*dt;
+    if (vars->margin_life < 0) {
+        this->make_pair();
+        vars->margin_life = sysp->margin;
+    }
+    double ml = vars->margin_life;
+    MPI_Bcast(&ml, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    vars->margin_life = ml;
 }
 
 
@@ -217,18 +227,28 @@ void MD::run(void) {
     // std::cout << mi.rank << " pairlist " << pl->list.size() << std::endl;
     // std::cout << mi.rank << " pairlist other" << pl->other_list.size() << std::endl;
     // std::cout << mi.rank << " other_atoms " << vars->other_atoms.size() << std::endl;
+    /*
     for (auto &pl : pl->list) {
         std::cout << pl.idi << " " << pl.idj << std::endl;
     }
     for (auto &pl : pl->other_list) {
         std::cout << std::min(pl.idi, pl.idj) << " " << std::max(pl.idi, pl.idj) << std::endl;
     }
+    */
     // step 0 情報の出力
     obs->export_cdview(vars->atoms, *sysp, mi);
 
     // 計算ループ
     for (int step=1; step<=steps; step++) {
+        if (mi.rank==0) printf("step %d\n", step);
         vars->time += dt;
+        // シンプレクティック積分
+
+        // 情報の出力
+        if (step % ob_interval == 0) {
+            obs->export_cdview(vars->atoms, *sysp, mi);
+        }
+        this->check_pairlist();
     }
 }
 
