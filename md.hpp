@@ -25,7 +25,7 @@ private:
     void check_pairlist(void);
     int steps;
     int ob_interval;
-    int dt;
+    double dt;
     int sdd_type = 0;
 
 public:
