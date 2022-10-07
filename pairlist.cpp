@@ -23,35 +23,35 @@ void PairList::make_pair(Variables *vars, Systemparam *sysp) {
         double iy = atoms[i].y;
         for (int j=i+1; j<pn; j++) {
             double dx = atoms[j].x - ix;
-            double dy = atoms[j].y - ix;
+            double dy = atoms[j].y - iy;
             periodic_distance(dx, dy, sysp);
             double r = sqrt(dx*dx + dy*dy);
             if (r > sysp->co_margin) {
                 continue;
             }
-        Pair pair;
-        set_pair(pair, i, j, atoms[i].id, atoms[j].id);
-        this->list.push_back(pair);
+            Pair pair;
+            set_pair(pair, i, j, atoms[i].id, atoms[j].id);
+            this->list.push_back(pair);
         }
     }
-    // 他領域とのペア
+    // 他領域粒子とのペア
     other_list.clear();
     Atom *other_atoms = vars->other_atoms.data();
-    pn = vars->number_of_other_atoms();
+    int other_pn = vars->number_of_other_atoms();
     for (int i=0; i<pn; i++) {
         double ix = atoms[i].x;
         double iy = atoms[i].y;
-        for (int j=0; j<pn; j++) {
-            double dx = atoms[j].x - ix;
-            double dy = atoms[j].y - iy;
-            periodic_distance(dx, iy, sysp);
+        for (int j=0; j<other_pn; j++) {
+            double dx = other_atoms[j].x - ix;
+            double dy = other_atoms[j].y - iy;
+            periodic_distance(dx, dy, sysp);
             double r = sqrt(dx*dx + dy*dy);
             if (r > sysp->co_margin) {
                 continue;
             }
-        Pair pair;
-        set_pair(pair, i, j, atoms[i].id, atoms[j].id);
-        this->other_list.push_back(pair);
+            Pair pair;
+            set_pair(pair, i, j, atoms[i].id, other_atoms[j].id);
+            this->other_list.push_back(pair);
         }
     }
 }
