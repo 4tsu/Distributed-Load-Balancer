@@ -18,7 +18,7 @@ private:
     MPIinfo mi;
     void makeconf(void);
     void periodic(void);
-    void update_position(void);
+    void update_position(double);
     void calculate_force(void);
     void calculate(void);
     void make_pair(void);
@@ -27,6 +27,9 @@ private:
     int ob_interval;
     double dt;
     int sdd_type = 0;
+    void communicate_atoms(void);
+    void communicate_force(void);
+    std::vector<Atom> sending_force;
 
 public:
     MD(MPIinfo mi);

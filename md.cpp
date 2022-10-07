@@ -199,6 +199,81 @@ void MD::check_pairlist(void) {
 
 
 
+void MD::update_position(double coefficient) {
+    for (auto& atom : vars->atoms) {
+        double x = atom.x + atom.vx * dt * coefficient;
+        double y = atom.y + atom.vy * dt * coefficient;
+        periodic_coordinate(x, y, sysp);
+        atom.x = x;
+        atom.y = y;
+        assert(sysp->x_min < x < sysp->x_max);
+        assert(sysp->y_min < y < sysp->y_max);
+    }
+}
+
+
+
+void MD::calculate_force(void) {
+    // 自領域内粒子同士
+    Atom *atoms = vars->atoms.data();
+    for (auto &pl : pl->list) {
+        Atom ia = atoms[pl.i];
+        Atom ja = atoms[pl.j];
+        assert(pl.idi == ia.id);
+        assert(pl.idj == ja.id);
+        double dx = ja.x - ia.x;
+        double dy = ja.y - ia.y;
+        periodic_distance(dx, dy, sysp);
+        double r = sqrt(dx*dx + dy*dy);
+        if (r > sysp->cutoff)
+            continue;
+        
+        double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
+        atoms[pl.i].x += df * dx;
+        atoms[pl.i].y += df * dy;
+        atoms[pl.j].x -= df * dx;
+        atoms[pl.j].y -= df * dy;
+    }
+    // 自領域-他領域粒子ペア
+    Atom *other_atoms = vars->other_atoms.data();
+    std::vector<Atom> sending_force;
+    for (auto &pl : pl->other_list) {
+        Atom ia = atoms[pl.i];
+        Atom ja = other_atoms[pl.j];
+        assert(pl.idi == ia.id);
+        assert(pl.idj == ja.id);
+        double dx = ja.x - ia.x;
+        double dy = ja.y - ia.y;
+        periodic_distance(dx, dy, sysp);
+        double r = sqrt(dx*dx + dy*dy);
+        if (r > sysp->cutoff)
+            continue;
+        
+        double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
+        atoms[pl.i].x += df * dx;
+        atoms[pl.i].y += df * dy;
+        Atom sa;
+        sa.id = ja.id;
+        sa.vx = ja.vx - df * dx;
+        sa.vy = ja.vy - df * dy;
+        sending_force.push_back(sa);
+    }
+}
+
+
+
+void MD::communicate_atoms(void) {
+
+}
+
+
+
+void MD::communicate_force(void) {
+
+}
+
+
+
 void MD::run(void) {
     // 結果出力が追記なので、同名ファイルは事前に削除しておく
     if (mi.rank == 0) {
@@ -243,7 +318,13 @@ void MD::run(void) {
         if (mi.rank==0) printf("step %d\n", step);
         vars->time += dt;
         // シンプレクティック積分
-
+        this->update_position(0.5);
+        // this->communicate_atoms();
+        // this->calculate_force();
+        // this->communicate_force();
+        this->update_position(0.5);
+        // this->communicate_atoms();
+        if (mi.rank==0) std::cerr << "(" << vars->atoms[0].x << vars->atoms[0].y << ")" << std::endl;
         // 情報の出力
         if (step % ob_interval == 0) {
             obs->export_cdview(vars->atoms, *sysp, mi);
@@ -251,7 +332,5 @@ void MD::run(void) {
         this->check_pairlist();
     }
 }
-
-
 
 // =====================================================
