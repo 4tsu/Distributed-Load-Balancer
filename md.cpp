@@ -61,9 +61,8 @@ void MD::makeconf(void) {
     int yppl = ceil(sqrt(yl*N/xl));
     double pitch = std::min(xl/xppl, yl/yppl);
 
-    // 等間隔分割
+    // 等間隔配置・分割
     for (int i=0; i<N; i++) {
-        static int my_id = 0;
         int iy = static_cast<int>(i/xppl);
         int ix = i%xppl;
         double x = ix * pitch;
@@ -76,11 +75,9 @@ void MD::makeconf(void) {
         if (ip==mi.rank) {
             x += x_min;
             y += y_min;
-            int id = myN*mi.rank + my_id;
-            vars->add_atoms(id,x,y);
+            vars->add_atoms(i,x,y);
             assert(x_min<=x && x<=x_max);
             assert(y_min<=y && y<=y_max);
-            my_id++;
         }
     }
 }
