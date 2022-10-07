@@ -31,5 +31,6 @@ public:
 };
 
 void periodic_distance(double &dx, double &dy, Systemparam*);
+void periodic_coordinate(double &x, double &y, Systemparam*);
 
 // ====================================================

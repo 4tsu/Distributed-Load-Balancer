@@ -52,4 +52,19 @@ void periodic_distance(double &dx, double &dy, Systemparam *sysp) {
     if (dy >  ylh) dy -= yl;
 }
 
+
+
+void periodic_coordinate(double &x, double &y, Systemparam *sysp) {
+    const double xl = sysp->xl;
+    const double yl = sysp->yl;
+    const double x_max = sysp->x_max;
+    const double y_max = sysp->y_max;
+    const double x_min = sysp->x_min;
+    const double y_min = sysp->y_min;
+    if (x_min > x)      x += xl;
+    else if (x_max < x) x -= xl;
+    if (y_min > y)      y += yl;
+    else if (y_max < y) y -= yl;
+}
+
 // =======================================
