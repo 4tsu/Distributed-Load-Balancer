@@ -9,9 +9,11 @@ void set_dp(DomainPair &dp, int ip, int jp) {
 
 // --------------------------------------------
 
-// 仮として、手動でリストを構築している
+// 4プロセス並列を仮定、手動でリストを構築している
 void DomainPairList::make_list(MPIinfo mi) {
     DomainPair dp;
+    if (mi.procs <= 1)
+        return;
     if (mi.rank == 0) {
         set_dp(dp, 0, 1);
         this->dplist.push_back(dp);
