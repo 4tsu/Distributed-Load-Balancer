@@ -186,7 +186,7 @@ void MD::make_pair(void) {
     }
     // ローカルにペアリスト作成
     pl->make_pair(vars, sysp);
-    std::cerr << vars->other_atoms.size() << " == " << dpl->dplist.size() << std::endl;
+    // std::cerr << vars->other_atoms.size() << " == " << dpl->dplist.size() << std::endl;
     assert(pl->other_list.size() == dpl->dplist.size());
 }
 
@@ -313,15 +313,25 @@ void MD::run(void) {
     assert(sysp->N != 0);
     this->make_pair();
     // std::cout << mi.rank << " members " << vars->atoms.size() << std::endl;
+    /*
+    for (auto& one_other_list : pl->other_list) {
+        std::cout << mi.rank << " pairlist other" << one_other_list.size() << std::endl;
+    }
+    */
+    /*
+    for (auto &one_other_atoms : vars->other_atoms) {
+        std::cout << mi.rank << " other_atoms " << one_other_atoms.size() << std::endl;
+    }
+    */
     // std::cout << mi.rank << " pairlist " << pl->list.size() << std::endl;
-    // std::cout << mi.rank << " pairlist other" << pl->other_list.size() << std::endl;
-    // std::cout << mi.rank << " other_atoms " << vars->other_atoms.size() << std::endl;
     /*
     for (auto &pl : pl->list) {
         std::cout << pl.idi << " " << pl.idj << std::endl;
     }
-    for (auto &pl : pl->other_list) {
-        std::cout << std::min(pl.idi, pl.idj) << " " << std::max(pl.idi, pl.idj) << std::endl;
+    for (auto &opl : pl->other_list) {
+        for (auto& pl : opl) {
+            std::cout << std::min(pl.idi, pl.idj) << " " << std::max(pl.idi, pl.idj) << std::endl;
+        }
     }
     */
     // step 0 情報の出力
