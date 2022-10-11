@@ -185,9 +185,22 @@ void MD::make_pair(void) {
         }
     }
     // ローカルにペアリスト作成
-    pl->make_pair(vars, sysp);
+    pl->make_pair(vars, sysp, dpl);
     // std::cerr << vars->other_atoms.size() << " == " << dpl->dplist.size() << std::endl;
-    assert(pl->other_list.size() == dpl->dplist.size());
+
+    // 今後通信すべき粒子のリストを近くの領域間で共有する
+    if (mi.procs > 1) {
+    /// まず、リストのサイズを送受信する
+    /// 通信が必要なくなった場合はサイズ0を送り、これをもって互いのDomainPairListからこのペアは削除する
+        MPI_Request ireq;
+        MPI_Status st;
+        std::vector<MPI_Request> mpi_send_requests;
+        /// 自領域がほしい粒子情報のリクエストであることに注意。
+        for (auto &l : dpl->dplist) {
+            assert(l.i == mi.rank);
+            int want_n = vars->other_atoms.size();
+        }
+    }
 }
 
 

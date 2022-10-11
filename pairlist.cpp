@@ -13,7 +13,7 @@ void set_pair(Pair &pair, int i, int j, int idi, int idj) {
 
 // ペアリスト作成・更新
 // ローカルにペアリスト作成
-void PairList::make_pair(Variables *vars, Systemparam *sysp) {
+void PairList::make_pair(Variables *vars, Systemparam *sysp, DomainPairList *dpl) {
     // 自領域内ペア
     list.clear();
     Atom *atoms = vars->atoms.data();
@@ -38,11 +38,14 @@ void PairList::make_pair(Variables *vars, Systemparam *sysp) {
     other_list.clear();
     std::vector<Pair> one_other_list;
     // ペアリストに載らない粒子情報はother_atomsから削除する
+    // 通信がいらなくなった他領域も、DomainPairListから削除する
+    // 他領域から情報を受け取るべき粒子のリストcomm_recv_listも作成
     std::vector<std::vector<Atom>> new_other_atom;
     for (auto &one_other_atoms : vars->other_atoms) {
         Atom *other_atoms = one_other_atoms.data();
         const int other_pn = one_other_atoms.size();
         std::vector<Atom> one_new_other_atom;
+        std::vector<int> one_comm_recv_list;
         for (int i=0; i<other_pn; i++) {
             double ix = other_atoms[i].x;
             double iy = other_atoms[i].y;
@@ -62,9 +65,11 @@ void PairList::make_pair(Variables *vars, Systemparam *sysp) {
             }
             if (survive)
                 one_new_other_atom.push_back(other_atoms[i]);
+                one_comm_recv_list.push_back(other_atoms[i].id);
         }
         this->other_list.push_back(one_other_list);
         new_other_atom.push_back(one_new_other_atom);
+        vars->comm_recv_list.push_back(one_comm_recv_list);
     }
     vars->other_atoms = new_other_atom;
     assert(this->other_list.size() == vars->other_atoms.size());
