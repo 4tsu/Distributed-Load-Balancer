@@ -23,8 +23,9 @@ class Variables {
 public:
     std::vector<Atom> atoms;
     std::vector<std::vector<Atom>> other_atoms;
-    std::vector<std::vector<int>> comm_recv_list;
-    std::vector<std::vector<int>> comm_send_list;
+    std::vector<int> recv_list_size;
+    std::vector<std::vector<int>> comm_recv_list;   // いらなくない？
+    std::vector<std::vector<int>> comm_send_list;   // いらなくない？
     std::vector<std::vector<Force>> sending_force;
     
     double time;

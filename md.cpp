@@ -188,19 +188,80 @@ void MD::make_pair(void) {
     pl->make_pair(vars, sysp, dpl);
     // std::cerr << vars->other_atoms.size() << " == " << dpl->dplist.size() << std::endl;
 
-    // 今後通信すべき粒子のリストを近くの領域間で共有する
+    // 今後通信すべき粒子リストのサイズを近くの領域間で共有しておく
     if (mi.procs > 1) {
-    /// まず、リストのサイズを送受信する
+    /// まず、リストのサイズを送受信する。これは通信効率をよくできる可能性がある。
     /// 通信が必要なくなった場合はサイズ0を送り、これをもって互いのDomainPairListからこのペアは削除する
+
+        // 受信するリストのサイズをvars->recv_list_sizeに保持しておき、
+        // のちの通信のタイミングですぐIrecvできるようにしておく。
+        // 同時にDomainPairListの整理を行う。
         MPI_Request ireq;
         MPI_Status st;
         std::vector<MPI_Request> mpi_send_requests;
+        DomainPair *dplist = dpl->dplist.data();
         /// 自領域がほしい粒子情報のリクエストであることに注意。
-        for (auto &l : dpl->dplist) {
-            assert(l.i == mi.rank);
-            int want_n = vars->other_atoms.size();
+        std::vector<DomainPair> new_dplist;
+        for (int i=0; i<dpl->dplist.size(); i++) {
+            assert(dplist[i].i == mi.rank);
+            
+            // これより前に、送信する粒子情報のバイト単位の大きさを決めておいても意味がない
+            // なぜなら、sending_forceの大きさは、実際にカットオフ距離内にいるペアの数次第
+            // この場所でやっておかなければならないことは？
+
+            int need_size = sizeof(vars->sending_force);
+            MPI_Isend(&need_size, 1, MPI_INT, dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
+            mpi_send_requests.push_back(ireq);
+            if (need_size != 0)
+                new_dplist.push_back(dplist[i]);
         }
-    }
+        dpl->dplist = new_dplist;
+
+        std::vector<MPI_Request> mpi_recv_requests;
+        std::vector<int> send_ns;
+        for (auto& l : dpl->dplist_reverse) {
+            assert(l.i == mi.rank);
+            int send_n;
+            MPI_Irecv(&send_n, 1, MPI_INT, l.j, 0, MPI_COMM_WORLD, &ireq);
+            send_ns.push_back(send_n);
+            mpi_recv_requests.push_back(ireq);
+        }
+        for (auto& req : mpi_recv_requests) {
+            MPI_Wait(&req, &st);
+        }
+        for (auto& req : mpi_send_requests) {
+            MPI_Wait(&req, &st);
+        }
+
+        vars->recv_list_size.clear();
+        std::vector<DomainPair> new_dplist_r;
+        for (int i=0; i<send_ns.size(); i++) {
+            if (send_ns[i] != 0)
+                vars->recv_list_size.push_back(send_ns[i]);
+                new_dplist_r.push_back(dpl->dplist_reverse[i]);
+        }
+        dpl->dplist_reverse = new_dplist_r;
+        
+        /* たぶん不要
+        /// リスト本体の送信
+        mpi_send_requests.clear();
+        for (int i=0; i<dpl->dplist.size(); i++) {
+            assert(dplist[i].i == mi.rank);
+            int *need = vars->comm_recv_list[i].data();
+            int need_n = vars->comm_recv_list[i].size();
+            MPI_Isend(&need, need_n, MPI_INT, dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
+            mpi_send_requests.push_back(ireq);
+        }
+        mpi_recv_requests.clear();
+        for (int i=0; i<dpl->dplist_reverse.size(); i++) {
+            assert(dpl->dplist_reverse[i].i == mi.rank);
+            std::vector<int> send_list;
+            MPI_Irecv(&send_list, send_ns[i], MPI_INT, dpl->dplist_reverse[i].j, 0, MPI_COMM_WORLD, &ireq);
+            vars->comm_send_list.push_back(send_list);
+            mpi_recv_requests.push_back(ireq);
+        }
+        */
+   }
 }
 
 
@@ -294,7 +355,7 @@ void MD::communicate_atoms(void) {
 }
 
 
-
+// 事前に、粒子リストの行先とそのサイズ、送信元とそのサイズがわかっていればよい。
 void MD::communicate_force(void) {
 
 }
