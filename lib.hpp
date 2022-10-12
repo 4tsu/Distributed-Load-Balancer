@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <math.h>
+#include <unistd.h>
 #include <cassert>
 #include <algorithm>
 #include <cstdio>
