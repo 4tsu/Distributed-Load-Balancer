@@ -189,6 +189,8 @@ void MD::make_pair(void) {
     pl->make_pair(vars, sysp, dpl);
     // std::cerr << vars->other_atoms.size() << " == " << dpl->dplist.size() << std::endl;
 
+std::cerr << mi.rank << " c.1" << std::endl;
+
     // 今後通信すべき粒子リストを近くの領域間で共有しておく
     if (mi.procs > 1) {
 
@@ -210,19 +212,25 @@ void MD::make_pair(void) {
         }
         dpl->dplist = new_dplist;
 
+std::cerr << mi.rank << " c.2" << std::endl;
+
         std::vector<MPI_Request> mpi_recv_requests;
+        vars->send_size.resize(dpl->dplist.size());
         for (int i=0; i<dpl->dplist.size(); i++) {
             DomainPair dp = dpl->dplist.at(i);
             assert(dp.i == mi.rank);
             MPI_Irecv(&vars->send_size.at(i), 1, MPI_INT, dp.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
         }
+std::cerr << mi.rank << " c.3" << std::endl;
         for (auto& req : mpi_recv_requests) {
             MPI_Wait(&req, &st);
         }
         for (auto& req : mpi_send_requests) {
             MPI_Wait(&req, &st);
         }
+
+std::cerr << mi.rank << " c.4" << std::endl;
 
         // 逆DomainPairの整理
         std::vector<DomainPair> new_dplist_r;
@@ -244,6 +252,7 @@ void MD::make_pair(void) {
                 new_recv_size.push_back(s);
         } 
         
+
         // リストrecv_listの送信
         mpi_send_requests.clear();
         for (int i=0; i<dpl->dplist.size(); i++) {
@@ -255,6 +264,7 @@ void MD::make_pair(void) {
         // リストrecv_listの受信
         mpi_send_requests.clear();
         mpi_recv_requests.clear();
+        vars->send_list.resize(dpl->dplist_reverse.size());
         for (int i=0; i<dpl->dplist_reverse.size(); i++) {
             int list_size = vars->send_size.at(i) / sizeof(int);
             MPI_Irecv(&vars->send_list.at(i), list_size, MPI_INT, dpl->dplist_reverse[i].j, 0, MPI_COMM_WORLD, &ireq);
@@ -267,6 +277,7 @@ void MD::make_pair(void) {
         for (auto& req : mpi_send_requests) {
             MPI_Wait(&req, &st);
         }
+
 
         // send_listを受けて、send_atomsを詰めておく
         vars->pack_send_atoms();
