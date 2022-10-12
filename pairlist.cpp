@@ -13,7 +13,7 @@ void set_pair(Pair &pair, int i, int j, int idi, int idj) {
 
 // ペアリスト作成・更新
 // ローカルにペアリスト作成
-void PairList::make_pair(Variables *vars, Systemparam *sysp, DomainPairList *dpl) {
+void PairList::make_pair(Variables* &vars, Systemparam* sysp, DomainPairList *dpl) {
     // 自領域内ペア
     list.clear();
     Atom *atoms = vars->atoms.data();
@@ -65,7 +65,7 @@ void PairList::make_pair(Variables *vars, Systemparam *sysp, DomainPairList *dpl
             }
             if (survive)
                 one_new_other_atom.push_back(other_atoms[i]);
-                one_recv_list.push_back(i);
+                one_recv_list.push_back(other_atoms[i].id);
         }
         this->other_list.push_back(one_other_list);
         new_other_atom.push_back(one_new_other_atom);

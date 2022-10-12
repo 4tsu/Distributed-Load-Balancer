@@ -189,7 +189,7 @@ void MD::make_pair(void) {
     pl->make_pair(vars, sysp, dpl);
     // std::cerr << vars->other_atoms.size() << " == " << dpl->dplist.size() << std::endl;
 
-std::cerr << mi.rank << " c.1" << std::endl;
+
 
     // 今後通信すべき粒子リストを近くの領域間で共有しておく
     if (mi.procs > 1) {
@@ -209,28 +209,27 @@ std::cerr << mi.rank << " c.1" << std::endl;
             mpi_send_requests.push_back(ireq);
             if (one_recv_size != 0)
                 new_dplist.push_back(dplist[i]);
+
         }
         dpl->dplist = new_dplist;
 
-std::cerr << mi.rank << " c.2" << std::endl;
+
 
         std::vector<MPI_Request> mpi_recv_requests;
-        vars->send_size.resize(dpl->dplist.size());
-        for (int i=0; i<dpl->dplist.size(); i++) {
-            DomainPair dp = dpl->dplist.at(i);
+        vars->send_size.resize(dpl->dplist_reverse.size());
+        for (int i=0; i<dpl->dplist_reverse.size(); i++) {
+            DomainPair dp = dpl->dplist_reverse.at(i);
             assert(dp.i == mi.rank);
             MPI_Irecv(&vars->send_size.at(i), 1, MPI_INT, dp.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
         }
-std::cerr << mi.rank << " c.3" << std::endl;
+        
         for (auto& req : mpi_recv_requests) {
             MPI_Wait(&req, &st);
         }
         for (auto& req : mpi_send_requests) {
             MPI_Wait(&req, &st);
         }
-
-std::cerr << mi.rank << " c.4" << std::endl;
 
         // 逆DomainPairの整理
         std::vector<DomainPair> new_dplist_r;
@@ -252,25 +251,41 @@ std::cerr << mi.rank << " c.4" << std::endl;
                 new_recv_size.push_back(s);
         } 
         
-
         // リストrecv_listの送信
         mpi_send_requests.clear();
         for (int i=0; i<dpl->dplist.size(); i++) {
             std::vector<int> one_recv_list = vars->recv_list.at(i);
-            int list_size = vars->recv_size.at(i) / sizeof(int);
-            MPI_Isend(&one_recv_list, list_size, MPI_INT, dpl->dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
+            int list_size = vars->recv_size.at(i) / sizeof(Atom);
+            MPI_Isend(one_recv_list.data(), one_recv_list.size(), MPI_INT, dpl->dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
+
+sleep(0.5);
+if (mi.rank==0 && dplist[i].j==1) {fprintf(stderr, "\nsend buf check ");
+for(auto& e : vars->recv_list.at(i)) {
+fprintf(stderr, "%d ", e);
+}fprintf(stderr, "\n");}
         }
+sleep(0.5);
+std::cerr << mi.rank << " c.1" << std::endl;
+
         // リストrecv_listの受信
-        mpi_send_requests.clear();
         mpi_recv_requests.clear();
-        vars->send_list.resize(dpl->dplist_reverse.size());
+        int send_list_size2 = *std::max_element(vars->send_size.begin(), vars->send_size.end()) / sizeof(Atom);
+        vars->send_list.resize(dpl->dplist_reverse.size(), std::vector<int>(send_list_size2));
+        int send_list_total = std::accumulate(vars->send_size.begin(), vars->send_size.end(), 0) / sizeof(Atom);
+        std::vector<int> recvbuf(send_list_total);
+        int recv_index = 0;
         for (int i=0; i<dpl->dplist_reverse.size(); i++) {
-            int list_size = vars->send_size.at(i) / sizeof(int);
-            MPI_Irecv(&vars->send_list.at(i), list_size, MPI_INT, dpl->dplist_reverse[i].j, 0, MPI_COMM_WORLD, &ireq);
+            int list_size = vars->send_size.at(i) / sizeof(Atom);
+            MPI_Irecv(&recvbuf.at(recv_index), list_size, MPI_INT, dpl->dplist_reverse[i].j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
+            recv_index += list_size;
         }
-        
+ 
+
+std::cerr << mi.rank << " c.2" << std::endl;
+
+       
         for (auto& req : mpi_recv_requests) {
             MPI_Wait(&req, &st);
         }
@@ -278,10 +293,21 @@ std::cerr << mi.rank << " c.4" << std::endl;
             MPI_Wait(&req, &st);
         }
 
+std::cerr << mi.rank << " c.3" << std::endl;
+sleep(0.5);
+if (mi.rank==1) {fprintf(stderr, "\n recv buf check ");
+for(int e : recvbuf) {
+fprintf(stderr, "%d ", e);
+}fprintf(stderr, "\n");}
+sleep(0.5);
+
+fprintf(stderr, "send_list.at(0).at(0) %d\n", vars->send_list.at(0).at(0));
+std::cerr << mi.rank << " c.4" << std::endl;
 
         // send_listを受けて、send_atomsを詰めておく
         vars->pack_send_atoms();
 
+std::cerr << mi.rank << " c.5" << std::endl;
     }
 }
 
