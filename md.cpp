@@ -270,8 +270,6 @@ std::cerr << mi.rank << " c.1" << std::endl;
 
         // リストrecv_listの受信
         mpi_recv_requests.clear();
-        int send_list_size2 = *std::max_element(vars->send_size.begin(), vars->send_size.end()) / sizeof(Atom);
-        vars->send_list.resize(dpl->dplist_reverse.size(), std::vector<int>(send_list_size2));
         int send_list_total = std::accumulate(vars->send_size.begin(), vars->send_size.end(), 0) / sizeof(Atom);
         std::vector<int> recvbuf(send_list_total);
         int recv_index = 0;
@@ -281,7 +279,6 @@ std::cerr << mi.rank << " c.1" << std::endl;
             mpi_recv_requests.push_back(ireq);
             recv_index += list_size;
         }
- 
 
 std::cerr << mi.rank << " c.2" << std::endl;
 
@@ -300,6 +297,16 @@ for(int e : recvbuf) {
 fprintf(stderr, "%d ", e);
 }fprintf(stderr, "\n");}
 sleep(0.5);
+
+        vars->send_list.clear();
+        int bias = 0;
+        for (int i=0; i<dpl->dplist_reverse.size(); i++) {
+            int recv_range = vars->send_size.at(i) / sizeof(Atom);
+            std::vector<int> one_send_list(recv_range);
+            std::copy(recvbuf.begin()+bias, recvbuf.begin()+bias+recv_range-1, one_send_list.begin());
+            vars->send_list.push_back(one_send_list);
+            bias += recv_range;
+        }
 
 fprintf(stderr, "send_list.at(0).at(0) %d\n", vars->send_list.at(0).at(0));
 std::cerr << mi.rank << " c.4" << std::endl;

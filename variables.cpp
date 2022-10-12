@@ -74,16 +74,12 @@ double Variables::max_velocity(void) {
 
 
 void Variables::pack_send_atoms(void) {
-std::cerr << "d.1" << std::endl;
-fprintf(stderr, "send_list.at(0).at(0) %d\n", send_list.at(0).at(0));
     this->send_atoms.clear();
     for (auto& one_send_list : this->send_list){
         std::vector<Atom*> one_send_atom;
         int atom_index = 0;
-std::cerr << "d.2" << std::endl;
         for (int i=0; i<this->atoms.size(); i++) {
             if (atoms.at(i).id == one_send_list.at(atom_index)) {
-std::cerr << "d.3" << std::endl;
                 one_send_atom.push_back(&atoms.at(i));
                 atom_index++;
             }
