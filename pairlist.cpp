@@ -45,7 +45,7 @@ void PairList::make_pair(Variables *vars, Systemparam *sysp, DomainPairList *dpl
         Atom *other_atoms = one_other_atoms.data();
         const int other_pn = one_other_atoms.size();
         std::vector<Atom> one_new_other_atom;
-        std::vector<int> one_comm_recv_list;
+        std::vector<int> one_recv_list;
         for (int i=0; i<other_pn; i++) {
             double ix = other_atoms[i].x;
             double iy = other_atoms[i].y;
@@ -65,11 +65,12 @@ void PairList::make_pair(Variables *vars, Systemparam *sysp, DomainPairList *dpl
             }
             if (survive)
                 one_new_other_atom.push_back(other_atoms[i]);
-                one_comm_recv_list.push_back(other_atoms[i].id);
+                one_recv_list.push_back(i);
         }
         this->other_list.push_back(one_other_list);
         new_other_atom.push_back(one_new_other_atom);
-        vars->comm_recv_list.push_back(one_comm_recv_list);
+        vars->recv_list.push_back(one_recv_list);
+        vars->recv_size.push_back(one_recv_list.size()*sizeof(Atom));
     }
     vars->other_atoms = new_other_atom;
     assert(this->other_list.size() == vars->other_atoms.size());

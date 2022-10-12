@@ -71,4 +71,21 @@ double Variables::max_velocity(void) {
     return max_v;
 }
 
+
+
+void Variables::pack_send_atoms(void) {
+    this->send_atoms.clear();
+    for (auto& one_send_list : this->send_list){
+        std::vector<Atom*> one_send_atom;
+        int atom_index = 0;
+        for (auto& atom : this->atoms) {
+            if (atom.id == one_send_list.at(atom_index)) {
+                one_send_atom.push_back(&atom);
+                atom_index++;
+            }
+        }
+        this->send_atoms.push_back(one_send_atom);
+    }
+}
+
 // =================================
