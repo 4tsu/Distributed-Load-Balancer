@@ -313,8 +313,8 @@ void MD::update_position(double coefficient) {
         periodic_coordinate(x, y, sysp);
         atom.x = x;
         atom.y = y;
-        assert(sysp->x_min < x < sysp->x_max);
-        assert(sysp->y_min < y < sysp->y_max);
+        assert(sysp->x_min <= x <= sysp->x_max);
+        assert(sysp->y_min <= y <= sysp->y_max);
     }
 }
 
@@ -554,7 +554,7 @@ void MD::run(void) {
 
     // 計算ループ
     for (int step=1; step<=steps; step++) {
-        if (mi.rank==0) printf("step %d\n", step);
+        if (mi.rank==0) fprintf(stderr, "step %d\n", step);
         vars->time += dt;
         // シンプレクティック積分
         this->update_position(0.5);
@@ -565,6 +565,11 @@ void MD::run(void) {
         this->communicate_atoms();
         // if (mi.rank==0) std::cerr << "(" << vars->atoms[0].x << vars->atoms[0].y << ")" << std::endl;
         // 情報の出力
+        double k = obs->kinetic_energy(vars, mi, sysp);
+        double v = obs->potential_energy(vars, pl, mi, sysp);
+        if (mi.rank==0) {
+            printf("%d %lf %lf %lf\n", step, k, v, k+v);
+        }
         if (step % ob_interval == 0) {
             obs->export_cdview(vars->atoms, *sysp, mi);
         }
