@@ -336,10 +336,10 @@ void MD::calculate_force(void) {
             continue;
         
         double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
-        atoms[pl.i].x += df * dx;
-        atoms[pl.i].y += df * dy;
-        atoms[pl.j].x -= df * dx;
-        atoms[pl.j].y -= df * dy;
+        atoms[pl.i].vx += df * dx;
+        atoms[pl.i].vy += df * dy;
+        atoms[pl.j].vx -= df * dx;
+        atoms[pl.j].vy -= df * dy;
     }
 
     vars->sending_force.clear();
@@ -350,8 +350,6 @@ void MD::calculate_force(void) {
         for (auto &pl : pl->other_list[i]) {
             Atom ia = atoms[pl.i];
             Atom ja = one_other_atoms[pl.j];
-            Force sf;
-            sf.id = ja.id;
             assert(pl.idi == ia.id);
             assert(pl.idj == ja.id);
             double dx = ja.x - ia.x;
@@ -359,16 +357,16 @@ void MD::calculate_force(void) {
             periodic_distance(dx, dy, sysp);
             double r = sqrt(dx*dx + dy*dy);
             if (r > sysp->cutoff){
-                sf.vx = 0;
-                sf.vy = 0;
                 continue;
             }
             
             double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
-            atoms[pl.i].x += df * dx;
-            atoms[pl.i].y += df * dy;
-            sf.vx = ja.vx - df * dx;
-            sf.vy = ja.vy - df * dy;
+            atoms[pl.i].vx += df * dx;
+            atoms[pl.i].vy += df * dy;
+            Force sf;
+            sf.id = ja.id;
+            sf.vx =  - df * dx;
+            sf.vy =  - df * dy;
             one_sending_force.push_back(sf);
         }
         vars->sending_force.push_back(one_sending_force);
@@ -445,7 +443,7 @@ void MD::communicate_force(void) {
         MPI_Isend(&sending_force_size, 1, MPI_INT, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_send_requests.push_back(ireq);
     }
-
+   
     std::vector<MPI_Request> mpi_recv_requests;
     std::vector<int> recv_force_size(dpl->dplist_reverse.size());
     for (int i=0; i<dpl->dplist_reverse.size(); i++) {
@@ -497,11 +495,11 @@ void MD::communicate_force(void) {
                 a.vx += f.vx;
                 a.vy += f.vy;
                 f_index++;
-                if (f_index == recv_force.size()){
+                if (f_index >= recv_force.size()){
                     flag = true;
                     break;
                 }
-                f = recv_force[f_index];
+                f = recv_force.at(f_index);
             }
             if (flag) break;
         }
@@ -509,6 +507,10 @@ void MD::communicate_force(void) {
     }
     assert(f_index == recv_force.size());
 }
+
+
+
+// ----------------------------------------------------------------------
 
 
 
@@ -532,7 +534,7 @@ void MD::run(void) {
     makeconf();
     
      // ロードバランサー選択
-    vars->set_initial_velocity(1.0, mi); // 初速決定
+    vars->set_initial_velocity(0.5, mi); // 初速決定
      //最初のペアリスト作成
     assert(sysp->N != 0);
     this->make_pair();
