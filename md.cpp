@@ -441,7 +441,7 @@ void MD::communicate_force(void) {
     for (int i=0; i<dpl->dplist.size(); i++) {
         DomainPair dp = dpl->dplist[i];
         assert(dp.i == mi.rank);
-        int sending_force_size = sizeof(vars->sending_force[i]);
+        int sending_force_size = vars->sending_force.at(i).size()*sizeof(Force);
         MPI_Isend(&sending_force_size, 1, MPI_INT, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_send_requests.push_back(ireq);
     }
@@ -449,7 +449,7 @@ void MD::communicate_force(void) {
     std::vector<MPI_Request> mpi_recv_requests;
     std::vector<int> recv_force_size(dpl->dplist_reverse.size());
     for (int i=0; i<dpl->dplist_reverse.size(); i++) {
-        DomainPair dp = dpl->dplist[i];
+        DomainPair dp = dpl->dplist_reverse[i];
         assert(dp.i == mi.rank);
         MPI_Irecv(&recv_force_size[i], 1, MPI_INT, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_recv_requests.push_back(ireq);
@@ -465,9 +465,8 @@ void MD::communicate_force(void) {
     mpi_send_requests.clear();
     for (int i=0; i<dpl->dplist.size(); i++) {
         DomainPair dp = dpl->dplist[i];
-        Force *sending_force = vars->sending_force[i].data();
-        int force_size = sizeof(vars->sending_force[i]);
-        MPI_Isend(sending_force, force_size, MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
+        int force_size = vars->sending_force.at(i).size()*sizeof(Force);
+        MPI_Isend(vars->sending_force[i].data(), force_size, MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_send_requests.push_back(ireq);
     }
 
@@ -477,7 +476,7 @@ void MD::communicate_force(void) {
     std::vector<Force> recv_force(total_recv_size/sizeof(Force));
     int recv_index = 0;
     for (int i=0; i<dpl->dplist_reverse.size(); i++) {
-        DomainPair dp = dpl->dplist[i];
+        DomainPair dp = dpl->dplist_reverse[i];
         MPI_Irecv(&recv_force[recv_index], recv_force_size[i], MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_recv_requests.push_back(ireq);
         recv_index += recv_force_size[i]/sizeof(Force);
@@ -490,15 +489,25 @@ void MD::communicate_force(void) {
     
     // 力の書き戻し
     int f_index = 0;
-    for (auto& atom : vars->atoms) {
-        Force f = recv_force.at(f_index);
-        if (atom.id == f.id) {
-            atom.vx += f.vx;
-            atom.vy += f.vy;
-            f_index++;
+    Force f = recv_force.at(0);
+    bool flag = false;
+    for (int i=0; i<dpl->dplist_reverse.size(); i++){
+        for (Atom& a : vars->atoms){
+            while (a.id==f.id) {
+                a.vx += f.vx;
+                a.vy += f.vy;
+                f_index++;
+                if (f_index == recv_force.size()){
+                    flag = true;
+                    break;
+                }
+                f = recv_force[f_index];
+            }
+            if (flag) break;
         }
-    assert(f_index == recv_force.size());
+        if (flag) break;
     }
+    assert(f_index == recv_force.size());
 }
 
 
@@ -559,8 +568,8 @@ void MD::run(void) {
         // シンプレクティック積分
         this->update_position(0.5);
         this->communicate_atoms();
-        // this->calculate_force();
-        // this->communicate_force();
+        this->calculate_force();
+        this->communicate_force();
         this->update_position(0.5);
         this->communicate_atoms();
         // if (mi.rank==0) std::cerr << "(" << vars->atoms[0].x << vars->atoms[0].y << ")" << std::endl;
