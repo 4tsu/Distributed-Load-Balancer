@@ -112,12 +112,10 @@ void MD::make_pair(void) {
             mpi_recv_requests.push_back(ireq);
             other_count++;
         }
-        for (auto &req : mpi_recv_requests) {
+        for (auto &req : mpi_recv_requests)
             MPI_Wait(&req, &st);
-        }
-        for (auto &req : mpi_send_requests) {
+        for (auto &req : mpi_send_requests)
             MPI_Wait(&req, &st);
-        }
 
         // まずは自分が送る分
         mpi_send_requests.clear();
@@ -159,12 +157,11 @@ void MD::make_pair(void) {
             other_count++;
         }
         
-        for (auto &req : mpi_recv_requests) {
+        for (auto &req : mpi_recv_requests)
             MPI_Wait(&req, &st);
-        }
-        for (auto &req : mpi_send_requests) {
+        for (auto &req : mpi_send_requests)
             MPI_Wait(&req, &st);
-        }
+        
         // 受け取ったデータを構造体に戻す
         vars->other_atoms.clear();
         other_count = 0;
@@ -184,6 +181,8 @@ void MD::make_pair(void) {
             vars->other_atoms.push_back(one_other_atom);
         }
     }
+
+
 
     // ローカルにペアリスト作成
     pl->make_pair(vars, sysp, dpl);
@@ -209,11 +208,8 @@ void MD::make_pair(void) {
             mpi_send_requests.push_back(ireq);
             if (one_recv_size != 0)
                 new_dplist.push_back(dplist[i]);
-
         }
         dpl->dplist = new_dplist;
-
-
 
         std::vector<MPI_Request> mpi_recv_requests;
         vars->send_size.resize(dpl->dplist_reverse.size());
@@ -224,12 +220,10 @@ void MD::make_pair(void) {
             mpi_recv_requests.push_back(ireq);
         }
         
-        for (auto& req : mpi_recv_requests) {
+        for (auto& req : mpi_recv_requests)
             MPI_Wait(&req, &st);
-        }
-        for (auto& req : mpi_send_requests) {
+        for (auto& req : mpi_send_requests)
             MPI_Wait(&req, &st);
-        }
 
         // 逆DomainPairの整理
         std::vector<DomainPair> new_dplist_r;
@@ -258,15 +252,7 @@ void MD::make_pair(void) {
             int list_size = vars->recv_size.at(i) / sizeof(Atom);
             MPI_Isend(one_recv_list.data(), one_recv_list.size(), MPI_INT, dpl->dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
-
-sleep(0.5);
-if (mi.rank==0 && dplist[i].j==1) {fprintf(stderr, "\nsend buf check ");
-for(auto& e : vars->recv_list.at(i)) {
-fprintf(stderr, "%d ", e);
-}fprintf(stderr, "\n");}
         }
-sleep(0.5);
-std::cerr << mi.rank << " c.1" << std::endl;
 
         // リストrecv_listの受信
         mpi_recv_requests.clear();
@@ -280,23 +266,10 @@ std::cerr << mi.rank << " c.1" << std::endl;
             recv_index += list_size;
         }
 
-std::cerr << mi.rank << " c.2" << std::endl;
-
-       
-        for (auto& req : mpi_recv_requests) {
+        for (auto& req : mpi_recv_requests)
             MPI_Wait(&req, &st);
-        }
-        for (auto& req : mpi_send_requests) {
+        for (auto& req : mpi_send_requests)
             MPI_Wait(&req, &st);
-        }
-
-std::cerr << mi.rank << " c.3" << std::endl;
-sleep(0.5);
-if (mi.rank==1) {fprintf(stderr, "\n recv buf check ");
-for(int e : recvbuf) {
-fprintf(stderr, "%d ", e);
-}fprintf(stderr, "\n");}
-sleep(0.5);
 
         vars->send_list.clear();
         int bias = 0;
@@ -308,13 +281,8 @@ sleep(0.5);
             bias += recv_range;
         }
 
-fprintf(stderr, "send_list.at(0).at(0) %d\n", vars->send_list.at(0).at(0));
-std::cerr << mi.rank << " c.4" << std::endl;
-
         // send_listを受けて、send_atomsを詰めておく
         vars->pack_send_atoms();
-
-std::cerr << mi.rank << " c.5" << std::endl;
     }
 }
 
@@ -372,6 +340,7 @@ void MD::calculate_force(void) {
         atoms[pl.j].x -= df * dx;
         atoms[pl.j].y -= df * dy;
     }
+
     vars->sending_force.clear();
     // 自領域-他領域粒子ペア
     for (int i=0; i<pl->other_list.size(); i++) {
@@ -414,6 +383,7 @@ void MD::communicate_atoms(void) {
     MPI_Request ireq;
     MPI_Status st;
     std::vector<MPI_Request> mpi_send_requests;
+
     // 自領域粒子の情報を他領域に送る
     for (int i=0; i<dpl->dplist_reverse.size(); i++) {
         DomainPair dp = dpl->dplist_reverse.at(i);
@@ -439,12 +409,12 @@ void MD::communicate_atoms(void) {
         mpi_recv_requests.push_back(ireq);
         recv_index += static_cast<int>(vars->recv_size[i] / sizeof(Atom));
     }
-    for (auto& req : mpi_recv_requests) {
+
+    for (auto& req : mpi_recv_requests)
         MPI_Wait(&req, &st);
-    }
-    for (auto& req : mpi_send_requests) {
+    for (auto& req : mpi_send_requests)
         MPI_Wait(&req, &st);
-    }
+    
     recv_index = 0;
     int range;
     for (int i=0; i<dpl->dplist.size(); i++) {
@@ -465,6 +435,7 @@ void MD::communicate_force(void) {
     MPI_Status st;
     // まず、sending_forceのサイズを共有する
     std::vector<MPI_Request> mpi_send_requests;
+
     for (int i=0; i<dpl->dplist.size(); i++) {
         DomainPair dp = dpl->dplist[i];
         assert(dp.i == mi.rank);
@@ -472,6 +443,7 @@ void MD::communicate_force(void) {
         MPI_Isend(&sending_force_size, 1, MPI_INT, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_send_requests.push_back(ireq);
     }
+
     std::vector<MPI_Request> mpi_recv_requests;
     std::vector<int> recv_force_size(dpl->dplist_reverse.size());
     for (int i=0; i<dpl->dplist_reverse.size(); i++) {
@@ -480,12 +452,11 @@ void MD::communicate_force(void) {
         MPI_Irecv(&recv_force_size[i], 1, MPI_INT, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_recv_requests.push_back(ireq);
     }
-    for (auto& req : mpi_recv_requests) {
+
+    for (auto& req : mpi_recv_requests)
         MPI_Wait(&req, &st);
-    }
-    for (auto& req : mpi_send_requests) {
+    for (auto& req : mpi_send_requests)
         MPI_Wait(&req, &st);
-    }
 
     // sending_force自体の通信
     /// 送信
@@ -497,6 +468,7 @@ void MD::communicate_force(void) {
         MPI_Isend(sending_force, force_size, MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_send_requests.push_back(ireq);
     }
+
     /// 受信
     mpi_recv_requests.clear();
     int total_recv_size = static_cast<int>(std::accumulate(recv_force_size.begin(), recv_force_size.end(), 0));
@@ -508,13 +480,12 @@ void MD::communicate_force(void) {
         mpi_recv_requests.push_back(ireq);
         recv_index += recv_force_size[i]/sizeof(Force);
     }
-    for (auto& req : mpi_recv_requests) {
-        MPI_Wait(&req, &st);
-    }
-    for (auto& req : mpi_send_requests) {
-        MPI_Wait(&req, &st);
-    }
 
+    for (auto& req : mpi_recv_requests)
+        MPI_Wait(&req, &st);
+    for (auto& req : mpi_send_requests)
+        MPI_Wait(&req, &st);
+    
     // 力の書き戻し
     int f_index = 0;
     for (auto& atom : vars->atoms) {
