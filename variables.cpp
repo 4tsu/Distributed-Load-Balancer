@@ -84,6 +84,7 @@ void Variables::pack_send_atoms(void) {
                 atom_index++;
             }
         }
+        assert(atom_index == one_send_list.size());
         this->send_atoms.push_back(one_send_atom);
     }
 }

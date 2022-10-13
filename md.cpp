@@ -271,12 +271,13 @@ void MD::make_pair(void) {
         for (auto& req : mpi_send_requests)
             MPI_Wait(&req, &st);
 
+        // recvbufのsend_listへの展開
         vars->send_list.clear();
         int bias = 0;
         for (int i=0; i<dpl->dplist_reverse.size(); i++) {
             int recv_range = vars->send_size.at(i) / sizeof(Atom);
             std::vector<int> one_send_list(recv_range);
-            std::copy(recvbuf.begin()+bias, recvbuf.begin()+bias+recv_range-1, one_send_list.begin());
+            std::copy(recvbuf.begin()+bias, recvbuf.begin()+bias+recv_range, one_send_list.begin());
             vars->send_list.push_back(one_send_list);
             bias += recv_range;
         }
@@ -382,16 +383,16 @@ void MD::communicate_atoms(void) {
     // 必要な通信サイズを予め共有 <- ペアリスト構築時点で共有できるはず
     MPI_Request ireq;
     MPI_Status st;
-    std::vector<MPI_Request> mpi_send_requests;
 
     // 自領域粒子の情報を他領域に送る
+    std::vector<MPI_Request> mpi_send_requests;
     for (int i=0; i<dpl->dplist_reverse.size(); i++) {
         DomainPair dp = dpl->dplist_reverse.at(i);
         assert(dp.i == mi.rank);
-        std::vector<Atom> sendbuf(vars->send_atoms.size());
+        std::vector<Atom> sendbuf(vars->send_atoms.at(i).size());
         for (int j=0; j<sendbuf.size(); j++)
             sendbuf.at(j) = *vars->send_atoms.at(i).at(j);
-        MPI_Isend(&sendbuf, vars->send_size.at(i), MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
+        MPI_Isend(sendbuf.data(), vars->send_size.at(i), MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_send_requests.push_back(ireq);
     }
     
@@ -418,9 +419,10 @@ void MD::communicate_atoms(void) {
     recv_index = 0;
     int range;
     for (int i=0; i<dpl->dplist.size(); i++) {
+        vars->other_atoms.at(i).clear();
         range = static_cast<int>(vars->recv_size[i] / sizeof(Atom));
-        std::copy(recv_atoms.begin()+recv_index, recv_atoms.begin()+recv_index+range-1, vars->other_atoms[i].begin());
-        assert(range == vars->other_atoms[i].size());
+        vars->other_atoms.at(i).resize(range);
+        std::copy(recv_atoms.begin()+recv_index, recv_atoms.begin()+recv_index+range, vars->other_atoms[i].begin());
         recv_index += range;
     }
 }
@@ -556,11 +558,11 @@ void MD::run(void) {
         vars->time += dt;
         // シンプレクティック積分
         this->update_position(0.5);
-        // this->communicate_atoms();
+        this->communicate_atoms();
         // this->calculate_force();
         // this->communicate_force();
         this->update_position(0.5);
-        // this->communicate_atoms();
+        this->communicate_atoms();
         // if (mi.rank==0) std::cerr << "(" << vars->atoms[0].x << vars->atoms[0].y << ")" << std::endl;
         // 情報の出力
         if (step % ob_interval == 0) {
