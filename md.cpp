@@ -179,6 +179,7 @@ void MD::make_pair(void) {
             }
             bias += other_n_vec[other_count];
             vars->other_atoms.push_back(one_other_atom);
+            other_count++;
         }
     }
 
@@ -201,6 +202,7 @@ void MD::make_pair(void) {
         std::vector<MPI_Request> mpi_send_requests;
         DomainPair *dplist = dpl->dplist.data();
         std::vector<DomainPair> new_dplist;
+fprintf(stderr, "#%d : before %ld\n", mi.rank, dpl->dplist.size());
         for (int i=0; i<dpl->dplist.size(); i++) {
             assert(dplist[i].i == mi.rank);
             int one_recv_size = vars->recv_size.at(i);
@@ -210,6 +212,7 @@ void MD::make_pair(void) {
                 new_dplist.push_back(dplist[i]);
         }
         dpl->dplist = new_dplist;
+fprintf(stderr, "#%d : after %ld\n", mi.rank, dpl->dplist.size());
 
         std::vector<MPI_Request> mpi_recv_requests;
         vars->send_size.resize(dpl->dplist_reverse.size());
@@ -254,7 +257,7 @@ void MD::make_pair(void) {
             mpi_send_requests.push_back(ireq);
         }
 
-        // リストrecv_listの受信
+        // リストrecv_listを受信して、send_listに格納
         mpi_recv_requests.clear();
         int send_list_total = std::accumulate(vars->send_size.begin(), vars->send_size.end(), 0) / sizeof(Atom);
         std::vector<int> recvbuf(send_list_total);
@@ -271,7 +274,7 @@ void MD::make_pair(void) {
         for (auto& req : mpi_send_requests)
             MPI_Wait(&req, &st);
 
-        // recvbufのsend_listへの展開
+        /// recvbufのsend_listへの展開
         vars->send_list.clear();
         int bias = 0;
         for (int i=0; i<dpl->dplist_reverse.size(); i++) {

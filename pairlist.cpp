@@ -39,6 +39,8 @@ void PairList::make_pair(Variables* &vars, Systemparam* sysp, DomainPairList *dp
     // 通信がいらなくなった他領域も、DomainPairListから削除する
     // 他領域から情報を受け取るべき粒子のリストcomm_recv_listも作成
     this->other_list.clear();
+    vars->recv_list.clear();
+    vars->recv_size.clear();
     std::vector<std::vector<Atom>> new_other_atom;
     for (auto &one_other_atoms : vars->other_atoms) {
         Atom *other_atoms = one_other_atoms.data();
