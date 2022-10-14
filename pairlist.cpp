@@ -17,7 +17,7 @@ void PairList::make_pair(Variables* &vars, Systemparam* sysp, DomainPairList *dp
     // 自領域内ペア
     list.clear();
     Atom *atoms = vars->atoms.data();
-    int pn = vars->number_of_atoms();
+    const int pn = vars->number_of_atoms();
     for (int i=0; i<pn; i++) {
         double ix = atoms[i].x;
         double iy = atoms[i].y;
@@ -66,10 +66,11 @@ void PairList::make_pair(Variables* &vars, Systemparam* sysp, DomainPairList *dp
                 one_other_list.push_back(pair);
                 survive = true;
             }
-            if (survive)
+            if (survive){
                 one_new_other_atom.push_back(other_atoms[i]);
                 one_recv_list.push_back(other_atoms[i].id);
                 pair_j_index++;
+            }
         }
         this->other_list.push_back(one_other_list);
         new_other_atom.push_back(one_new_other_atom);
