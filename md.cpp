@@ -202,7 +202,6 @@ void MD::make_pair(void) {
         std::vector<MPI_Request> mpi_send_requests;
         DomainPair *dplist = dpl->dplist.data();
         std::vector<DomainPair> new_dplist;
-fprintf(stderr, "#%d : before %ld\n", mi.rank, dpl->dplist.size());
         for (int i=0; i<dpl->dplist.size(); i++) {
             assert(dplist[i].i == mi.rank);
             int one_recv_size = vars->recv_size.at(i);
@@ -212,7 +211,6 @@ fprintf(stderr, "#%d : before %ld\n", mi.rank, dpl->dplist.size());
                 new_dplist.push_back(dplist[i]);
         }
         dpl->dplist = new_dplist;
-fprintf(stderr, "#%d : after %ld\n", mi.rank, dpl->dplist.size());
 
         std::vector<MPI_Request> mpi_recv_requests;
         vars->send_size.resize(dpl->dplist_reverse.size());
@@ -541,10 +539,11 @@ void MD::run(void) {
     /// MD
     // 初期配置orデータ読み込み
     makeconf();
-    
+   
      // ロードバランサー選択
-    vars->set_initial_velocity(1.0, mi); // 初速決定
-     //最初のペアリスト作成
+    vars->set_initial_velocity(1.0, mi, sysp); // 初速決定
+
+    //最初のペアリスト作成
     assert(sysp->N != 0);
     this->make_pair();
     // std::cout << mi.rank << " members " << vars->atoms.size() << std::endl;

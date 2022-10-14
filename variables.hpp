@@ -1,5 +1,6 @@
 #pragma once
 #include "mpiinfo.hpp"
+#include "systemparam.hpp"
 
 // ========================================================================
 
@@ -38,7 +39,7 @@ public:
     void add_atoms(int id, double x, double y);
     void export_cdview(void);
     int number_of_atoms(void) {return static_cast<int>(atoms.size());}
-    void set_initial_velocity(const double, MPIinfo);
+    void set_initial_velocity(const double, MPIinfo, Systemparam*);
     double margin_life;
     double max_velocity(void);
     void pack_send_atoms(void);

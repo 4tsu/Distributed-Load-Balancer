@@ -26,7 +26,7 @@ void Variables::add_atoms(int id, double x, double y) {
 
 
 
-void Variables::set_initial_velocity(const double V0, MPIinfo mi) {
+void Variables::set_initial_velocity(const double V0, MPIinfo mi, Systemparam* sysp) {
     std::mt19937 mt(mi.rank);
     std::uniform_real_distribution<double> ud(0.0, 1.0);
     double local_avx = 0.0;
@@ -40,17 +40,14 @@ void Variables::set_initial_velocity(const double V0, MPIinfo mi) {
         local_avx += vx;
         local_avy += vy;
     }
-    const int pn = atoms.size();
-    local_avx /= static_cast<double>(pn);
-    local_avy /= static_cast<double>(pn);
     
     // 全粒子平均速度を得るための通信
     double avx_sum, avy_sum;
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Allreduce(&local_avx, &avx_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(&local_avy, &avy_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    double avx = avx_sum / static_cast<double>(mi.procs);
-    double avy = avy_sum / static_cast<double>(mi.procs);
+    double avx = avx_sum / static_cast<double>(sysp->N);
+    double avy = avy_sum / static_cast<double>(sysp->N);
 
     // 全粒子平均速度を引いて、平均速度をゼロにする
     for (auto &a: atoms) {
