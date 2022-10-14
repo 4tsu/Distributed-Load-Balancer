@@ -11,7 +11,7 @@ md.exe: $(SRC)
 test: $(SRC)
 	$(CC) $(OPTIONS) -Wall -Wextra --pedantic-error $(SRC) -o test.exe
 	mpirun -np 4 ./test.exe > e.dat
-	gnuplot energy.plt
+	-gnuplot energy.plt
 
 run: md.exe
 	mpirun -np 4 ./md.exe > e.dat
