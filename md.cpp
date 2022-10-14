@@ -464,6 +464,8 @@ void MD::communicate_force(void) {
     for (int i=0; i<dpl->dplist.size(); i++) {
         DomainPair dp = dpl->dplist[i];
         int force_size = vars->sending_force.at(i).size()*sizeof(Force);
+        if (force_size == 0)
+            continue;
         MPI_Isend(vars->sending_force[i].data(), force_size, MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_send_requests.push_back(ireq);
     }
@@ -475,6 +477,8 @@ void MD::communicate_force(void) {
     int recv_index = 0;
     for (int i=0; i<dpl->dplist_reverse.size(); i++) {
         DomainPair dp = dpl->dplist_reverse[i];
+        if (recv_force_size[i] == 0)
+            continue;
         MPI_Irecv(&recv_force[recv_index], recv_force_size[i], MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_recv_requests.push_back(ireq);
         recv_index += recv_force_size[i]/sizeof(Force);
@@ -485,27 +489,29 @@ void MD::communicate_force(void) {
     for (auto& req : mpi_send_requests)
         MPI_Wait(&req, &st);
     
-    // 力の書き戻し
-    int f_index = 0;
-    Force f = recv_force.at(0);
-    bool flag = false;
-    for (int i=0; i<dpl->dplist_reverse.size(); i++){
-        for (Atom& a : vars->atoms){
-            while (a.id==f.id) {
-                a.vx += f.vx;
-                a.vy += f.vy;
-                f_index++;
-                if (f_index >= recv_force.size()){
-                    flag = true;
-                    break;
+   // 力の書き戻し
+    if (recv_force.size() != 0) {
+        int f_index = 0;
+        Force f = recv_force.at(0);
+        bool flag = false;
+        for (int i=0; i<dpl->dplist_reverse.size(); i++){
+            for (Atom& a : vars->atoms){
+                while (a.id==f.id) {
+                    a.vx += f.vx;
+                    a.vy += f.vy;
+                    f_index++;
+                    if (f_index >= recv_force.size()){
+                        flag = true;
+                        break;
+                    }
+                    f = recv_force.at(f_index);
                 }
-                f = recv_force.at(f_index);
+                if (flag) break;
             }
             if (flag) break;
         }
-        if (flag) break;
+        assert(f_index == recv_force.size());
     }
-    assert(f_index == recv_force.size());
 }
 
 
