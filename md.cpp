@@ -49,19 +49,21 @@ void MD::set_sdd(int sdd_type) {
 
 
 void MD::makeconf(void) {
-    int N = sysp->N;
-    int myN = sysp->myN;
-    double xl = sysp->xl;
-    double yl = sysp->yl;
-    double x_min = sysp->x_min;
-    double y_min = sysp->y_min;
-    double x_max = sysp->x_max;
-    double y_max = sysp->y_max;
-    int xppl = ceil(sqrt(xl*N/yl));
-    int yppl = ceil(sqrt(yl*N/xl));
-    double pitch = std::min(xl/xppl, yl/yppl);
+    const int N = sysp->N;
+    const int myN = sysp->myN;
+    const double xl = sysp->xl;
+    const double yl = sysp->yl;
+    const double x_min = sysp->x_min;
+    const double y_min = sysp->y_min;
+    const double x_max = sysp->x_max;
+    const double y_max = sysp->y_max;
+    const double lpx = sysp->xl/mi.npx;
+    const double lpy = sysp->yl/mi.npy;
+    const int xppl = ceil(sqrt(xl*N/yl));
+    const int yppl = ceil(sqrt(yl*N/xl));
+    const double pitch = std::min(xl/xppl, yl/yppl);
 
-    // 等間隔配置・分割
+   // 等間隔配置・分割
     for (int i=0; i<N; i++) {
         int iy = static_cast<int>(i/xppl);
         int ix = i%xppl;
@@ -69,8 +71,6 @@ void MD::makeconf(void) {
         double y = iy * pitch;
 
         // どのプロセスに分配するかを判断する
-        int lpx = sysp->xl/mi.npx;
-        int lpy = sysp->yl/mi.npy;
         int ip = static_cast<int>(floor(y/lpy)*mi.npx + floor(x/lpx));
         if (ip==mi.rank) {
             x += x_min;
@@ -546,7 +546,7 @@ void MD::run(void) {
     //最初のペアリスト作成
     assert(sysp->N != 0);
     this->make_pair();
-    // std::cout << mi.rank << " members " << vars->atoms.size() << std::endl;
+fprintf(stderr, "# %d members=%ld\n", mi.rank, vars->atoms.size());
     /*
     for (auto &pl : pl->list) {
         std::cout << pl.idi << " " << pl.idj << std::endl;
