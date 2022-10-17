@@ -346,12 +346,15 @@ void MD::calculate_force(void) {
     vars->sending_force.clear();
     // 自領域-他領域粒子ペア
     for (int i=0; i<pl->other_list.size(); i++) {
-        Atom *one_other_atoms = vars->other_atoms[i].data();
+
+        // Atom *one_other_atoms = vars->other_atoms[i].data();
+        std::vector<Atom> one_other_atoms = vars->other_atoms.at(i);
         std::vector<Force> one_sending_force;
         for (auto &pl : pl->other_list[i]) {
             Atom ia = atoms[pl.i];
-            Atom ja = one_other_atoms[pl.j];
+            Atom ja = one_other_atoms.at(pl.j);
             assert(pl.idi == ia.id);
+fprintf(stderr, " %d==%d ", pl.idj, ja.id);
             assert(pl.idj == ja.id);
             double dx = ja.x - ia.x;
             double dy = ja.y - ia.y;
@@ -389,8 +392,10 @@ void MD::communicate_atoms(void) {
         DomainPair dp = dpl->dplist_reverse.at(i);
         assert(dp.i == mi.rank);
         std::vector<Atom> sendbuf(vars->send_atoms.at(i).size());
-        for (int j=0; j<sendbuf.size(); j++)
+        // バグが取れないので中止したい
+        for (int j=0; j<sendbuf.size(); j++) {
             sendbuf.at(j) = *vars->send_atoms.at(i).at(j);
+        }
         MPI_Isend(sendbuf.data(), vars->send_size.at(i), MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_send_requests.push_back(ireq);
     }
@@ -398,30 +403,33 @@ void MD::communicate_atoms(void) {
     // 自領域の計算で使う他領域粒子の情報をもらう
     std::vector<MPI_Request> mpi_recv_requests;
     int total_recv_size = std::accumulate(vars->recv_size.begin(), vars->recv_size.end(), 0);
-    std::vector<Atom> recv_atoms(static_cast<int>(total_recv_size)/sizeof(Atom));
+    std::vector<Atom> recvbuf(total_recv_size/sizeof(Atom));
     int recv_index = 0;
-
     for (int i=0; i<dpl->dplist.size(); i++) {
         DomainPair dp = dpl->dplist[i];
         assert(dp.i == mi.rank);
-        std::vector<Atom> one_recv_atoms;
-        MPI_Irecv(&recv_atoms[recv_index], vars->recv_size[i], MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
+        MPI_Irecv(&recvbuf.at(recv_index), vars->recv_size.at(i), MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_recv_requests.push_back(ireq);
-        recv_index += static_cast<int>(vars->recv_size[i] / sizeof(Atom));
+        recv_index += vars->recv_size[i]/sizeof(Atom);
     }
 
     for (auto& req : mpi_recv_requests)
         MPI_Wait(&req, &st);
     for (auto& req : mpi_send_requests)
         MPI_Wait(&req, &st);
-    
+
+for (auto a : recvbuf) {
+fprintf(stderr, "%d\n", a.id);
+}fprintf(stderr, "\n");sleep(1);
+
+    // 展開
     recv_index = 0;
     int range;
     for (int i=0; i<dpl->dplist.size(); i++) {
         vars->other_atoms.at(i).clear();
-        range = static_cast<int>(vars->recv_size[i] / sizeof(Atom));
+        range = static_cast<int>(vars->recv_size.at(i) / sizeof(Atom));
         vars->other_atoms.at(i).resize(range);
-        std::copy(recv_atoms.begin()+recv_index, recv_atoms.begin()+recv_index+range, vars->other_atoms[i].begin());
+        std::copy(recvbuf.begin()+recv_index, recvbuf.begin()+recv_index+range, vars->other_atoms.at(i).begin());
         recv_index += range;
     }
 }
@@ -546,7 +554,8 @@ void MD::run(void) {
     //最初のペアリスト作成
     assert(sysp->N != 0);
     this->make_pair();
-fprintf(stderr, "# %d members=%ld\n", mi.rank, vars->atoms.size());
+    
+    // fprintf(stderr, "# %d members=%ld\n", mi.rank, vars->atoms.size());
     /*
     for (auto &pl : pl->list) {
         std::cout << pl.idi << " " << pl.idj << std::endl;
@@ -567,6 +576,13 @@ fprintf(stderr, "# %d members=%ld\n", mi.rank, vars->atoms.size());
         // シンプレクティック積分
         this->update_position(0.5);
         this->communicate_atoms();
+MPI_Barrier(MPI_COMM_WORLD);/*
+for (int p=0; p<mi.procs; p++) {
+for (int i=0; i<vars->other_atoms.size(); i++){
+for (auto atom : vars->other_atoms.at(i)) {
+    fprintf(stderr, "%d\n", atom.id);
+}fprintf(stderr, "\n\n");
+}sleep(1);}*/
         this->calculate_force();
         this->communicate_force();
         this->update_position(0.5);
