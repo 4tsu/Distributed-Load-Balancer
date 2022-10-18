@@ -354,7 +354,6 @@ void MD::calculate_force(void) {
             Atom ia = atoms[pl.i];
             Atom ja = one_other_atoms.at(pl.j);
             assert(pl.idi == ia.id);
-fprintf(stderr, " %d==%d ", pl.idj, ja.id);
             assert(pl.idj == ja.id);
             double dx = ja.x - ia.x;
             double dy = ja.y - ia.y;
@@ -388,15 +387,15 @@ void MD::communicate_atoms(void) {
 
     // 自領域粒子の情報を他領域に送る
     std::vector<MPI_Request> mpi_send_requests;
+    std::vector<std::vector<Atom>> sendbuf(dpl->dplist_reverse.size());
     for (int i=0; i<dpl->dplist_reverse.size(); i++) {
         DomainPair dp = dpl->dplist_reverse.at(i);
         assert(dp.i == mi.rank);
-        std::vector<Atom> sendbuf(vars->send_atoms.at(i).size());
-        // バグが取れないので中止したい
-        for (int j=0; j<sendbuf.size(); j++) {
-            sendbuf.at(j) = *vars->send_atoms.at(i).at(j);
+        sendbuf.at(i).resize(vars->send_atoms.at(i).size());
+        for (int j=0; j<sendbuf.at(i).size(); j++) {
+            sendbuf.at(i).at(j) = *vars->send_atoms.at(i).at(j);
         }
-        MPI_Isend(sendbuf.data(), vars->send_size.at(i), MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
+        MPI_Isend(sendbuf.at(i).data(), vars->send_size.at(i), MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_send_requests.push_back(ireq);
     }
     
@@ -417,10 +416,6 @@ void MD::communicate_atoms(void) {
         MPI_Wait(&req, &st);
     for (auto& req : mpi_send_requests)
         MPI_Wait(&req, &st);
-
-for (auto a : recvbuf) {
-fprintf(stderr, "%d\n", a.id);
-}fprintf(stderr, "\n");sleep(1);
 
     // 展開
     recv_index = 0;
