@@ -15,10 +15,15 @@ md.exe: $(OBJ)
 %.o: %.cpp
 	$(CC) $(OPTIONS) -c -O3 $<
 
-test: $(OBJ)
-	$(CC) $(OPTIONS) -Wall -Wextra --pedantic-error $(OBJ) -o test.exe
+test.exe: $(OBJ)
+	$(CC) $(OPTIONS) -Wall -Wextra --pedantic-error $(OBJ) -o $@
+
+test: test.exe
 	mpirun -np 4 ./test.exe > e.dat
 	-gnuplot energy.plt
+
+dumperr: test.exe
+	mpirun -np 4 ./test.exe > e.dat 2> err.dat
 
 run: md.exe
 	mpirun -np 4 ./md.exe > e.dat
