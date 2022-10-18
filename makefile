@@ -19,10 +19,12 @@ test.exe: $(OBJ)
 	$(CC) $(OPTIONS) -Wall -Wextra --pedantic-error $(OBJ) -o $@
 
 test: test.exe
+	-rm err.dat
 	mpirun -np 4 ./test.exe > e.dat
 	-gnuplot energy.plt
 
 dumperr: test.exe
+	-rm err.dat
 	mpirun -np 4 ./test.exe > e.dat 2> err.dat
 
 run: md.exe
@@ -32,4 +34,4 @@ dep:
 	g++ $(DEPFLAGS) $(SRC) $(OPTIONS) >makefile.depend
 
 clean:
-	rm -f md.exe *.o
+	rm -f md.exe *.o test.exe
