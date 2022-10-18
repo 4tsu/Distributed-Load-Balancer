@@ -32,6 +32,9 @@
 *.app
 
 ## User Defined
+# Incremental Compile
+*.depend
+
 # Visualization
 *.cdv
 *.png
