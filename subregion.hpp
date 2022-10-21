@@ -9,7 +9,7 @@ struct DomainPair{
 
 // --------------------------------------------
 
-class SubDomain {
+class SubRegion {
 public:
     std::vector<DomainPair> dplist;
     std::vector<DomainPair> dplist_reverse;

@@ -4,7 +4,7 @@
 #include "systemparam.hpp"
 #include "mpiinfo.hpp"
 #include "pairlist.hpp"
-#include "subdomain.hpp"
+#include "subregion.hpp"
 
 // =======================================
 
@@ -13,7 +13,7 @@ private:
     Variables *vars;
     Observer *obs;
     Systemparam *sysp;
-    SubDomain *sd;
+    SubRegion *sr;
     PairList *pl;
     MPIinfo mi;
     void makeconf(void);
