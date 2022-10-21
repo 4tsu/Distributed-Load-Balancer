@@ -1,6 +1,7 @@
 SRC=$(shell ls *.cpp)
 CC = mpic++
 OPTIONS = -std=c++17 -include lib.hpp
+TESTOPT = -Wall -Wextra --pedantic-error
 OBJ=$(SRC:.cpp=.o)
 # for make dep
 DEPFLAGS=-MM -MG
@@ -13,10 +14,10 @@ md.exe: $(OBJ)
 	$(CC) $(OPTIONS) -O3 $(OBJ) -o $@
 
 %.o: %.cpp
-	$(CC) $(OPTIONS) -c -O3 $<
+	$(CC) $(OPTIONS) $(TESTOPT) -O3 -c $<
 
 test.exe: $(OBJ)
-	$(CC) $(OPTIONS) -Wall -Wextra --pedantic-error $(OBJ) -o $@
+	$(CC) $(OPTIONS) $(TESTOPT) $(OBJ) -O3 -o $@
 
 test: test.exe
 	-rm err.dat
