@@ -549,7 +549,10 @@ void MD::run(void) {
     //最初のペアリスト作成
     assert(sysp->N != 0);
     this->make_pair();
-    
+for (auto dp : sr->dplist) {
+    fprintf(stderr, "# %d %d-%d\n", mi.rank, dp.i, dp.j);
+}
+    // fprintf(stderr, "# %d %ld\n", mi.rank, sr->dplist.size());
     // fprintf(stderr, "# %d members=%ld\n", mi.rank, vars->atoms.size());
     /*
     for (auto &pl : pl->list) {
