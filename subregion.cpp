@@ -9,42 +9,107 @@ void set_dp(DomainPair &dp, int ip, int jp) {
 
 // --------------------------------------------
 
-// 4プロセス並列を仮定、手動でリストを構築している
-void SubRegion::make_list(MPIinfo mi) {
-    dplist.clear();
-    dplist_reverse.clear();
+// 相互作用する可能性のある領域ぺア検出
+void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
+    /// まずは中心と半径を計算して共有する
+    this->calc_center(vars, sysp);
+    this->calc_radius(vars, sysp);
+    this->communicate_centradi(mi);
+
+    this->dplist.clear();
+    this->dplist_reverse.clear();
     DomainPair dp;
     if (mi.procs <= 1)
         return;
-    if (mi.rank == 0) {
-        set_dp(dp, 0, 1);
-        this->dplist.push_back(dp);
-        set_dp(dp, 0, 2);
-        this->dplist.push_back(dp);
-        set_dp(dp, 0, 3);
-        this->dplist_reverse.push_back(dp);
-    } else if (mi.rank == 1) {
-        set_dp(dp, 1, 2);
-        this->dplist.push_back(dp);
-        set_dp(dp, 1, 3);
-        this->dplist.push_back(dp);
-        set_dp(dp, 1, 0);
-        this->dplist_reverse.push_back(dp);
-    } else if (mi.rank == 2) {
-        set_dp(dp, 2, 3);
-        this->dplist.push_back(dp);
-        set_dp(dp, 2, 0);
-        this->dplist_reverse.push_back(dp);
-        set_dp(dp, 2, 1);
-        this->dplist_reverse.push_back(dp);
-    } else {
-        set_dp(dp, 3, 0);
-        this->dplist.push_back(dp);
-        set_dp(dp, 3, 1);
-        this->dplist_reverse.push_back(dp);
-        set_dp(dp, 3, 2);
-        this->dplist_reverse.push_back(dp);
+    
+    /// O(np^2)で全探索
+    /// 作用反作用を考慮して半分に落とすのを、計算が効率よくなるようにやる
+    /// なるべく全ての領域で同じくらいの長さの領域ペアリストを持ちたい
+    //// dplistとdplist_reverseを分けて、二重ループを展開できるはず。
+    for (int i=0; i<mi.procs/2; i++) {
+        for (int j=i+1; j<mi.procs/2+i+1; j++) {
+            if (i!=mi.rank && j!=mi.rank)
+                continue;
+            if (this->judge(i,j,sysp))
+                continue;
+            if (i==mi.rank) {
+                set_dp(dp, i, j);
+                this->dplist.push_back(dp);
+            } else if (j==mi.rank){
+                set_dp(dp, j, i);
+                this->dplist_reverse.push_back(dp);
+            }
+        }
     }
+    for (int i=0; i<mi.procs/2; i++) {
+        for (int j=0; j<i-(mi.procs/2); j++) {
+
+        }
+    }
+}
+
+
+
+bool SubRegion::judge(int i, int j, Systemparam* sysp) {
+
+}
+
+
+
+void SubRegion::communicate_centradi(const MPIinfo &mi) {
+    this->centers.clear();
+    std::vector<double> recvbuf_x(mi.procs);
+    std::vector<double> recvbuf_y(mi.procs);
+    MPI_Allgather(&center[0], 1, MPI_DOUBLE, recvbuf_x.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+    MPI_Allgather(&center[1], 1, MPI_DOUBLE, recvbuf_y.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+    for (int i=0; i<mi.procs; i++) {
+        std::vector<double> one_center = {recvbuf_x.at(i), recvbuf_y.at(i)};
+        this->centers.push_back(one_center);
+    }
+}
+
+
+
+void SubRegion::calc_center(Variables* vars, Systemparam* sysp) {
+    const int pn = vars->atoms.size();
+
+    if (pn == 0)
+        return;
+    
+    const double origin_ax = vars->atoms.at(0).x;
+    const double origin_ay = vars->atoms.at(0).y;
+    double sx = 0;
+    double sy = 0;
+    for (auto atom: vars->atoms) {
+        double dx = atom.x - origin_ax;
+        double dy = atom.y - origin_ay;
+        periodic_distance(dx, dy, sysp);
+        sx += dx;
+        sy += dy;
+    }
+    sx /= static_cast<double>(pn);
+    sy /= static_cast<double>(pn);
+    sx += origin_ax;
+    sy += origin_ay;
+    periodic_coordinate(sx, sy, sysp);
+    this->center[0] = sx;
+    this->center[1] = sy;
+}
+
+
+
+void SubRegion::calc_radius(Variables* vars, Systemparam* sysp) {
+    double r_max = 0;
+    for (auto atom: vars->atoms) {
+        double dx = atom.x - this->center[0];
+        double dy = atom.y - this->center[1];
+        periodic_distance(dx, dy, sysp);
+        double r = sqrt(dx*dx + dy*dy);
+        if (r>r_max) {
+            r_max = r;
+        }
+    }
+    this->radius = r_max;
 }
 
 // ============================================

@@ -88,7 +88,7 @@ void MD::makeconf(void) {
 void MD::make_pair(void) {
     // centerとradiusを計算済みである事を仮定
     // domainpairlistの作成
-    sr->make_list(mi);
+    sr->make_dplist(mi, vars, sysp);
     // 他領域粒子情報をすべて持ってくる
     if (mi.procs > 1) {
         // あらかじめ、送受信のデータ容量だけやりとりしておく
@@ -571,7 +571,7 @@ void MD::run(void) {
         // シンプレクティック積分
         this->update_position(0.5);
         this->communicate_atoms();
-MPI_Barrier(MPI_COMM_WORLD);/*
+/*MPI_Barrier(MPI_COMM_WORLD);
 for (int p=0; p<mi.procs; p++) {
 for (int i=0; i<vars->other_atoms.size(); i++){
 for (auto atom : vars->other_atoms.at(i)) {
