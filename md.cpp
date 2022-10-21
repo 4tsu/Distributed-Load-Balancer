@@ -204,10 +204,9 @@ void MD::make_pair(void) {
         std::vector<DomainPair> new_dplist;
         for (int i=0; i<dpl->dplist.size(); i++) {
             assert(dplist[i].i == mi.rank);
-            int one_recv_size = vars->recv_size.at(i);
-            MPI_Isend(&one_recv_size, 1, MPI_INT, dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
+            MPI_Isend(&vars->recv_size.at(i), 1, MPI_INT, dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
-            if (one_recv_size != 0)
+            if (vars->recv_size.at(i) != 0)
                 new_dplist.push_back(dplist[i]);
         }
         dpl->dplist = new_dplist;
@@ -248,10 +247,11 @@ void MD::make_pair(void) {
         
         // リストrecv_listの送信
         mpi_send_requests.clear();
+        std::vector<std::vector<int>> sendbuf;
         for (int i=0; i<dpl->dplist.size(); i++) {
-            std::vector<int> one_recv_list = vars->recv_list.at(i);
+            sendbuf.push_back(vars->recv_list.at(i));
             int list_size = vars->recv_size.at(i) / sizeof(Atom);
-            MPI_Isend(one_recv_list.data(), one_recv_list.size(), MPI_INT, dpl->dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
+            MPI_Isend(sendbuf.at(i).data(), sendbuf.at(i).size(), MPI_INT, dpl->dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
         }
 
