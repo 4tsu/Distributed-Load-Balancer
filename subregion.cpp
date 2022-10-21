@@ -26,8 +26,8 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
     /// 作用反作用を考慮して半分に落とすのを、計算が効率よくなるようにやる
     /// なるべく全ての領域で同じくらいの長さの領域ペアリストを持ちたい
     //// dplistとdplist_reverseを分けて、二重ループを展開できるはず。
-    for (int i=0; i<mi.procs/2; i++) {
-        for (int j=i+1; j<mi.procs/2+i+1; j++) {
+    for (int i=0; i<(mi.procs/2); i++) {
+        for (int j=i+1; j<(mi.procs/2+i+1); j++) {
             if (i!=mi.rank && j!=mi.rank)
                 continue;
             if (this->judge(i,j,sysp))
@@ -41,9 +41,47 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
             }
         }
     }
-    for (int i=0; i<mi.procs/2; i++) {
-        for (int j=0; j<i-(mi.procs/2); j++) {
-
+    for (int i=mi.procs/2; i<mi.procs-1; i++) {
+        for (int j=0; j<(i-(mi.procs/2)); j++) {
+            if (i!=mi.rank && j!=mi.rank)
+                continue;
+            if (this->judge(i,j,sysp))
+                continue;
+            if (i==mi.rank) {
+                set_dp(dp, i, j);
+                this->dplist.push_back(dp);
+            } else if (j==mi.rank){
+                set_dp(dp, j, i);
+                this->dplist_reverse.push_back(dp);
+            }
+        }
+        for (int j=i+1; j<mi.procs; j++) {
+            if (i!=mi.rank && j!=mi.rank)
+                continue;
+            if (this->judge(i,j,sysp))
+                continue;
+            if (i==mi.rank) {
+                set_dp(dp, i, j);
+                this->dplist.push_back(dp);
+            } else if (j==mi.rank){
+                set_dp(dp, j, i);
+                this->dplist_reverse.push_back(dp);
+            }
+        }
+    }
+    for (int i=mi.procs-1; i<mi.procs; i++) {
+        for (int j=0; j<(i-mi.procs/2); j++) {
+            if (i!=mi.rank && j!=mi.rank)
+                continue;
+            if (this->judge(i,j,sysp))
+                continue;
+            if (i==mi.rank) {
+                set_dp(dp, i, j);
+                this->dplist.push_back(dp);
+            } else if (j==mi.rank){
+                set_dp(dp, j, i);
+                this->dplist_reverse.push_back(dp);
+            }
         }
     }
 }
@@ -51,20 +89,34 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
 
 
 bool SubRegion::judge(int i, int j, Systemparam* sysp) {
-
+    if (i==j)
+        return true;
+    if (centers.at(i).at(0)==(double)NULL || centers.at(j).at(0)==(double)NULL)
+        return true;
+    double dx = centers.at(i).at(0) - centers.at(j).at(0);
+    double dy = centers.at(i).at(1) - centers.at(j).at(1);
+    periodic_distance(dx, dy, sysp);
+    double gap = sqrt(dx*dx + dy+dy) - radii.at(i) - radii.at(j);
+    if (gap > sysp->co_margin)
+        return true;
+    return false;
 }
 
 
 
 void SubRegion::communicate_centradi(const MPIinfo &mi) {
     this->centers.clear();
+    this->radii.clear();
     std::vector<double> recvbuf_x(mi.procs);
     std::vector<double> recvbuf_y(mi.procs);
+    std::vector<double> recvbuf_r(mi.procs);
     MPI_Allgather(&center[0], 1, MPI_DOUBLE, recvbuf_x.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
     MPI_Allgather(&center[1], 1, MPI_DOUBLE, recvbuf_y.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+    MPI_Allgather(&radius, 1, MPI_DOUBLE, recvbuf_r.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
     for (int i=0; i<mi.procs; i++) {
         std::vector<double> one_center = {recvbuf_x.at(i), recvbuf_y.at(i)};
         this->centers.push_back(one_center);
+        this->radii.push_back(recvbuf_r.at(i));
     }
 }
 
@@ -73,8 +125,11 @@ void SubRegion::communicate_centradi(const MPIinfo &mi) {
 void SubRegion::calc_center(Variables* vars, Systemparam* sysp) {
     const int pn = vars->atoms.size();
 
-    if (pn == 0)
+    if (pn == 0) {
+        this->center[0] = (double)NULL;
+        this->center[1] = (double)NULL;
         return;
+    }
     
     const double origin_ax = vars->atoms.at(0).x;
     const double origin_ay = vars->atoms.at(0).y;
