@@ -4,7 +4,7 @@
 #include "systemparam.hpp"
 #include "mpiinfo.hpp"
 #include "pairlist.hpp"
-#include "domainpair.hpp"
+#include "subdomain.hpp"
 
 // =======================================
 
@@ -13,7 +13,7 @@ private:
     Variables *vars;
     Observer *obs;
     Systemparam *sysp;
-    DomainPairList *dpl;
+    SubDomain *sd;
     PairList *pl;
     MPIinfo mi;
     void makeconf(void);

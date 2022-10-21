@@ -1,7 +1,6 @@
 #pragma once
 #include "variables.hpp"
 #include "systemparam.hpp"
-#include "domainpair.hpp"
 
 // ============================================
 
@@ -22,7 +21,7 @@ class PairList {
 public:
     std::vector<Pair> list;
     std::vector<std::vector<Pair>> other_list;
-    void make_pair(Variables* &vars, Systemparam*, DomainPairList*);
+    void make_pair(Variables* &vars, Systemparam*);
 };
 
 // ============================================

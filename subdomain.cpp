@@ -1,4 +1,4 @@
-#include "domainpair.hpp"
+#include "subdomain.hpp"
 
 // ============================================
 
@@ -10,7 +10,7 @@ void set_dp(DomainPair &dp, int ip, int jp) {
 // --------------------------------------------
 
 // 4プロセス並列を仮定、手動でリストを構築している
-void DomainPairList::make_list(MPIinfo mi) {
+void SubDomain::make_list(MPIinfo mi) {
     dplist.clear();
     dplist_reverse.clear();
     DomainPair dp;
