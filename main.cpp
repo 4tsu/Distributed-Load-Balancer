@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
     clock_t start = clock();
 
     MD *md = new MD(mi);
-    md->set_params(1, 10, 0.0020); // int steps, int ob_interval, double dt
+    md->set_params(1000, 10, 0.0020); // int steps, int ob_interval, double dt
     md->set_box(2500, 50, 50, 3.5); // int N, double xl, double yl, double cutoff
     md->set_margin(0.5);
     md->run();

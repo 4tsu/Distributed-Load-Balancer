@@ -89,6 +89,7 @@ void MD::make_pair(void) {
     // centerとradiusを計算済みである事を仮定
     // domainpairlistの作成
     sr->make_dplist(mi, vars, sysp);
+    
     // 他領域粒子情報をすべて持ってくる
     if (mi.procs > 1) {
         // あらかじめ、送受信のデータ容量だけやりとりしておく
@@ -545,13 +546,16 @@ void MD::run(void) {
    
      // ロードバランサー選択
     vars->set_initial_velocity(1.0, mi, sysp); // 初速決定
+    obs->export_cdview(vars->atoms, *sysp, mi);
 
     //最初のペアリスト作成
     assert(sysp->N != 0);
     this->make_pair();
-for (auto dp : sr->dplist) {
-    fprintf(stderr, "# %d %d-%d\n", mi.rank, dp.i, dp.j);
-}
+    /*
+    for (auto dp : sr->dplist) {
+        fprintf(stderr, "# %d %d-%d\n", mi.rank, dp.i, dp.j);
+    }
+    */
     // fprintf(stderr, "# %d %ld\n", mi.rank, sr->dplist.size());
     // fprintf(stderr, "# %d members=%ld\n", mi.rank, vars->atoms.size());
     /*

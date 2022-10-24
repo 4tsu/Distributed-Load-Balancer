@@ -80,6 +80,8 @@ void Variables::pack_send_atoms(void) {
                 one_send_atom.push_back(&atoms.at(i));
                 atom_index++;
             }
+            if (atom_index == one_send_list.size())
+                break;
         }
 // fprintf(stderr, "atom_index %d == %ld one_send_list.size()\n", atom_index, one_send_list.size());
         assert(atom_index == one_send_list.size());
