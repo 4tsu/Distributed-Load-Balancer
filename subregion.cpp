@@ -91,12 +91,12 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
 bool SubRegion::judge(int i, int j, Systemparam* sysp) {
     if (i==j)
         return true;
-    if (centers.at(i).at(0)==(double)NULL || centers.at(j).at(0)==(double)NULL)
+    if (std::isnan(centers.at(i).at(0)) || std::isnan(centers.at(j).at(0)))
         return true;
     double dx = centers.at(i).at(0) - centers.at(j).at(0);
     double dy = centers.at(i).at(1) - centers.at(j).at(1);
     periodic_distance(dx, dy, sysp);
-    double gap = sqrt(dx*dx + dy+dy) - radii.at(i) - radii.at(j);
+    double gap = sqrt(dx*dx + dy*dy) - radii.at(i) - radii.at(j);
     if (gap > sysp->co_margin)
         return true;
     return false;
@@ -126,8 +126,8 @@ void SubRegion::calc_center(Variables* vars, Systemparam* sysp) {
     const int pn = vars->atoms.size();
 
     if (pn == 0) {
-        this->center[0] = (double)NULL;
-        this->center[1] = (double)NULL;
+        this->center[0] = std::numeric_limits<double>::quiet_NaN();
+        this->center[1] = std::numeric_limits<double>::quiet_NaN();
         return;
     }
     
