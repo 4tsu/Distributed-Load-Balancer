@@ -21,7 +21,7 @@ test.exe: $(OBJ)
 
 test: test.exe
 	-rm err.dat
-	mpirun --oversubscribe -np 6 ./test.exe > e.dat
+	mpirun --oversubscribe -np 4 ./test.exe > e.dat
 	-gnuplot energy.plt
 
 dumperr: test.exe
