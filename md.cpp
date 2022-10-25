@@ -38,6 +38,7 @@ void MD::set_box(int N, double xl, double yl, double cutoff) {
 void MD::set_margin(double margin) {
     sysp->margin = margin;
     sysp->calc_margin();
+    vars->set_margin_life(margin);
 }
 
 
@@ -299,7 +300,7 @@ void MD::check_pairlist(void) {
     vars->margin_life -= global_max*2.0*dt;
     if (vars->margin_life < 0) {
         this->make_pair();
-        vars->margin_life = sysp->margin;
+        vars->set_margin_life(sysp->margin);
     }
     double ml = vars->margin_life;
     MPI_Bcast(&ml, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);

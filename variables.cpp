@@ -70,6 +70,12 @@ double Variables::max_velocity(void) {
 
 
 
+void Variables::set_margin_life(double margin) {
+    this->margin_life = margin;
+}
+
+
+
 void Variables::pack_send_atoms(void) {
     this->send_atoms.clear();
     for (auto& one_send_list : this->send_list){

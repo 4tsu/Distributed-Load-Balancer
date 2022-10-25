@@ -41,6 +41,7 @@ public:
     int number_of_atoms(void) {return static_cast<int>(atoms.size());}
     void set_initial_velocity(const double, MPIinfo, Systemparam*);
     double margin_life;
+    void set_margin_life(double);
     double max_velocity(void);
     void pack_send_atoms(void);
 
