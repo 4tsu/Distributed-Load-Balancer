@@ -72,13 +72,13 @@ void PairList::make_pair(Variables* &vars, Systemparam* sysp) {
                 pair_j_index++;
             }
         }
-        this->other_list.push_back(one_other_list);
+        if (one_other_list.size() != 0)
+            this->other_list.push_back(one_other_list);
         new_other_atom.push_back(one_new_other_atom);
         vars->recv_list.push_back(one_recv_list);
         vars->recv_size.push_back(one_recv_list.size()*sizeof(Atom));
     }
     vars->other_atoms = new_other_atom;
-    assert(this->other_list.size() == vars->other_atoms.size());
 }
 
 // ============================================

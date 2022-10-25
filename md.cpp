@@ -235,15 +235,19 @@ void MD::make_pair(void) {
         }
         sr->dplist_reverse = new_dplist_r;
 
-        // send_sizeとrecv_sizeの整理
+        // send_sizeとrecv_size, recv_list, other_atomsの整理
         std::vector<int> new_recv_size;
         std::vector<std::vector<int>> new_recv_list;
+        std::vector<std::vector<Atom>> new_other_atoms;
         std::vector<int> rs = vars->recv_size;
         std::vector<std::vector<int>> rl = vars->recv_list;
+        std::vector<std::vector<Atom>> oa = vars->other_atoms;
+        std::vector<std::vector<Pair>> ol = pl->other_list;
         for (int i=0; i<rs.size(); i++) {
             if (rs.at(i)!=0) {
                 new_recv_size.push_back(rs.at(i));
                 new_recv_list.push_back(rl.at(i));
+                new_other_atoms.push_back(oa.at(i));
             }
         } 
         std::vector<int> new_send_size;
@@ -254,8 +258,11 @@ void MD::make_pair(void) {
         vars->recv_size = new_recv_size;
         vars->recv_list = new_recv_list;
         vars->send_size = new_send_size;
+        vars->other_atoms = new_other_atoms;
         assert(sr->dplist.size() == vars->recv_size.size());
         assert(sr->dplist.size() == vars->recv_list.size());
+        assert(sr->dplist.size() == vars->other_atoms.size());
+        assert(sr->dplist.size() == pl->other_list.size());
         assert(sr->dplist_reverse.size() == vars->send_size.size());
         
 
@@ -557,7 +564,6 @@ void MD::run(void) {
     // 初期配置orデータ読み込み
     makeconf();
    
-ckpt();
      // ロードバランサー選択
     vars->set_initial_velocity(1.0, mi, sysp); // 初速決定
     obs->export_cdview(vars->atoms, *sysp, mi);
@@ -565,7 +571,6 @@ ckpt();
     //最初のペアリスト作成
     assert(sysp->N != 0);
     this->make_pair();
-ckpt();
     /*
     for (auto dp : sr->dplist) {
         fprintf(stderr, "# %d %d-%d\n", mi.rank, dp.i, dp.j);
