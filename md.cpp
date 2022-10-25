@@ -237,9 +237,14 @@ void MD::make_pair(void) {
 
         // send_sizeとrecv_sizeの整理
         std::vector<int> new_recv_size;
-        for (auto& s : vars->recv_size){
-            if (s!=0)
-                new_recv_size.push_back(s);
+        std::vector<std::vector<int>> new_recv_list;
+        std::vector<int> rs = vars->recv_size;
+        std::vector<std::vector<int>> rl = vars->recv_list;
+        for (int i=0; i<rs.size(); i++) {
+            if (rs.at(i)!=0) {
+                new_recv_size.push_back(rs.at(i));
+                new_recv_list.push_back(rl.at(i));
+            }
         } 
         std::vector<int> new_send_size;
         for (auto& s : vars->send_size){
@@ -247,7 +252,11 @@ void MD::make_pair(void) {
                 new_send_size.push_back(s);
         }
         vars->recv_size = new_recv_size;
+        vars->recv_list = new_recv_list;
         vars->send_size = new_send_size;
+        assert(sr->dplist.size() == vars->recv_size.size());
+        assert(sr->dplist.size() == vars->recv_list.size());
+        assert(sr->dplist_reverse.size() == vars->send_size.size());
         
 
         // リストrecv_listの送信

@@ -77,11 +77,14 @@ void Variables::set_margin_life(double margin) {
 
 
 void Variables::pack_send_atoms(void) {
+    // int rank;
+    // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     this->send_atoms.clear();
     for (auto& one_send_list : this->send_list){
         std::vector<Atom*> one_send_atom;
         int atom_index = 0;
         for (int i=0; i<this->atoms.size(); i++) {
+        // if(rank==4)fprintf(stderr, "%d == %d\n", atoms.at(i).id, one_send_list.at(atom_index));
             if (atoms.at(i).id == one_send_list.at(atom_index)) {
                 one_send_atom.push_back(&atoms.at(i));
                 atom_index++;
@@ -89,7 +92,7 @@ void Variables::pack_send_atoms(void) {
             if (atom_index == one_send_list.size())
                 break;
         }
-// fprintf(stderr, "atom_index %d == %ld one_send_list.size()\n", atom_index, one_send_list.size());
+        // fprintf(stderr, "#%d : atom_index %d == %ld one_send_list.size()\n", rank, atom_index, one_send_list.size());
         assert(atom_index == one_send_list.size());
         this->send_atoms.push_back(one_send_atom);
     }
