@@ -90,7 +90,7 @@ void MD::make_pair(void) {
     // centerとradiusを計算済みである事を仮定
     // domainpairlistの作成
     sr->make_dplist(mi, vars, sysp);
-    
+
     // 他領域粒子情報をすべて持ってくる
     if (mi.procs > 1) {
         // あらかじめ、送受信のデータ容量だけやりとりしておく
@@ -244,9 +244,12 @@ void MD::make_pair(void) {
         std::vector<int> new_send_size;
         for (auto& s : vars->send_size){
             if (s!=0)
-                new_recv_size.push_back(s);
-        } 
+                new_send_size.push_back(s);
+        }
+        vars->recv_size = new_recv_size;
+        vars->send_size = new_send_size;
         
+
         // リストrecv_listの送信
         mpi_send_requests.clear();
         std::vector<std::vector<int>> sendbuf;
@@ -268,6 +271,7 @@ void MD::make_pair(void) {
             mpi_recv_requests.push_back(ireq);
             recv_index += list_size;
         }
+        assert(recv_index == send_list_total);
 
         for (auto& req : mpi_recv_requests)
             MPI_Wait(&req, &st);
@@ -386,7 +390,7 @@ void MD::communicate_atoms(void) {
     // 必要な通信サイズを予め共有 <- ペアリスト構築時点で共有できるはず
     MPI_Request ireq;
     MPI_Status st;
-
+    
     // 自領域粒子の情報を他領域に送る
     std::vector<MPI_Request> mpi_send_requests;
     std::vector<std::vector<Atom>> sendbuf(sr->dplist_reverse.size());
@@ -540,11 +544,11 @@ void MD::run(void) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     
-    
     /// MD
     // 初期配置orデータ読み込み
     makeconf();
    
+ckpt();
      // ロードバランサー選択
     vars->set_initial_velocity(1.0, mi, sysp); // 初速決定
     obs->export_cdview(vars->atoms, *sysp, mi);
@@ -552,6 +556,7 @@ void MD::run(void) {
     //最初のペアリスト作成
     assert(sysp->N != 0);
     this->make_pair();
+ckpt();
     /*
     for (auto dp : sr->dplist) {
         fprintf(stderr, "# %d %d-%d\n", mi.rank, dp.i, dp.j);
@@ -570,7 +575,7 @@ void MD::run(void) {
     }
     */
     // step 0 情報の出力
-    obs->export_cdview(vars->atoms, *sysp, mi);
+
 
     // 計算ループ
     for (int step=1; step<=steps; step++) {
