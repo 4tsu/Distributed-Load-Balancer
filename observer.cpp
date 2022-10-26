@@ -18,11 +18,11 @@ void Observer::export_cdview(std::vector<Atom> atoms, Systemparam sysp, MPIinfo 
     }
     MPI_Barrier(MPI_COMM_WORLD);
     for (auto &a : atoms) {
-        ofs << a.id     << " ";
-        ofs << mi.rank  << " ";
-        ofs << a.x      << " ";
-        ofs << a.y      << " ";
-        ofs << "0"      << " ";
+        ofs << a.id       << " ";
+        ofs << mi.rank%9  << " ";   // cdviewの描画色が9色なので
+        ofs << a.x        << " ";
+        ofs << a.y        << " ";
+        ofs << "0"        << " ";
         ofs << std::endl;
     }
 }
