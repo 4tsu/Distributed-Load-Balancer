@@ -547,6 +547,7 @@ void MD::communicate_force(void) {
 
 
 void MD::run(void) {
+    /* std::filesystemは使用できない環境もあるので廃止
     // 結果出力が追記なので、同名ファイルは事前に削除しておく
     if (mi.rank == 0) {
         for (const auto & file : std::filesystem::directory_iterator(".")) {
@@ -558,6 +559,7 @@ void MD::run(void) {
         }
     }
     MPI_Barrier(MPI_COMM_WORLD);
+    */
 
     
     /// MD

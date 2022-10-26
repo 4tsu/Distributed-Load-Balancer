@@ -12,6 +12,7 @@ all: md.exe
 
 md.exe: $(OBJ)
 	$(CC) $(OPTIONS) -O3 $(OBJ) -o $@
+	-rm *.cdv
 
 %.o: %.cpp
 	$(CC) $(OPTIONS) $(TESTOPT) -O3 -c $<
@@ -21,11 +22,13 @@ test.exe: $(OBJ)
 
 test: test.exe
 	-rm err.dat
+	-rm *.cdv
 	mpirun --oversubscribe -np 4 ./test.exe > e.dat
 	-gnuplot energy.plt
 
 dumperr: test.exe
 	-rm err.dat
+	-rm *.cdv
 	mpirun -np 4 ./test.exe > e.dat 2> err.dat
 
 run: md.exe
@@ -35,4 +38,4 @@ dep:
 	g++ $(DEPFLAGS) $(SRC) $(OPTIONS) >makefile.depend
 
 clean:
-	rm -f md.exe *.o test.exe
+	rm -f md.exe *.o test.exe *.cdv
