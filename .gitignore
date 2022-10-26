@@ -38,6 +38,7 @@
 # Visualization
 *.cdv
 *.png
+*.gif
 
 # Output
 *.dat
