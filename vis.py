@@ -109,7 +109,7 @@ def plot_energy(inputfile):
     ax.set_ylabel('energy')
     ax.legend()
     plt.savefig('energy.png')
-    print("exporting energy.png...")
+    print("exporting energy.png ...")
 
 ###=============================================
 
