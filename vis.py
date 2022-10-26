@@ -104,7 +104,7 @@ def plot_energy(inputfile):
             POTENTIAL.append(float(potential))
             TOTAL.append(float(total))
     
-    print("exporting energy.png...")
+    print("exporting energy.png ...")
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.cla()
