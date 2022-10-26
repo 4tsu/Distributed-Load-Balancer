@@ -66,8 +66,57 @@ def cdview(inputfile):
         X = np.array(X2[i])
         Y = np.array(Y2[i])
         img = ax.scatter(X, Y, c=colors[i], marker="8", s=7.0, alpha=0.95)
+
+
+
+def plot_energy(inputfile):
+    STEP      = []
+    KINETIC   = []
+    POTENTIAL = []
+    TOTAL     = []
+    with open(inputfile) as f:
+        Line = [s.strip() for s in f.readlines()]
+        for l in range(0,len(Line)):
+            step      = ''
+            kinetic   = ''
+            potential = ''
+            total     = ''
+            index = 0
+            for s in Line[l]:
+                if s == ' ':
+                    index += 1
+                    continue
+                if index == 0:
+                    step += s
+                elif index == 1:
+                    kinetic += s
+                elif index == 2:
+                    potential += s
+                elif index == 3:
+                    total += s
+            STEP.append(int(step))
+            KINETIC.append(float(kinetic))
+            POTENTIAL.append(float(potential))
+            TOTAL.append(float(total))
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.cla()
+    ax.plot(STEP, KINETIC, label='kinetic')
+    ax.plot(STEP, POTENTIAL, label='potential')
+    ax.plot(STEP, TOTAL, label='total')
+    ax.set_xlabel('step')
+    ax.set_ylabel('energy')
+    ax.legend()
+    plt.savefig('energy.png')
+    print("exporting energy.png...")
+
 ###=============================================
 
+# plot_energy("e.dat")
+
+
+plt.close()
 fig = plt.figure(facecolor='black')
 ax = fig.add_subplot(111)
 FRAMES = []
