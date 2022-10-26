@@ -4,6 +4,12 @@ import matplotlib.animation as anim
 import os
 
 ###============================================
+# Muted by P.Tol
+colors = ["#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677", "#882255", "#AA4499"]
+# alternative
+# colors = ["g", "r", "c", "m", "y", "k", "darksalmon", "limegreen", "b"]
+
+
 
 def cdview(inputfile):
     ID    = []
@@ -46,7 +52,6 @@ def cdview(inputfile):
             Y.append(float(y))
             Z.append(float(z))
 
-    colors = ["g", "r", "c", "m", "y", "k", "darksalmon", "limegreen", "b"]
 
     num_groups = max(GROUP) + 1
     X2 = [[] for _ in range(num_groups)]
@@ -99,17 +104,17 @@ def plot_energy(inputfile):
             POTENTIAL.append(float(potential))
             TOTAL.append(float(total))
     
+    print("exporting energy.png...")
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.cla()
-    ax.plot(STEP, KINETIC, label='kinetic')
-    ax.plot(STEP, POTENTIAL, label='potential')
-    ax.plot(STEP, TOTAL, label='total')
+    ax.plot(STEP, KINETIC, label='kinetic', c=colors[4])
+    ax.plot(STEP, POTENTIAL, label='potential', c=colors[2])
+    ax.plot(STEP, TOTAL, label='total', c=colors[0])
     ax.set_xlabel('step')
     ax.set_ylabel('energy')
     ax.legend()
     plt.savefig('energy.png')
-    print("exporting energy.png...")
 
 ###=============================================
 
@@ -126,7 +131,7 @@ for filename in sorted(os.listdir(".")):
 ani = anim.FuncAnimation(fig, cdview, frames=FRAMES, interval=50)
 gifname = "cdview.gif"
 print("exporting",gifname,"...")
-# ani.save(gifname, writer="imagemagick")
-ani.save(gifname, writer="pillow")
+ani.save(gifname, writer="imagemagick")
+# ani.save(gifname, writer="pillow")
 
 ###=============================================
