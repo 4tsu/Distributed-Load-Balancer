@@ -29,7 +29,7 @@ test: test.exe
 dumperr: test.exe
 	-rm err.dat
 	-rm *.cdv
-	mpirun -np 4 ./test.exe > e.dat 2> err.dat
+	mpirun --oversubscribe -np 5 ./test.exe > e.dat 2> err.dat
 
 run: md.exe
 	mpirun -np 4 ./md.exe > e.dat
