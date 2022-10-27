@@ -337,8 +337,8 @@ void MD::update_position(double coefficient) {
         periodic_coordinate(x, y, sysp);
         atom.x = x;
         atom.y = y;
-        assert(sysp->x_min <= x <= sysp->x_max);
-        assert(sysp->y_min <= y <= sysp->y_max);
+        assert(sysp->x_min <= x && x <= sysp->x_max);
+        assert(sysp->y_min <= y && x <= sysp->y_max);
     }
 }
 
