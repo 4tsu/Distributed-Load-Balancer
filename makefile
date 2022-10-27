@@ -11,6 +11,7 @@ DEPFLAGS=-MM -MG
 
 
 
+# ===release=================================
 all: md.exe
 md.exe: $(OBJ)
 	$(CC) $(OPTIONS) -O3 $(OBJ) -o $@
@@ -19,6 +20,8 @@ md.exe: $(OBJ)
 $(SRCDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CC) $(OPTIONS) $(TESTOPT) -O3 -c $< -o $@
 
+
+# ===test====================================
 test.exe: $(OBJ)
 	$(CC) $(OPTIONS) $(TESTOPT) $(OBJ) -O3 -o $@
 
@@ -32,6 +35,8 @@ dumperr: test.exe
 	-rm *.cdv
 	mpirun --oversubscribe -np 4 ./test.exe > e.dat 2> err.dat
 
+
+# ===========================================
 run: md.exe
 	mpirun -np 4 ./md.exe > e.dat
 
@@ -40,3 +45,5 @@ dep:
 
 clean:
 	rm -f md.exe $(SRCDIR)/*.o test.exe *.cdv
+
+# ===========================================
