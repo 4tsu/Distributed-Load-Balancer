@@ -123,7 +123,7 @@ void SubRegion::communicate_centradi(const MPIinfo &mi) {
 
 
 void SubRegion::calc_center(Variables* vars, Systemparam* sysp) {
-    const int pn = vars->atoms.size();
+    const unsigned long pn = vars->atoms.size();
 
     if (pn == 0) {
         this->center[0] = std::numeric_limits<double>::quiet_NaN();

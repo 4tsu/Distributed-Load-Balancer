@@ -12,6 +12,7 @@
 #include <iostream>
 #include <random>
 #include <string>
+#include <limits>
 
 #include <mpi.h>
 

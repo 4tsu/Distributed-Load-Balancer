@@ -6,13 +6,13 @@
 
 // ペアリストに使う
 struct Pair {
-    int i, j;
-    int idi, idj;
+    unsigned long i, j;
+    unsigned long idi, idj;
 };
 
 // ---------------------------------------
 
-void set_pair(Pair &pair, int i, int j, int idi, int idj);
+void set_pair(Pair &pair, unsigned long i, unsigned long j, unsigned long idi, unsigned long idj);
 
 // ---------------------------------------
 

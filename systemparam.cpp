@@ -2,12 +2,11 @@
 
 // =======================================
 
-void Systemparam::set_params(int N, double xl, double yl, double cutoff, int procs) {
+void Systemparam::set_params(unsigned long N, double xl, double yl, double cutoff) {
     this->N = N;
     this->xl = xl;
     this->yl = yl;
     this->cutoff = cutoff;
-    this->myN = static_cast<int>(N/procs);
 }
 
 

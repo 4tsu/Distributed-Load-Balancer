@@ -5,7 +5,7 @@
 // ========================================================================
 
 struct Atom {
-    int id;
+    unsigned long id;
     double  x,  y;
     double vx, vy;
 };
@@ -14,7 +14,7 @@ struct Atom {
 
 
 struct Force {
-    int id;
+    unsigned long id;
     double vx, vy;
 };
 
@@ -26,19 +26,19 @@ public:
     std::vector<std::vector<Atom>> other_atoms;
 
     // 自分が受け取りたい他領域粒子の情報（MPI_Irecvで使用）
-    std::vector<int> recv_size;   // バイト単位、Atomベクターの大きさ
-    std::vector<std::vector<int>> recv_list;   // IDのみ格納
+    std::vector<unsigned long> recv_size;   // バイト単位、Atomベクターの大きさ
+    std::vector<std::vector<unsigned long>> recv_list;   // IDのみ格納
     // 他領域が受け取りたい自領域粒子の情報（MPI_Isendで使用）
-    std::vector<int> send_size;   // バイト単位、ペアリスト構築時に他領域から受け取っておく
-    std::vector<std::vector<int>> send_list;   // 受け取っておく
+    std::vector<unsigned long> send_size;   // バイト単位、ペアリスト構築時に他領域から受け取っておく
+    std::vector<std::vector<unsigned long>> send_list;   // 受け取っておく
     std::vector<std::vector<Atom*>> send_atoms;   // 上の受け取りを受けて作成する
     std::vector<std::vector<Force>> sending_force;   // 力積の書き戻しに使用
     
     double time;
     Variables(void) {time = 0.0;}
-    void add_atoms(int id, double x, double y);
+    void add_atoms(unsigned long id, double x, double y);
     void export_cdview(void);
-    int number_of_atoms(void) {return static_cast<int>(atoms.size());}
+    unsigned long number_of_atoms(void) {return atoms.size();}
     void set_initial_velocity(const double, MPIinfo, Systemparam*);
     double margin_life;
     void set_margin_life(double);

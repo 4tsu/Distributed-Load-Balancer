@@ -14,7 +14,7 @@ MPI_Type_commit(&MPI_Atom);
 
 // ---------------------------------
 
-void Variables::add_atoms(int id, double x, double y) {
+void Variables::add_atoms(unsigned long id, double x, double y) {
     Atom a;
     a.id = id;
     a.x = x;

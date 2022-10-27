@@ -11,7 +11,6 @@ public:
     double cutoff;
     double margin;
     double co_margin;
-    int myN;
     
     double CL2;
     double RC2;
@@ -24,7 +23,7 @@ public:
     double y_max;
     double y_min;
 
-    void set_params(int N, double xl, double yl, double cutoff, int procs);
+    void set_params(unsigned long N, double xl, double yl, double cutoff);
     void calc_params(void);
     void calc_margin(void);
 

@@ -35,7 +35,7 @@ public:
     ~MD(void);
     void run(void);
     void set_params(int steps, int ob_interval, double dt);
-    void set_box(int N, double xl, double y, double cutoff);
+    void set_box(unsigned long N, double xl, double y, double cutoff);
     void set_margin(double margin);
     void set_sdd(int sdd_type);
 };

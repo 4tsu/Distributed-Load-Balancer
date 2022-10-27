@@ -28,8 +28,12 @@ void MD::set_params(int steps, int ob_interval, double dt) {
 
 
 
-void MD::set_box(int N, double xl, double yl, double cutoff) {
-    sysp->set_params(N, xl, yl, cutoff, mi.procs);
+void MD::set_box(unsigned long N, double xl, double yl, double cutoff) {
+    sysp->set_params(N, xl, yl, cutoff);
+    if (N<std::numeric_limits<unsigned long>::min() || std::numeric_limits<unsigned long>::max()<N) {
+        fprintf(stderr, "=== input 'N' is too large! ===\n");
+        exit(EXIT_FAILURE);
+    }
     sysp->calc_params();
 }
 
@@ -50,7 +54,7 @@ void MD::set_sdd(int sdd_type) {
 
 
 void MD::makeconf(void) {
-    const int N = sysp->N;
+    const unsigned long N = sysp->N;
     const double xl = sysp->xl;
     const double yl = sysp->yl;
     const double x_min = sysp->x_min;
@@ -59,12 +63,12 @@ void MD::makeconf(void) {
     const double y_max = sysp->y_max;
     const double lpx = sysp->xl/mi.npx;
     const double lpy = sysp->yl/mi.npy;
-    const int xppl = ceil(sqrt(xl*N/yl));
-    const int yppl = ceil(sqrt(yl*N/xl));
+    const unsigned long xppl = ceil(sqrt(xl*N/yl));
+    const unsigned long yppl = ceil(sqrt(yl*N/xl));
     const double pitch = std::min(xl/xppl, yl/yppl);
 
    // 等間隔配置・分割
-    for (int i=0; i<N; i++) {
+    for (unsigned long i=0; i<N; i++) {
         int iy = static_cast<int>(i/xppl);
         int ix = i%xppl;
         double x = ix * pitch;
@@ -98,17 +102,17 @@ void MD::make_pair(void) {
         std::vector<MPI_Request> mpi_send_requests;
         for (auto &l : sr->dplist_reverse) {
             assert(l.i == mi.rank);
-            int my_n = vars->number_of_atoms();
-            MPI_Isend(&my_n, 1, MPI_INT, l.j, 0, MPI_COMM_WORLD, &ireq);
+            unsigned long my_n = vars->number_of_atoms();
+            MPI_Isend(&my_n, 1, MPI_UNSIGNED_LONG, l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
         }
 
-        std::vector<int> other_n_vec(sr->dplist.size());
+        std::vector<unsigned long> other_n_vec(sr->dplist.size());
         std::vector<MPI_Request> mpi_recv_requests;
-        int other_count = 0;
+        unsigned long other_count = 0;
         for (auto &l : sr->dplist) {
             assert(l.i == mi.rank);
-            MPI_Irecv(&other_n_vec[other_count], 1, MPI_INT, l.j, 0, MPI_COMM_WORLD, &ireq);
+            MPI_Irecv(&other_n_vec[other_count], 1, MPI_UNSIGNED_LONG, l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
             other_count++;
         }
@@ -120,10 +124,10 @@ void MD::make_pair(void) {
         // まずは自分が送る分
         mpi_send_requests.clear();
         // 構造体をバラしてから送信する
-        std::vector<int> sendbuf_id(vars->number_of_atoms());
+        std::vector<unsigned long> sendbuf_id(vars->number_of_atoms());
         std::vector<double> sendbuf(vars->number_of_atoms()*4);
         Atom *atoms = vars->atoms.data();
-        for (int i=0; i<vars->number_of_atoms(); i++) {
+        for (unsigned long i=0; i<vars->number_of_atoms(); i++) {
             sendbuf_id[i] = atoms[i].id;
             sendbuf[i*4+0] = atoms[i].x;
             sendbuf[i*4+1] = atoms[i].y;
@@ -131,7 +135,7 @@ void MD::make_pair(void) {
             sendbuf[i*4+3] = atoms[i].vy;
         }
         for (auto &l : sr->dplist_reverse) {
-            MPI_Isend(sendbuf_id.data(), sendbuf_id.size(), MPI_INT, 
+            MPI_Isend(sendbuf_id.data(), sendbuf_id.size(), MPI_UNSIGNED_LONG, 
                     l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
             MPI_Isend(sendbuf.data(), sendbuf.size(), MPI_DOUBLE, 
@@ -141,13 +145,13 @@ void MD::make_pair(void) {
         
         // そして受け取る分
         mpi_recv_requests.clear();
-        int sum_recv = std::accumulate(other_n_vec.begin(), other_n_vec.end(), 0);
+        unsigned long sum_recv = std::accumulate(other_n_vec.begin(), other_n_vec.end(), 0);
         other_count = 0;
-        int start_position = 0;
-        std::vector<int> recvbuf_id(sum_recv);
+        unsigned long start_position = 0;
+        std::vector<unsigned long> recvbuf_id(sum_recv);
         std::vector<double> recvbuf(sum_recv*4);
         for (auto &l : sr->dplist) {
-            MPI_Irecv(&recvbuf_id[start_position], other_n_vec[other_count], MPI_INT, 
+            MPI_Irecv(&recvbuf_id[start_position], other_n_vec[other_count], MPI_UNSIGNED_LONG, 
                     l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
             MPI_Irecv(&recvbuf[start_position*4], other_n_vec[other_count]*4, MPI_DOUBLE, 
@@ -165,14 +169,14 @@ void MD::make_pair(void) {
         // 受け取ったデータを構造体に戻す
         vars->other_atoms.clear();
         other_count = 0;
-        int bias = 0;
+        unsigned long bias = 0;
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
         for (auto dp : sr->dplist) {
 #pragma GCC diagnostic warning "-Wunused-variable"
 #pragma GCC diagnostic warning "-Wunused-but-set-variable"
             std::vector<Atom> one_other_atom;
-            for (int i=0; i<other_n_vec[other_count]; i++) {
+            for (unsigned long i=0; i<other_n_vec[other_count]; i++) {
                 Atom a;
                 a.id = recvbuf_id[bias + i];
                 a.x = recvbuf[(bias+i)*4+0];
@@ -208,7 +212,7 @@ void MD::make_pair(void) {
         std::vector<DomainPair> new_dplist;
         for (std::size_t i=0; i<sr->dplist.size(); i++) {
             assert(dplist[i].i == mi.rank);
-            MPI_Isend(&vars->recv_size.at(i), 1, MPI_INT, dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
+            MPI_Isend(&vars->recv_size.at(i), 1, MPI_UNSIGNED_LONG, dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
             if (vars->recv_size.at(i) != 0)
                 new_dplist.push_back(dplist[i]);
@@ -220,7 +224,7 @@ void MD::make_pair(void) {
         for (std::size_t i=0; i<sr->dplist_reverse.size(); i++) {
             DomainPair dp = sr->dplist_reverse.at(i);
             assert(dp.i == mi.rank);
-            MPI_Irecv(&vars->send_size.at(i), 1, MPI_INT, dp.j, 0, MPI_COMM_WORLD, &ireq);
+            MPI_Irecv(&vars->send_size.at(i), 1, MPI_UNSIGNED_LONG, dp.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
         }
         
@@ -238,11 +242,11 @@ void MD::make_pair(void) {
         sr->dplist_reverse = new_dplist_r;
 
         // send_sizeとrecv_size, recv_list, other_atomsの整理
-        std::vector<int> new_recv_size;
-        std::vector<std::vector<int>> new_recv_list;
+        std::vector<unsigned long> new_recv_size;
+        std::vector<std::vector<unsigned long>> new_recv_list;
         std::vector<std::vector<Atom>> new_other_atoms;
-        std::vector<int> rs = vars->recv_size;
-        std::vector<std::vector<int>> rl = vars->recv_list;
+        std::vector<unsigned long> rs = vars->recv_size;
+        std::vector<std::vector<unsigned long>> rl = vars->recv_list;
         std::vector<std::vector<Atom>> oa = vars->other_atoms;
         std::vector<std::vector<Pair>> ol = pl->other_list;
         for (std::size_t i=0; i<rs.size(); i++) {
@@ -252,7 +256,7 @@ void MD::make_pair(void) {
                 new_other_atoms.push_back(oa.at(i));
             }
         } 
-        std::vector<int> new_send_size;
+        std::vector<unsigned long> new_send_size;
         for (auto& s : vars->send_size){
             if (s!=0)
                 new_send_size.push_back(s);
@@ -270,21 +274,21 @@ void MD::make_pair(void) {
 
         // リストrecv_listの送信
         mpi_send_requests.clear();
-        std::vector<std::vector<int>> sendbuf;
+        std::vector<std::vector<unsigned long>> sendbuf;
         for (std::size_t i=0; i<sr->dplist.size(); i++) {
             sendbuf.push_back(vars->recv_list.at(i));
-            MPI_Isend(sendbuf.at(i).data(), sendbuf.at(i).size(), MPI_INT, sr->dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
+            MPI_Isend(sendbuf.at(i).data(), sendbuf.at(i).size(), MPI_UNSIGNED_LONG, sr->dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
         }
 
         // リストrecv_listを受信して、send_listに格納
         mpi_recv_requests.clear();
-        int send_list_total = std::accumulate(vars->send_size.begin(), vars->send_size.end(), 0) / sizeof(Atom);
-        std::vector<int> recvbuf(send_list_total);
-        int recv_index = 0;
+        unsigned long send_list_total = std::accumulate(vars->send_size.begin(), vars->send_size.end(), 0) / sizeof(Atom);
+        std::vector<unsigned long> recvbuf(send_list_total);
+        unsigned long recv_index = 0;
         for (std::size_t i=0; i<sr->dplist_reverse.size(); i++) {
-            int list_size = vars->send_size.at(i) / sizeof(Atom);
-            MPI_Irecv(&recvbuf.at(recv_index), list_size, MPI_INT, sr->dplist_reverse[i].j, 0, MPI_COMM_WORLD, &ireq);
+            unsigned long list_size = vars->send_size.at(i) / sizeof(Atom);
+            MPI_Irecv(&recvbuf.at(recv_index), list_size, MPI_UNSIGNED_LONG, sr->dplist_reverse[i].j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
             recv_index += list_size;
         }
@@ -297,10 +301,10 @@ void MD::make_pair(void) {
 
         /// recvbufのsend_listへの展開
         vars->send_list.clear();
-        int bias = 0;
+        unsigned long bias = 0;
         for (std::size_t i=0; i<sr->dplist_reverse.size(); i++) {
-            int recv_range = vars->send_size.at(i) / sizeof(Atom);
-            std::vector<int> one_send_list(recv_range);
+            unsigned long recv_range = vars->send_size.at(i) / sizeof(Atom);
+            std::vector<unsigned long> one_send_list(recv_range);
             std::copy(recvbuf.begin()+bias, recvbuf.begin()+bias+recv_range, one_send_list.begin());
             vars->send_list.push_back(one_send_list);
             bias += recv_range;
@@ -424,9 +428,9 @@ void MD::communicate_atoms(void) {
     
     // 自領域の計算で使う他領域粒子の情報をもらう
     std::vector<MPI_Request> mpi_recv_requests;
-    int total_recv_size = std::accumulate(vars->recv_size.begin(), vars->recv_size.end(), 0);
+    unsigned long total_recv_size = std::accumulate(vars->recv_size.begin(), vars->recv_size.end(), 0);
     std::vector<Atom> recvbuf(total_recv_size/sizeof(Atom));
-    int recv_index = 0;
+    unsigned long recv_index = 0;
     for (std::size_t i=0; i<sr->dplist.size(); i++) {
         DomainPair dp = sr->dplist[i];
         assert(dp.i == mi.rank);
@@ -442,10 +446,10 @@ void MD::communicate_atoms(void) {
 
     // 展開
     recv_index = 0;
-    int range;
+    unsigned long range;
     for (std::size_t i=0; i<sr->dplist.size(); i++) {
         vars->other_atoms.at(i).clear();
-        range = static_cast<int>(vars->recv_size.at(i) / sizeof(Atom));
+        range = static_cast<unsigned long>(vars->recv_size.at(i) / sizeof(Atom));
         vars->other_atoms.at(i).resize(range);
         std::copy(recvbuf.begin()+recv_index, recvbuf.begin()+recv_index+range, vars->other_atoms.at(i).begin());
         recv_index += range;
@@ -466,17 +470,17 @@ void MD::communicate_force(void) {
     for (std::size_t i=0; i<sr->dplist.size(); i++) {
         DomainPair dp = sr->dplist[i];
         assert(dp.i == mi.rank);
-        int sending_force_size = vars->sending_force.at(i).size()*sizeof(Force);
-        MPI_Isend(&sending_force_size, 1, MPI_INT, dp.j, 0, MPI_COMM_WORLD, &ireq);
+        unsigned long sending_force_size = vars->sending_force.at(i).size()*sizeof(Force);
+        MPI_Isend(&sending_force_size, 1, MPI_UNSIGNED_LONG, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_send_requests.push_back(ireq);
     }
    
     std::vector<MPI_Request> mpi_recv_requests;
-    std::vector<int> recv_force_size(sr->dplist_reverse.size());
+    std::vector<unsigned long> recv_force_size(sr->dplist_reverse.size());
     for (std::size_t i=0; i<sr->dplist_reverse.size(); i++) {
         DomainPair dp = sr->dplist_reverse[i];
         assert(dp.i == mi.rank);
-        MPI_Irecv(&recv_force_size[i], 1, MPI_INT, dp.j, 0, MPI_COMM_WORLD, &ireq);
+        MPI_Irecv(&recv_force_size[i], 1, MPI_UNSIGNED_LONG, dp.j, 0, MPI_COMM_WORLD, &ireq);
         mpi_recv_requests.push_back(ireq);
     }
 
@@ -490,7 +494,7 @@ void MD::communicate_force(void) {
     mpi_send_requests.clear();
     for (std::size_t i=0; i<sr->dplist.size(); i++) {
         DomainPair dp = sr->dplist[i];
-        int force_size = vars->sending_force.at(i).size()*sizeof(Force);
+        unsigned long force_size = vars->sending_force.at(i).size()*sizeof(Force);
         if (force_size == 0)
             continue;
         MPI_Isend(vars->sending_force[i].data(), force_size, MPI_CHAR, dp.j, 0, MPI_COMM_WORLD, &ireq);
@@ -499,9 +503,9 @@ void MD::communicate_force(void) {
 
     /// 受信
     mpi_recv_requests.clear();
-    int total_recv_size = static_cast<int>(std::accumulate(recv_force_size.begin(), recv_force_size.end(), 0));
+    unsigned long total_recv_size = static_cast<unsigned long>(std::accumulate(recv_force_size.begin(), recv_force_size.end(), 0));
     std::vector<Force> recv_force(total_recv_size/sizeof(Force));
-    int recv_index = 0;
+    unsigned long recv_index = 0;
     for (std::size_t i=0; i<sr->dplist_reverse.size(); i++) {
         DomainPair dp = sr->dplist_reverse[i];
         if (recv_force_size[i] == 0)
@@ -561,7 +565,11 @@ void MD::run(void) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
     */
-
+    
+    if (mi.procs<std::numeric_limits<int>::min() || std::numeric_limits<int>::max()<mi.procs) {
+        fprintf(stderr, "=== Too many processes! ===\n");
+        exit(EXIT_FAILURE);
+    }
     
     /// MD
     // 初期配置orデータ読み込み
