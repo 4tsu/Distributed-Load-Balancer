@@ -29,7 +29,7 @@ void Observer::export_cdview(std::vector<Atom> atoms, Systemparam sysp, MPIinfo 
 
 
 
-double Observer::kinetic_energy(Variables *vars, const MPIinfo &mi, Systemparam *sysp) {
+double Observer::kinetic_energy(Variables *vars, Systemparam *sysp) {
     double k = 0;
     for (auto& a : vars->atoms) {
         k += a.vx * a.vx;
@@ -46,7 +46,7 @@ double Observer::kinetic_energy(Variables *vars, const MPIinfo &mi, Systemparam 
 
 // ポテンシャルエネルギーの算出
 /// ペアリストを使用するので、事前に構築しておくこと
-double Observer::potential_energy(Variables *vars, PairList *pl, const MPIinfo &mi, Systemparam *sysp) {
+double Observer::potential_energy(Variables *vars, PairList *pl, Systemparam *sysp) {
     double v = 0;
 
     for (auto& l : pl->list) {

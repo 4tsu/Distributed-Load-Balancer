@@ -614,8 +614,8 @@ for (auto atom : vars->other_atoms.at(i)) {
         this->communicate_atoms();
         // if (mi.rank==0) std::cerr << "(" << vars->atoms[0].x << vars->atoms[0].y << ")" << std::endl;
         // 情報の出力
-        double k = obs->kinetic_energy(vars, mi, sysp);
-        double v = obs->potential_energy(vars, pl, mi, sysp);
+        double k = obs->kinetic_energy(vars, sysp);
+        double v = obs->potential_energy(vars, pl, sysp);
         if (mi.rank==0) {
             printf("%d %lf %lf %lf\n", step, k, v, k+v);
         }
