@@ -100,9 +100,9 @@ void MD::make_pair(void) {
         MPI_Request ireq;
         MPI_Status st;
         std::vector<MPI_Request> mpi_send_requests;
+        unsigned long my_n = vars->number_of_atoms();
         for (auto &l : sr->dplist_reverse) {
             assert(l.i == mi.rank);
-            unsigned long my_n = vars->number_of_atoms();
             MPI_Isend(&my_n, 1, MPI_UNSIGNED_LONG, l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
         }
