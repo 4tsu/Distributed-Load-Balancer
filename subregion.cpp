@@ -91,7 +91,7 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
 bool SubRegion::judge(int i, int j, Systemparam* sysp) {
     if (i==j)
         return true;
-    if (std::isnan(centers.at(i).at(0)) || std::isnan(centers.at(j).at(0)))
+    if (is_empties.at(i) || is_empties.at(j))
         return true;
     double dx = centers.at(i).at(0) - centers.at(j).at(0);
     double dy = centers.at(i).at(1) - centers.at(j).at(1);
@@ -107,16 +107,20 @@ bool SubRegion::judge(int i, int j, Systemparam* sysp) {
 void SubRegion::communicate_centradi(const MPIinfo &mi) {
     this->centers.clear();
     this->radii.clear();
+    this->is_empties.clear();
     std::vector<double> recvbuf_x(mi.procs);
     std::vector<double> recvbuf_y(mi.procs);
     std::vector<double> recvbuf_r(mi.procs);
+    std::vector<int> recvbuf_e(mi.procs);
     MPI_Allgather(&center[0], 1, MPI_DOUBLE, recvbuf_x.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
     MPI_Allgather(&center[1], 1, MPI_DOUBLE, recvbuf_y.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
     MPI_Allgather(&radius, 1, MPI_DOUBLE, recvbuf_r.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+    MPI_Allgather(&is_empty, 1, MPI_INT, recvbuf_e.data(), 1, MPI_INT, MPI_COMM_WORLD);
     for (int i=0; i<mi.procs; i++) {
         std::vector<double> one_center = {recvbuf_x.at(i), recvbuf_y.at(i)};
         this->centers.push_back(one_center);
         this->radii.push_back(recvbuf_r.at(i));
+        this->is_empties.push_back(recvbuf_e.at(i));
     }
 }
 
@@ -126,8 +130,9 @@ void SubRegion::calc_center(Variables* vars, Systemparam* sysp) {
     const unsigned long pn = vars->atoms.size();
 
     if (pn == 0) {
-        this->center[0] = std::numeric_limits<double>::quiet_NaN();
-        this->center[1] = std::numeric_limits<double>::quiet_NaN();
+        this->center[0] = 0.0;
+        this->center[1] = 0.0;
+        this->is_empty = true;
         return;
     }
     

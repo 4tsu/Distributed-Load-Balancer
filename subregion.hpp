@@ -19,6 +19,8 @@ private:
     void communicate_centradi(const MPIinfo &mi);
     std::vector<std::vector<double>> centers;
     std::vector<double> radii;
+    std::vector<bool> is_empties;
+    bool is_empty;
 
 public:
     std::vector<DomainPair> dplist;
