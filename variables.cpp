@@ -82,8 +82,8 @@ void Variables::pack_send_atoms(void) {
     this->send_atoms.clear();
     for (auto& one_send_list : this->send_list){
         std::vector<Atom*> one_send_atom;
-        int atom_index = 0;
-        for (int i=0; i<this->atoms.size(); i++) {
+        unsigned long atom_index = 0;
+        for (std::size_t i=0; i<this->atoms.size(); i++) {
         // if(rank==4)fprintf(stderr, "%d == %d\n", atoms.at(i).id, one_send_list.at(atom_index));
             if (atoms.at(i).id == one_send_list.at(atom_index)) {
                 one_send_atom.push_back(&atoms.at(i));

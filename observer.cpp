@@ -64,7 +64,7 @@ double Observer::potential_energy(Variables *vars, PairList *pl, Systemparam *sy
         double r12 = r6*r6;
         v += 4.0 * (1.0/r12 - 1.0/r6) + sysp->C0;
     }
-    for (int i=0; i<pl->other_list.size(); i++) {
+    for (std::size_t i=0; i<pl->other_list.size(); i++) {
         for (auto& l : pl->other_list.at(i)) {
             Atom ia = vars->atoms.at(l.i);
             Atom ja = vars->other_atoms.at(i).at(l.j);
