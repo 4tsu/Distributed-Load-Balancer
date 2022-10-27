@@ -100,19 +100,19 @@ void MD::make_pair(void) {
         MPI_Request ireq;
         MPI_Status st;
         std::vector<MPI_Request> mpi_send_requests;
-        unsigned long my_n = vars->number_of_atoms();
+        unsigned long my_size = vars->number_of_atoms()*sizeof(Atom);
         for (auto &l : sr->dplist_reverse) {
             assert(l.i == mi.rank);
-            MPI_Isend(&my_n, 1, MPI_UNSIGNED_LONG, l.j, 0, MPI_COMM_WORLD, &ireq);
+            MPI_Isend(&my_size, 1, MPI_UNSIGNED_LONG, l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
         }
 
-        std::vector<unsigned long> other_n_vec(sr->dplist.size());
+        std::vector<unsigned long> other_size_vec(sr->dplist.size());
         std::vector<MPI_Request> mpi_recv_requests;
         int proc_count = 0;
         for (auto &l : sr->dplist) {
             assert(l.i == mi.rank);
-            MPI_Irecv(&other_n_vec[proc_count], 1, MPI_UNSIGNED_LONG, l.j, 0, MPI_COMM_WORLD, &ireq);
+            MPI_Irecv(&other_size_vec[proc_count], 1, MPI_UNSIGNED_LONG, l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
             proc_count++;
         }
@@ -124,70 +124,43 @@ void MD::make_pair(void) {
         // まずは自分が送る分
         mpi_send_requests.clear();
         // 構造体をバラしてから送信する
-        std::vector<unsigned long> sendbuf_id(vars->number_of_atoms());
-        std::vector<double> sendbuf(vars->number_of_atoms()*4);
-        Atom *atoms = vars->atoms.data();
-        for (unsigned long i=0; i<vars->number_of_atoms(); i++) {
-            sendbuf_id[i] = atoms[i].id;
-            sendbuf[i*4+0] = atoms[i].x;
-            sendbuf[i*4+1] = atoms[i].y;
-            sendbuf[i*4+2] = atoms[i].vx;
-            sendbuf[i*4+3] = atoms[i].vy;
-        }
+        std::vector<Atom> sendbuf = vars->atoms;
+        unsigned long send_size = sendbuf.size()*sizeof(Atom);
         for (auto &l : sr->dplist_reverse) {
-            MPI_Isend(sendbuf_id.data(), sendbuf_id.size(), MPI_UNSIGNED_LONG, 
-                    l.j, 0, MPI_COMM_WORLD, &ireq);
-            mpi_send_requests.push_back(ireq);
-            MPI_Isend(sendbuf.data(), sendbuf.size(), MPI_DOUBLE, 
+            MPI_Isend(sendbuf.data(), send_size, MPI_CHAR, 
                     l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
         }
         
         // そして受け取る分
         mpi_recv_requests.clear();
-        unsigned long sum_recv = std::accumulate(other_n_vec.begin(), other_n_vec.end(), 0);
+        unsigned long sum_recv = std::accumulate(other_size_vec.begin(), other_size_vec.end(), 0);
+        std::vector<Atom> recvbuf(sum_recv/sizeof(Atom));
+        int recv_position = 0;
         proc_count = 0;
-        unsigned long start_position = 0;
-        std::vector<unsigned long> recvbuf_id(sum_recv);
-        std::vector<double> recvbuf(sum_recv*4);
         for (auto &l : sr->dplist) {
-            MPI_Irecv(&recvbuf_id[start_position], other_n_vec[proc_count], MPI_UNSIGNED_LONG, 
+            MPI_Irecv(&recvbuf.at(recv_position), other_size_vec.at(proc_count), MPI_CHAR, 
                     l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
-            MPI_Irecv(&recvbuf[start_position*4], other_n_vec[proc_count]*4, MPI_DOUBLE, 
-                    l.j, 0, MPI_COMM_WORLD, &ireq);
-            mpi_recv_requests.push_back(ireq);
-            start_position += other_n_vec[proc_count];
+            recv_position += other_size_vec[proc_count]/sizeof(Atom);
             proc_count++;
         }
-        
         for (auto &req : mpi_recv_requests)
             MPI_Wait(&req, &st);
         for (auto &req : mpi_send_requests)
             MPI_Wait(&req, &st);
-        
-        // 受け取ったデータを構造体に戻す
+
+// for (auto a : recvbuf)
+// fprintf(stderr, "%d ", a.id);
         vars->other_atoms.clear();
-        proc_count = 0;
         unsigned long bias = 0;
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-        for (auto dp : sr->dplist) {
-#pragma GCC diagnostic warning "-Wunused-variable"
-#pragma GCC diagnostic warning "-Wunused-but-set-variable"
-            std::vector<Atom> one_other_atom;
-            for (unsigned long i=0; i<other_n_vec[proc_count]; i++) {
-                Atom a;
-                a.id = recvbuf_id[bias + i];
-                a.x = recvbuf[(bias+i)*4+0];
-                a.y = recvbuf[(bias+i)*4+1];
-                a.vx = recvbuf[(bias+i)*4+2];
-                a.vy = recvbuf[(bias+i)*4+3];
-                one_other_atom.push_back(a);
-            }
-            bias += other_n_vec[proc_count];
-            vars->other_atoms.push_back(one_other_atom);
-            proc_count++;
+        unsigned long recv_range;
+        for (std::size_t i=0; i<sr->dplist.size(); i++) {
+            recv_range = other_size_vec[i]/sizeof(Atom);
+            std::vector<Atom> one_other_atoms(recv_range);
+            std::copy(recvbuf.begin()+bias, recvbuf.begin()+bias+recv_range, one_other_atoms.begin());
+            vars->other_atoms.push_back(one_other_atoms);
+            bias += recv_range;
         }
     }
 
