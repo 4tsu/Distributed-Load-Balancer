@@ -1,7 +1,7 @@
 SRC=$(shell ls *.cpp)
 CC = mpic++
 OPTIONS = -std=c++17 -include lib.hpp
-TESTOPT = -Wall -Wextra --pedantic-error
+TESTOPT = -Wall -Wextra --pedantic-error -Wno-cast-function-type
 OBJ=$(SRC:.cpp=.o)
 # for make dep
 DEPFLAGS=-MM -MG
