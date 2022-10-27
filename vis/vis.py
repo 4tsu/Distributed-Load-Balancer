@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 import os
+import re
 
 ###============================================
 # Muted by P.Tol
@@ -117,6 +118,11 @@ def plot_energy(inputfile):
     plt.savefig('energy.png')
 
 ###=============================================
+path = os.getcwd()
+if re.search("myMD.vis", path):
+    pass
+else:
+    os.chdir('vis')
 
 plot_energy("../e.dat")
 

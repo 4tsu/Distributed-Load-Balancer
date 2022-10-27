@@ -51,6 +51,9 @@ run: md.exe
 dep:
 	g++ $(DEPFLAGS) $(SRC) $(OPTIONS) >makefile.depend
 
+fig:
+	python3 vis/vis.py
+
 clean:
 	rm -f md.exe $(SRCDIR)/*.o test.exe 
 	-rm $(VISDIR)/*.cdv *.dat
