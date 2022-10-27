@@ -109,12 +109,12 @@ void MD::make_pair(void) {
 
         std::vector<unsigned long> other_n_vec(sr->dplist.size());
         std::vector<MPI_Request> mpi_recv_requests;
-        unsigned long other_count = 0;
+        int proc_count = 0;
         for (auto &l : sr->dplist) {
             assert(l.i == mi.rank);
-            MPI_Irecv(&other_n_vec[other_count], 1, MPI_UNSIGNED_LONG, l.j, 0, MPI_COMM_WORLD, &ireq);
+            MPI_Irecv(&other_n_vec[proc_count], 1, MPI_UNSIGNED_LONG, l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
-            other_count++;
+            proc_count++;
         }
         for (auto &req : mpi_recv_requests)
             MPI_Wait(&req, &st);
@@ -146,19 +146,19 @@ void MD::make_pair(void) {
         // そして受け取る分
         mpi_recv_requests.clear();
         unsigned long sum_recv = std::accumulate(other_n_vec.begin(), other_n_vec.end(), 0);
-        other_count = 0;
+        proc_count = 0;
         unsigned long start_position = 0;
         std::vector<unsigned long> recvbuf_id(sum_recv);
         std::vector<double> recvbuf(sum_recv*4);
         for (auto &l : sr->dplist) {
-            MPI_Irecv(&recvbuf_id[start_position], other_n_vec[other_count], MPI_UNSIGNED_LONG, 
+            MPI_Irecv(&recvbuf_id[start_position], other_n_vec[proc_count], MPI_UNSIGNED_LONG, 
                     l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
-            MPI_Irecv(&recvbuf[start_position*4], other_n_vec[other_count]*4, MPI_DOUBLE, 
+            MPI_Irecv(&recvbuf[start_position*4], other_n_vec[proc_count]*4, MPI_DOUBLE, 
                     l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
-            start_position += other_n_vec[other_count];
-            other_count++;
+            start_position += other_n_vec[proc_count];
+            proc_count++;
         }
         
         for (auto &req : mpi_recv_requests)
@@ -168,7 +168,7 @@ void MD::make_pair(void) {
         
         // 受け取ったデータを構造体に戻す
         vars->other_atoms.clear();
-        other_count = 0;
+        proc_count = 0;
         unsigned long bias = 0;
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
@@ -176,7 +176,7 @@ void MD::make_pair(void) {
 #pragma GCC diagnostic warning "-Wunused-variable"
 #pragma GCC diagnostic warning "-Wunused-but-set-variable"
             std::vector<Atom> one_other_atom;
-            for (unsigned long i=0; i<other_n_vec[other_count]; i++) {
+            for (unsigned long i=0; i<other_n_vec[proc_count]; i++) {
                 Atom a;
                 a.id = recvbuf_id[bias + i];
                 a.x = recvbuf[(bias+i)*4+0];
@@ -185,9 +185,9 @@ void MD::make_pair(void) {
                 a.vy = recvbuf[(bias+i)*4+3];
                 one_other_atom.push_back(a);
             }
-            bias += other_n_vec[other_count];
+            bias += other_n_vec[proc_count];
             vars->other_atoms.push_back(one_other_atom);
-            other_count++;
+            proc_count++;
         }
     }
 
