@@ -10,6 +10,8 @@ TESTOPT = -Wall -Wextra --pedantic-error -Wno-cast-function-type -g -O0
 # for make dep
 DEPFLAGS=-MM -MG
 
+# for visualization
+VISDIR=vis
 
 
 # ===release=================================
@@ -30,26 +32,27 @@ $(SRCDIR)/%_test.o: $(SRCDIR)/%.cpp
 	$(CC) $(OPTIONS) $(TESTOPT) -c $< -o $@
 
 test: test.exe
-	-rm *.cdv
+	-rm $(VISDIR)/*.cdv
 	mpirun --oversubscribe -np 4 ./test.exe > e.dat
-	-gnuplot energy.plt
+	-gnuplot $(VISDIR)/energy_test.plt
 
 dumperr: test.exe
 	-rm err.dat
-	-rm *.cdv
+	-rm $(VISDIR)/*.cdv
 	mpirun --oversubscribe -np 4 ./test.exe > e.dat 2> err.dat
-	-gnuplot energy.plt
+	-gnuplot $(VISDIR)/energy_test.plt
 
 
 # ===========================================
 run: md.exe
-	-rm *.cdv
+	-rm $(VISDIR)/*.cdv
 	mpirun -np 4 ./md.exe > e.dat
 
 dep:
 	g++ $(DEPFLAGS) $(SRC) $(OPTIONS) >makefile.depend
 
 clean:
-	rm -f md.exe $(SRCDIR)/*.o test.exe *.cdv
+	rm -f md.exe $(SRCDIR)/*.o test.exe 
+	-rm $(VISDIR)/*.cdv *.dat
 
 # ===========================================

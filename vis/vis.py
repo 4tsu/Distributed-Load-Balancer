@@ -118,7 +118,7 @@ def plot_energy(inputfile):
 
 ###=============================================
 
-# plot_energy("e.dat")
+plot_energy("../e.dat")
 
 
 plt.close()

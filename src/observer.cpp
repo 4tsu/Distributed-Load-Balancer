@@ -5,7 +5,7 @@
 void Observer::export_cdview(std::vector<Atom> atoms, Systemparam sysp, MPIinfo mi) {
     static int count = 0;
     char filename[256];
-    sprintf(filename, "conf%03d.cdv", count);
+    sprintf(filename, "vis/conf%03d.cdv", count);
     ++count;
     std::ofstream ofs(filename, std::ios::app);
     if (mi.rank==0) {

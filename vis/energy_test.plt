@@ -1,5 +1,5 @@
 set terminal pngcairo enhanced font'font,14'
-set output 'energy.png'
+set output 'vis/energy_test.png'
 
 
 file = "'e.dat'"
