@@ -51,7 +51,6 @@ void MD::set_sdd(int sdd_type) {
 
 void MD::makeconf(void) {
     const int N = sysp->N;
-    const int myN = sysp->myN;
     const double xl = sysp->xl;
     const double yl = sysp->yl;
     const double x_min = sysp->x_min;
@@ -109,7 +108,6 @@ void MD::make_pair(void) {
         int other_count = 0;
         for (auto &l : sr->dplist) {
             assert(l.i == mi.rank);
-            int other_n;
             MPI_Irecv(&other_n_vec[other_count], 1, MPI_INT, l.j, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
             other_count++;
@@ -168,7 +166,11 @@ void MD::make_pair(void) {
         vars->other_atoms.clear();
         other_count = 0;
         int bias = 0;
-        for (auto &dp : sr->dplist) {
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+        for (auto dp : sr->dplist) {
+#pragma GCC diagnostic warning "-Wunused-variable"
+#pragma GCC diagnostic warning "-Wunused-but-set-variable"
             std::vector<Atom> one_other_atom;
             for (int i=0; i<other_n_vec[other_count]; i++) {
                 Atom a;
