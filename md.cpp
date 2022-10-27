@@ -273,7 +273,6 @@ void MD::make_pair(void) {
         std::vector<std::vector<int>> sendbuf;
         for (std::size_t i=0; i<sr->dplist.size(); i++) {
             sendbuf.push_back(vars->recv_list.at(i));
-            int list_size = vars->recv_size.at(i) / sizeof(Atom);
             MPI_Isend(sendbuf.at(i).data(), sendbuf.at(i).size(), MPI_INT, sr->dplist[i].j, 0, MPI_COMM_WORLD, &ireq);
             mpi_send_requests.push_back(ireq);
         }
