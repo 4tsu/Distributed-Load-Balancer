@@ -13,7 +13,10 @@
             "cppStandard": "c++17",
             "intelliSenseMode": "linux-gcc-x64",
             "compilerArgs": [
-                "-include lib.hpp"
+                "-Wall",
+                "-Wextra",
+                "--pedantic",
+                "-include src/lib.hpp"
             ]
         }
     ],
