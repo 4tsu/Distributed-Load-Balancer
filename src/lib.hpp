@@ -16,6 +16,10 @@
 
 #include <mpi.h>
 
+#ifdef FS
+#include <filesystem>
+#endif
+
 // ----------------------
 
 //デバッグ用

@@ -131,9 +131,9 @@ plt.close()
 fig = plt.figure(facecolor='black')
 ax = fig.add_subplot(111)
 FRAMES = []
-for filename in sorted(os.listdir(".")):
+for filename in sorted(os.listdir("..")):
     if ".cdv" in filename:
-        FRAMES.append(filename)
+        FRAMES.append("../{}".format(filename))
 ani = anim.FuncAnimation(fig, cdview, frames=FRAMES, interval=50)
 gifname = "cdview.gif"
 print("exporting",gifname,"...")
