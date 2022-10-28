@@ -42,3 +42,6 @@
 
 # Output
 *.dat
+
+# HPC job-script
+job.sh*
