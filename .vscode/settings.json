@@ -67,5 +67,8 @@
         "thread": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "C_Cpp.default.includePath": [
+        "src/lib.hpp"
+    ]
 }
