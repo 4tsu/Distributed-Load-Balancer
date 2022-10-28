@@ -124,16 +124,27 @@ if re.search("myMD.vis", path):
 else:
     os.chdir('vis')
 
+cdv_path = ".."
+for filename in os.listdir(".."):
+    if filename == "cdv":
+        cdv_path = "../cdv"
+        break
+
+
+
+# energy plot
 plot_energy("../energy.dat")
 
 
+
+# .cdv animation
 plt.close()
 fig = plt.figure(facecolor='black')
 ax = fig.add_subplot(111)
 FRAMES = []
-for filename in sorted(os.listdir("..")):
+for filename in sorted(os.listdir(cdv_path)):
     if ".cdv" in filename:
-        FRAMES.append("../{}".format(filename))
+        FRAMES.append("{}/{}".format(cdv_path, filename))
 ani = anim.FuncAnimation(fig, cdview, frames=FRAMES, interval=50)
 gifname = "cdview.gif"
 print("exporting",gifname,"...")

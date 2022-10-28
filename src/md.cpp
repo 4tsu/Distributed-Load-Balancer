@@ -531,9 +531,9 @@ void MD::run(void) {
     if (mi.rank == 0) {
         for (const auto & file : std::filesystem::directory_iterator("./")) {
             std::string path = file.path();
-            int word_pos = path.find(".cdv");
+            int word_pos = path.find("/cdv");
             if (word_pos != std::string::npos) {
-                std::filesystem::remove(path);
+                std::filesystem::remove_all(path);
                 continue;
             } else if (path == "./energy.dat") {
                 std::filesystem::remove(path);

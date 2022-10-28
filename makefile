@@ -7,7 +7,7 @@ CC = mpic++
 OPTIONS = -std=c++17 -include $(SRCDIR)/lib.hpp
 TESTOPT = -Wall -Wextra --pedantic-error -Wno-cast-function-type -g -O0
 
-# if c++17 is available
+# if filesystem is available
 OPTIONS += -DFS
 
 # for make dep
@@ -15,6 +15,7 @@ DEPFLAGS=-MM -MG
 
 # for visualization
 VISDIR=vis
+CDVDIR=cdv
 
 
 # ===release=================================
