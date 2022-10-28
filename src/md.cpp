@@ -529,10 +529,13 @@ void MD::run(void) {
     // std::filesystemは使用できない環境もある．コンパイル時に選択可
     // 結果出力が追記なので、同名ファイルは事前に削除しておく
     if (mi.rank == 0) {
-        for (const auto & file : std::filesystem::directory_iterator(".")) {
+        for (const auto & file : std::filesystem::directory_iterator("./")) {
             std::string path = file.path();
             int word_pos = path.find(".cdv");
             if (word_pos != std::string::npos) {
+                std::filesystem::remove(path);
+                continue;
+            } else if (path == "./energy.dat") {
                 std::filesystem::remove(path);
             }
         }
@@ -579,7 +582,7 @@ void MD::run(void) {
 
     // 計算ループ
     for (int step=1; step<=steps; step++) {
-        if (mi.rank==0) fprintf(stderr, "step %d\n", step);
+        if (mi.rank==0 && step%ob_interval==0) fprintf(stderr, "step %d\n", step);
         vars->time += dt;
         // シンプレクティック積分
         this->update_position(0.5);
@@ -600,7 +603,7 @@ for (auto atom : vars->other_atoms.at(i)) {
         double k = obs->kinetic_energy(vars, sysp);
         double v = obs->potential_energy(vars, pl, sysp);
         if (mi.rank==0) {
-            printf("%d %lf %lf %lf\n", step, k, v, k+v);
+            export_three("energy.dat", step, k, v, k+v);
         }
         if (step % ob_interval == 0) {
             obs->export_cdview(vars->atoms, *sysp, mi);

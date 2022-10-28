@@ -2,7 +2,7 @@ set terminal pngcairo enhanced font'font,14'
 set output 'energy.png'
 
 
-file = "'../e.dat'"
+file = "'../energy.dat'"
 
 set xlabel 'Time'
 set ylabel 'Energy'

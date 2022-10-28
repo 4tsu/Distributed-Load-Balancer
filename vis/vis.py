@@ -124,7 +124,7 @@ if re.search("myMD.vis", path):
 else:
     os.chdir('vis')
 
-plot_energy("../e.dat")
+plot_energy("../energy.dat")
 
 
 plt.close()

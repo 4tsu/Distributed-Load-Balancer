@@ -14,3 +14,7 @@ public:
 };
 
 // =================================================
+
+void export_three(const std::string, const int, const double, const double, const double);
+
+// =================================================

@@ -88,3 +88,14 @@ double Observer::potential_energy(Variables *vars, PairList *pl, Systemparam *sy
 }
 
 // ======================================================
+
+void export_three(const std::string filename, const int s, const double a, const double b, const double c) {
+    std::ofstream ofs(filename, std::ios::app);
+    ofs << s << " ";
+    ofs << a << " ";
+    ofs << b << " ";
+    ofs << c << " ";
+    ofs << "\n";
+}
+
+// =================================================

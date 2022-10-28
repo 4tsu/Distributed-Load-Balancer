@@ -36,13 +36,13 @@ $(SRCDIR)/%_test.o: $(SRCDIR)/%.cpp
 
 test: test.exe
 	-rm *.cdv
-	mpirun --oversubscribe -np 4 ./test.exe > e.dat
-	-gnuplot energy_test.plt
+	mpirun --oversubscribe -np 4 ./test.exe
+	-gnuplot $(VISDIR)/energy_test.plt
 
 dumperr: test.exe
 	-rm err.dat
 	-rm *.cdv
-	mpirun --oversubscribe -np 4 ./test.exe > e.dat 2> err.dat
+	mpirun --oversubscribe -np 4 ./test.exe 2> err.dat
 	-gnuplot $(VISDIR)/energy_test.plt
 
 
@@ -52,7 +52,7 @@ dep:
 
 run: md.exe
 	-rm *.cdv
-	mpirun -np 4 ./md.exe > e.dat
+	mpirun -np 4 ./md.exe
 
 fig:
 	python3 $(VISDIR)/vis.py
