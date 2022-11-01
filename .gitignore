@@ -40,8 +40,10 @@
 *.png
 *.gif
 
-# Output
+# Input/Output
 *.dat
+*.dump
+!sample.dump
 
 # HPC job-script
 job.sh*
