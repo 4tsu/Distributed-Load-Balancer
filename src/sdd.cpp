@@ -104,7 +104,7 @@ for (auto a : migration_table) {
     std::vector<MPI_Request> mpi_send_requests;
     std::vector<MPI_Request> mpi_recv_requests;
     unsigned long nm_size;
-    std::vector<Atom> recvbuf(sum_recv);
+    std::vector<Atom> recvatoms(sum_recv);
     unsigned long recv_head = 0;
     for (int p=0; p<mi.procs; p++) {
         if (num_migration.at(p)!=0) {
@@ -114,7 +114,7 @@ for (auto a : migration_table) {
         }
         if (migration_table.at(p).size()!=0) {
             nm_size = migration_table.at(p).size()*sizeof(Atom);
-            MPI_Irecv(&recvbuf.at(recv_head), nm_size, MPI_CHAR, p, 0, MPI_COMM_WORLD, &ireq);
+            MPI_Irecv(&recvatoms.at(recv_head), nm_size, MPI_CHAR, p, 0, MPI_COMM_WORLD, &ireq);
             mpi_recv_requests.push_back(ireq);
         }
     }
@@ -126,5 +126,27 @@ for (auto a : migration_table) {
         MPI_Wait(&ireq, &st);
     }
 
+    for (Atom atom : recvatoms) {
+        vars->atoms.push_back(atom);
+    }
 }
+
+
+
+void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
+
+}
+
+
+
+void Sdd::voronoi(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
+
+}
+
+
+
+void Sdd::voronoi(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
+
+}
+
 // ============================================
