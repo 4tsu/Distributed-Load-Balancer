@@ -29,6 +29,8 @@ private:
     int sdd_type = 0;
     void communicate_atoms(void);
     void communicate_force(void);
+    std::string config;
+    void read_data(std::string filename, Variables* vars, Systemparam* sysp, const MPIinfo &mi);
 
 public:
     MD(MPIinfo mi);
@@ -38,6 +40,7 @@ public:
     void set_box(unsigned long N, double xl, double y, double cutoff);
     void set_margin(double margin);
     void set_sdd(int sdd_type);
+    void set_config(const std::string);
 };
 
 // ---------------------------------------
