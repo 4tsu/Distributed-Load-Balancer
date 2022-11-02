@@ -7,7 +7,7 @@ class Systemparam {
 public:
     double xl;
     double yl;
-    int N = 0;
+    unsigned long N = 0;
     double cutoff;
     double margin;
     double co_margin;

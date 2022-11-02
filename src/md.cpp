@@ -69,8 +69,8 @@ void MD::makeconf(void) {
 
    // 等間隔配置・分割
     for (unsigned long i=0; i<N; i++) {
-        int iy = static_cast<int>(i/xppl);
-        int ix = i%xppl;
+        unsigned long iy = static_cast<unsigned long>(i/xppl);
+        unsigned long ix = i%xppl;
         double x = ix * pitch;
         double y = iy * pitch;
 
@@ -136,7 +136,7 @@ void MD::make_pair(void) {
         mpi_recv_requests.clear();
         unsigned long sum_recv = std::accumulate(other_size_vec.begin(), other_size_vec.end(), 0);
         std::vector<Atom> recvbuf(sum_recv/sizeof(Atom));
-        int recv_position = 0;
+        unsigned long recv_position = 0;
         proc_count = 0;
         for (auto &l : sr->dplist) {
             MPI_Irecv(&recvbuf.at(recv_position), other_size_vec.at(proc_count), MPI_CHAR, 
