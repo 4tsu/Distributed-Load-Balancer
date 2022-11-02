@@ -47,3 +47,7 @@
 
 # HPC job-script
 job.sh*
+
+# LAMMPS
+log.lammps
+*.atoms
