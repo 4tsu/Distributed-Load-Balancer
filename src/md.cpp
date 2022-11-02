@@ -536,6 +536,7 @@ void MD::read_data(const std::string filename, Variables* vars, Systemparam* sys
     int is_bounds = 0;
     int begin_step = 0;
     double lpx;
+    unsigned long id = 0;
     while(std::getline(reading_file, line)) {
         // LAMMPS出力ではじめに出てくる初期配置のdumpであれば無視する。
         if (line=="ITEM: TIMESTEP") {
@@ -593,7 +594,6 @@ void MD::read_data(const std::string filename, Variables* vars, Systemparam* sys
             continue;
         }
 
-        unsigned long id;
         double x, y, vx, vy;
         std::vector<std::string> var;
         auto offset = std::string::size_type(0);
@@ -606,11 +606,11 @@ void MD::read_data(const std::string filename, Variables* vars, Systemparam* sys
             var.push_back(line.substr(offset, pos-offset));
             offset = pos + 1;
         }
-        id = std::stoul(var.at(0));
-        x  = std::stod(var.at(1));
-        y  = std::stod(var.at(2));
+        x  = std::stod(var.at(0));
+        y  = std::stod(var.at(1));
         vx = std::stod(var.at(3));
         vy = std::stod(var.at(4));
+        periodic_coordinate(x, y, sysp);
         int ip = static_cast<int>(floor((y-sysp->y_min)/lpx)*mi.npx + floor((x-sysp->x_min)/lpx));
         if (ip==mi.rank) {
             Atom a;
@@ -621,12 +621,8 @@ void MD::read_data(const std::string filename, Variables* vars, Systemparam* sys
             a.vy = vy;
             vars->atoms.push_back(a);
         }
+        id++;
     }
-
-    std::cout << begin_step << std::endl;
-    std::cout << sysp->N << std::endl;
-    std::cout << sysp->x_min << ", " << sysp->x_max << std::endl;
-    std::cout << sysp->y_min << ", " << sysp->y_max << std::endl;
 }
 
 
@@ -667,7 +663,7 @@ void MD::run(void) {
     } else {
         this->read_data(config, vars, sysp, mi);
     }
-   
+
      // ロードバランサー選択
     vars->set_initial_velocity(1.0, mi, sysp); // 初速決定
     obs->export_cdview(vars->atoms, *sysp, mi);
