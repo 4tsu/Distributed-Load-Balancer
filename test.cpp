@@ -73,7 +73,7 @@ void read(std::string filename) {
             continue;
         }
 
-        unsigned int id;
+        unsigned long id;
         double x, y, vx, vy;
         std::vector<std::string> vars;
         auto offset = std::string::size_type(0);
@@ -86,7 +86,7 @@ void read(std::string filename) {
             vars.push_back(line.substr(offset, pos-offset));
             offset = pos + 1;
         }
-        id = std::stoi(vars.at(0));
+        id = std::stoul(vars.at(0));
         x  = std::stod(vars.at(1));
         y  = std::stod(vars.at(2));
         vx = std::stod(vars.at(3));
