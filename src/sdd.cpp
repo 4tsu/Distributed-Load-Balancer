@@ -24,7 +24,7 @@ void Sdd::init(Variables* vars, Systemparam* sysp
 
     } else if (sdd_type==2) {
         calc_bounds(sysp, mi);
-        simple(vars, sysp, mi, sr);
+        simple(vars, sysp, mi);
         voronoi_init(vars, sysp, mi, sr);
         return;
     }
@@ -35,7 +35,7 @@ void Sdd::init(Variables* vars, Systemparam* sysp
 void Sdd::run(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
 
     if        (sdd_type==0) {
-        simple(vars, sysp, mi, sr);
+        simple(vars, sysp, mi);
 
     } else if (sdd_type==1) {
         global_sort(vars, sysp, mi, sr);
@@ -66,7 +66,7 @@ void Sdd::calc_bounds(Systemparam* sysp, const MPIinfo &mi) {
 
 
 
-void Sdd::simple(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
+void Sdd::simple(Variables* vars, Systemparam* sysp, const MPIinfo &mi) {
     std::vector<std::vector<Atom>> migration_atoms(mi.procs);
     std::vector<Atom> new_atoms;
     const double lpx = sysp->xl/static_cast<double>(mi.npx);
@@ -138,6 +138,8 @@ void Sdd::simple(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegio
 
 
 
+// 未実装
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
 
 }
@@ -153,5 +155,6 @@ void Sdd::voronoi_init(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Su
 void Sdd::voronoi(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
 
 }
+#pragma GCC diagnostic warning "-Wunused-parameter"
 
 // ============================================

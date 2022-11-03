@@ -18,7 +18,7 @@ class Sdd {
         int sdd_type = -1;
         double top, bottom, right, left;
         void calc_bounds(Systemparam*, const MPIinfo &);
-        void simple(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
+        void simple(Variables*, Systemparam*, const MPIinfo &);
         void global_sort(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
         void voronoi_init(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
         void voronoi(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
