@@ -12,8 +12,9 @@ int main(int argc, char **argv) {
 
     MD *md = new MD(mi);
     md->set_params(1000, 10, 0.0020); // int steps, int ob_interval, double dt
-    md->set_box(2500, 50, 50, 3.5); // int N, double xl, double yl, double cutoff
+    md->set_box(2500, 50, 50, 3.5); // unsigned long N, double xl, double yl, double cutoff
     md->set_margin(0.5);
+    md->set_config("smpl2d.dump");
     md->run();
     delete md;
 
