@@ -109,4 +109,4 @@ def three_to_two(path, output, z_range):
 
 
 
-three_to_two("droplet.dump", "drp2d.dump", 0.2)
+three_to_two("sample.dump", "smpl2d.dump", 0.2)
