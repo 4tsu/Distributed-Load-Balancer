@@ -53,34 +53,8 @@ unsigned long Sdd::ideal(Systemparam* sysp, const MPIinfo &mi) {
 
 
 
-void Sdd::calc_bounds(Systemparam* sysp, const MPIinfo &mi) {
-    int ix = mi.rank%mi.npx;
-    int iy = mi.rank/mi.npx;
-    const double lpx = sysp->xl/static_cast<double>(mi.npx);
-    const double lpy = sysp->yl/static_cast<double>(mi.npy);
-    this->bottom = lpy*static_cast<double>(iy) + sysp->y_min;
-    this->top    = lpy*static_cast<double>(iy+1) + sysp->y_min;
-    this->left   = lpx*static_cast<double>(ix) + sysp->x_min;
-    this->right  = lpx*static_cast<double>(ix+1) + sysp->x_min;
-}
-
-
-
-void Sdd::simple(Variables* vars, Systemparam* sysp, const MPIinfo &mi) {
-    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
-    std::vector<Atom> new_atoms;
-    const double lpx = sysp->xl/static_cast<double>(mi.npx);
-    const double lpy = sysp->yl/static_cast<double>(mi.npy);
-    for (const Atom atom : vars->atoms) {
-        if (atom.x>right || atom.x<left || atom.y>top || atom.y<bottom) {
-            int new_rank = static_cast<int>(floor((atom.y-sysp->y_min)/lpy)*mi.npx + floor((atom.x-sysp->x_min)/lpx));
-            migration_atoms.at(new_rank).push_back(atom);
-        } else {
-            new_atoms.push_back(atom);
-        }
-    }
-    vars->atoms = new_atoms;
-    // 移動する原子の通信 (ここ関数化した方がほかの手法と共通で使えるだろうか)
+void Sdd::migrate_atoms(std::vector<std::vector<Atom>> migration_atoms, Variables* vars, const MPIinfo &mi) {
+    // 移動する原子の通信
     // 最初にAllgatherで移動粒子数のテーブルを共有（1次元で送って戻す）
     // 次に必要なペアでだけ通信をする
 
@@ -137,6 +111,38 @@ void Sdd::simple(Variables* vars, Systemparam* sysp, const MPIinfo &mi) {
 }
 
 
+
+void Sdd::calc_bounds(Systemparam* sysp, const MPIinfo &mi) {
+    int ix = mi.rank%mi.npx;
+    int iy = mi.rank/mi.npx;
+    const double lpx = sysp->xl/static_cast<double>(mi.npx);
+    const double lpy = sysp->yl/static_cast<double>(mi.npy);
+    this->bottom = lpy*static_cast<double>(iy) + sysp->y_min;
+    this->top    = lpy*static_cast<double>(iy+1) + sysp->y_min;
+    this->left   = lpx*static_cast<double>(ix) + sysp->x_min;
+    this->right  = lpx*static_cast<double>(ix+1) + sysp->x_min;
+}
+
+
+
+void Sdd::simple(Variables* vars, Systemparam* sysp, const MPIinfo &mi) {
+    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
+    std::vector<Atom> new_atoms;
+    const double lpx = sysp->xl/static_cast<double>(mi.npx);
+    const double lpy = sysp->yl/static_cast<double>(mi.npy);
+    for (const Atom atom : vars->atoms) {
+        if (atom.x>right || atom.x<left || atom.y>top || atom.y<bottom) {
+            int new_rank = static_cast<int>(floor((atom.y-sysp->y_min)/lpy)*mi.npx + floor((atom.x-sysp->x_min)/lpx));
+            migration_atoms.at(new_rank).push_back(atom);
+        } else {
+            new_atoms.push_back(atom);
+        }
+    }
+    vars->atoms = new_atoms;
+    migrate_atoms(migration_atoms, vars, mi);
+}
+        
+        
 
 // 未実装
 #pragma GCC diagnostic ignored "-Wunused-parameter"
