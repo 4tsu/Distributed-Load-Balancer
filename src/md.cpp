@@ -157,8 +157,6 @@ void MD::make_pair(void) {
         for (auto &req : mpi_send_requests)
             MPI_Wait(&req, &st);
 
-// for (auto a : recvbuf)
-// fprintf(stderr, "%d ", a.id);
         vars->other_atoms.clear();
         unsigned long bias = 0;
         unsigned long recv_range;
@@ -175,7 +173,6 @@ void MD::make_pair(void) {
 
     // ローカルにペアリスト作成
     pl->make_pair(vars, sysp);
-    // std::cerr << vars->other_atoms.size() << " == " << sr->dplist.size() << std::endl;
 
 
 
@@ -673,25 +670,6 @@ void MD::run(void) {
     //最初のペアリスト作成
     assert(sysp->N != 0);
     this->make_pair();
-    /*
-    for (auto dp : sr->dplist) {
-        fprintf(stderr, "# %d %d-%d\n", mi.rank, dp.i, dp.j);
-    }
-    */
-    // fprintf(stderr, "# %d %ld\n", mi.rank, sr->dplist.size());
-    // fprintf(stderr, "# %d members=%ld\n", mi.rank, vars->atoms.size());
-    /*
-    for (auto &pl : pl->list) {
-        std::cout << pl.idi << " " << pl.idj << std::endl;
-    }
-    for (auto &opl : pl->other_list) {
-        for (auto& pl : opl) {
-            std::cout << std::min(pl.idi, pl.idj) << " " << std::max(pl.idi, pl.idj) << std::endl;
-        }
-    }
-    */
-    // step 0 情報の出力
-
 
     // 計算ループ
     for (int step=1+begin_step; step<=steps+begin_step; step++) {
@@ -700,18 +678,10 @@ void MD::run(void) {
         // シンプレクティック積分
         this->update_position(0.5);
         this->communicate_atoms();
-/*MPI_Barrier(MPI_COMM_WORLD);
-for (int p=0; p<mi.procs; p++) {
-for (int i=0; i<vars->other_atoms.size(); i++){
-for (auto atom : vars->other_atoms.at(i)) {
-    fprintf(stderr, "%d\n", atom.id);
-}fprintf(stderr, "\n\n");
-}sleep(1);}*/
         this->calculate_force();
         this->communicate_force();
         this->update_position(0.5);
         this->communicate_atoms();
-        // if (mi.rank==0) std::cerr << "(" << vars->atoms[0].x << vars->atoms[0].y << ")" << std::endl;
         // 情報の出力
         double k = obs->kinetic_energy(vars, sysp);
         double v = obs->potential_energy(vars, pl, sysp);

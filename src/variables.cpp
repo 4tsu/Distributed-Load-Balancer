@@ -3,17 +3,6 @@
 
 // =================================
 
-/* やってみた残骸
-MPI_Datatype MPI_Atom;
-const int blocklength[] = {1,3,3};
-const int displacements[] = {8,48,0};
-MPI_Datatype types[] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE};
-MPI_Type_create_struct(3, blocklength, displacements, types, &MPI_Atom);
-MPI_Type_commit(&MPI_Atom);
-*/
-
-// ---------------------------------
-
 void Variables::add_atoms(unsigned long id, double x, double y) {
     Atom a;
     a.id = id;
@@ -77,14 +66,11 @@ void Variables::set_margin_life(double margin) {
 
 
 void Variables::pack_send_atoms(void) {
-    // int rank;
-    // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     this->send_atoms.clear();
     for (auto& one_send_list : this->send_list){
         std::vector<Atom*> one_send_atom;
         unsigned long atom_index = 0;
         for (std::size_t i=0; i<this->atoms.size(); i++) {
-        // if(rank==4)fprintf(stderr, "%d == %d\n", atoms.at(i).id, one_send_list.at(atom_index));
             if (atoms.at(i).id == one_send_list.at(atom_index)) {
                 one_send_atom.push_back(&atoms.at(i));
                 atom_index++;
@@ -92,7 +78,6 @@ void Variables::pack_send_atoms(void) {
             if (atom_index == one_send_list.size())
                 break;
         }
-        // fprintf(stderr, "#%d : atom_index %d == %ld one_send_list.size()\n", rank, atom_index, one_send_list.size());
         assert(atom_index == one_send_list.size());
         this->send_atoms.push_back(one_send_atom);
     }
