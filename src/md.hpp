@@ -24,6 +24,7 @@ private:
     void make_pair(void);
     void check_pairlist(void);
     int steps;
+    int begin_step = 0;
     int ob_interval;
     double dt;
     int sdd_type = 0;

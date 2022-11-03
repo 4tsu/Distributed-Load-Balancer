@@ -534,7 +534,6 @@ void MD::read_data(const std::string filename, Variables* vars, Systemparam* sys
     bool is_init = false;
     bool is_num = false;
     int is_bounds = 0;
-    int begin_step = 0;
     double lpx;
     unsigned long id = 0;
     while(std::getline(reading_file, line)) {
@@ -692,7 +691,7 @@ void MD::run(void) {
 
 
     // 計算ループ
-    for (int step=1; step<=steps; step++) {
+    for (int step=1+begin_step; step<=steps+begin_step; step++) {
         if (mi.rank==0 && step%ob_interval==0) fprintf(stderr, "step %d\n", step);
         vars->time += dt;
         // シンプレクティック積分
