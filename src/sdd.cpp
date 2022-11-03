@@ -1,4 +1,4 @@
-#include <sdd.hpp>
+#include "sdd.hpp"
 
 
 
@@ -139,7 +139,7 @@ void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Sub
 
 
 
-void Sdd::voronoi(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
+void Sdd::voronoi_init(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
 
 }
 
