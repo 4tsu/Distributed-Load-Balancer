@@ -1,0 +1,25 @@
+atom_style atomic
+units lj
+boundary p p p
+timestep 0.0005
+
+read_data droplet.atoms
+# read_data bubble.atoms
+# lattice fcc 0.65
+# region region1 block 0 16 0 16 0 16 units lattice
+# create_box 1 region1
+# create_atoms 1 box
+
+mass 1 1.0
+pair_style lj/cut 3.5
+pair_coeff 1 1 1.0 1.0 3.5
+
+thermo_style custom step etotal temp vol
+thermo 500
+
+fix 1 all nvt temp 0.72 0.72 $(100.0*dt)
+
+# dump id all atom 500 result.dump
+dump id all custom 80000 droplet.dump x y z vx vy vz
+
+run 60000

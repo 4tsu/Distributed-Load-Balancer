@@ -30,3 +30,25 @@
 *.exe
 *.out
 *.app
+
+## User Defined
+# Incremental Compile
+*.depend
+
+# Visualization
+*.cdv
+*.png
+*.gif
+
+# Input/Output
+*.dat
+*.dump
+!sample.dump
+!sample50k.dump
+
+# HPC job-script
+job.sh*
+
+# LAMMPS
+log.lammps
+*.atoms
