@@ -1,6 +1,6 @@
 # LAMMPSの3次元シミュレーション結果から、2次元の配置を抜き出す
 
-def three_to_two(path, output):
+def three_to_two(path, output, z_range):
     X = []
     Y = []
     Z = []
@@ -80,7 +80,7 @@ def three_to_two(path, output):
                         vy += s
                     elif index == 5:
                         vz += s
-                if (not (-0.3<float(z)<0.3)):
+                if (not (-z_range<float(z)<z_range)):
                     continue
                 X.append(x)
                 Y.append(y)
@@ -109,4 +109,4 @@ def three_to_two(path, output):
 
 
 
-three_to_two("droplet.dump", "drp2d.dump")
+three_to_two("droplet.dump", "drp2d.dump", 0.2)

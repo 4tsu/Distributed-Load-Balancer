@@ -22,4 +22,4 @@ fix 1 all nvt temp 0.72 0.72 $(100.0*dt)
 # dump id all atom 500 result.dump
 dump id all custom 80000 droplet.dump x y z vx vy vz
 
-run 80000
+run 60000

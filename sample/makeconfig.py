@@ -16,7 +16,7 @@ class Atom:
 
 # 液滴の配置を作る
 def add_droplet(atoms):
-    r = 32
+    r = 12
     s = 1.6                                        # 原子間距離のルート2倍
     h = 0.5 * s
     for ix in range(-r, r+1):
