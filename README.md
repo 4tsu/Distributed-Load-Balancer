@@ -16,6 +16,7 @@ C++とMPIで書いた分子動力学シミュレーション（Molecular Dynamic
 [3]:https://github.com/kaityo256/sevendayshpc/blob/main/day1/README.md
 [4]:https://polymer.apphy.u-fukui.ac.jp/~koishi/cdview.php
 [5]:https://qiita.com/kaityo256/items/cfacbf6f1136de63bd97
+[6]:https://www.lammps.org/
 
 
 
@@ -45,8 +46,11 @@ CC = mpicxx
 md->set_params([ステップ数], [粒子位置ダンプ間隔(step)], [時間刻み]);
 md->set_box([粒子数], [シミュレーションボックスのx長さ], [シミュレーションボックスのy長さ], [カットオフ距離]);
 md->set_margin([book keeping法のマージン]);
+md->set_config("ファイル名");
 ```
 book keeping法については[こちら][5]を参照。
+
+粒子配置の読込ファイルについては、LAMMPSの.dumpファイルのフォーマットに準拠し、`x, y, z, vx, vy, vz`を入力する形となる。`sample/sample.dump`がお手本となる。また、3次元のシミュレーション結果から、断面を切り出して2次元粒子配置として読み込ませるコードが`sample/ttt.py`である。このあたり、詳しくは[サンプル](#サンプルsample)を参照。
 
 ### 実行
 ```
@@ -91,6 +95,35 @@ mpirun -np 並列数 ./md.exe
 ```
 #### 結果
 得られる結果は[上記](#結果の取得)と同じ。しかし、`cdv`フォルダが作成されず、.cdvファイルは`md.exe`が存在する場所に生成される。`vis.py`による可視化は同様に行うことができる。
+
+
+
+## サンプル（sample）
+粒子配置ファイルを生成するサンプルが、sampleフォルダ内にある。分子動力学シミュレーションソフト[LAMMPS][6]の出力、`.dump`形式を粒子配置入力の手本にしているため、LAMMPSを途中まで走らせて、続きから本プログラムで走らせる事が可能（本プログラムの性能評価のときに便利だった）。
+
+- sample.dump : `.dump`ファイルのサンプル。本プログラムは、この形式の粒子配置ファイルを読み込むことができる。自分で記述するときは、`ITEM: TIMESTEP`の値を0にしてはいけない。ここが0だと、自動で飛ばすように組んでいる（LAMMPSの続きからやるときに便利）。`ITEM: TIMESTEP`は書かなくても読み込まれ、その場合は、step 0 からシミュレーションがスタートする。
+- run.in : LAMMPSを使うスクリプト。落ち着いた状態の粒子配置と速度の情報を得るために、初期緩和だけLAMMPSを使用できる。本プログラムは温度制御を未実装なので、所望の温度に落ち着くまでLAMMPSを使用したりする。
+- makeconf.py : 液滴や、気泡の原子配置を作り、LAMMPSに与えることができる。これは本プログラムでは読み込めない。
+- ttt.py : 3次元シミュレーションの結果得た`.dump`ファイルから一部の粒子を抜き出し、2次元の粒子配置ファイルを生成する。
+
+`makeconf.py` -> `run.in` -> `ttt.py` の順に実行すると、デフォルトでは`smpl2d.dump`がsampleフォルダ内に生成されるので、これを`md.exe`と同じ場所に移動し、`set_config()`の引数にファイル名を指定することで、液滴のサンプルシミュレーションが動く。
+```
+cd sample
+python3 makeconf.py
+
+mpirun -np 並列数 lmp_mpi -in run.in
+# or 
+lmp_serial -in run.in
+
+python3 ttt.py
+
+mv smpl2d.dump ..
+
+vi src/main.cpp
+# md->set_config("smpl2d.dump");に書き換える
+
+mpirun -np 並列数 ./md.exe
+```
 
 ## バージョン
 mainブランチ参照。
