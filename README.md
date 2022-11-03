@@ -129,3 +129,5 @@ mpirun -np 並列数 ./md.exe
 
 ## バージョン
 mainブランチ参照。
+
+また、各バージョンの性能に関しては[こちら](performance.md)を参照。
