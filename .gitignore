@@ -44,6 +44,7 @@
 *.dat
 *.dump
 !sample.dump
+!sample50k.dump
 
 # HPC job-script
 job.sh*
