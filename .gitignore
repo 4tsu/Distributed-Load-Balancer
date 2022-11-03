@@ -40,8 +40,15 @@
 *.png
 *.gif
 
-# Output
+# Input/Output
 *.dat
+*.dump
+!sample.dump
+!sample50k.dump
 
 # HPC job-script
 job.sh*
+
+# LAMMPS
+log.lammps
+*.atoms

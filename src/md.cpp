@@ -53,6 +53,12 @@ void MD::set_sdd(int sdd_type) {
 
 
 
+void MD::set_config(const std::string conf) {
+    this->config = conf;
+}
+
+
+
 void MD::makeconf(void) {
     const unsigned long N = sysp->N;
     const double xl = sysp->xl;
@@ -520,6 +526,106 @@ void MD::communicate_force(void) {
 
 
 
+void MD::read_data(const std::string filename, Variables* vars, Systemparam* sysp, const MPIinfo &mi) {
+    std::ifstream reading_file;
+    reading_file.open(filename, std::ios::in);
+    std::string line;
+    bool is_step = false;
+    bool is_init = false;
+    bool is_num = false;
+    int is_bounds = 0;
+    double lpx;
+    unsigned long id = 0;
+    while(std::getline(reading_file, line)) {
+        // LAMMPS出力ではじめに出てくる初期配置のdumpであれば無視する。
+        if (line=="ITEM: TIMESTEP") {
+            is_step = true;
+            is_init = false;
+            continue;
+        } else if (is_step) {
+            is_step = false;
+            if (line=="0") {
+                is_init = true;
+            } else {
+                begin_step = std::stoi(line);
+            }
+            continue;
+        }
+        if (is_init) {
+            continue;
+        }
+        
+        // ユーザーが定義したdump、もしくはLAMMPSの最終結果のdumpを読み込む
+        if (line=="ITEM: NUMBER OF ATOMS") {
+            is_num = true;
+            continue;
+        } else if (is_num) {
+            is_num = false;
+            sysp->N = std::stoul(line);
+            continue;
+        }
+
+        if (std::equal(line.begin(), line.begin()+16, "ITEM: BOX BOUNDS")) {
+            is_bounds = true;
+            continue;
+        } else if (std::equal(line.begin(), line.begin()+10, "ITEM: ATOM")) {
+            is_bounds = 0;
+            continue;
+        } else if (is_bounds) {
+            std::string var1, var2;
+            auto space_pos = line.find(" ", 0);
+            auto length = line.size();
+            for (std::size_t i=0; i<space_pos; i++)
+                var1 += line[i];
+            for (std::size_t i=space_pos; i<length; i++)
+                var2 += line[i];
+            if (is_bounds==1) {
+                sysp->x_min = std::stod(var1);
+                sysp->x_max = std::stod(var2);
+                sysp->xl = sysp->x_max - sysp->x_min;
+                lpx = sysp->xl/mi.npx;
+            } else if (is_bounds==2) {
+                sysp->y_min = std::stod(var1);
+                sysp->y_max = std::stod(var2);
+                sysp->yl = sysp->y_max - sysp->y_min;
+            }
+            is_bounds++;
+            continue;
+        }
+
+        double x, y, vx, vy;
+        std::vector<std::string> var;
+        auto offset = std::string::size_type(0);
+        while (true) {
+            auto pos = line.find(" ", offset);
+            if (pos==std::string::npos) {
+                var.push_back(line.substr(offset));
+                break;
+            }
+            var.push_back(line.substr(offset, pos-offset));
+            offset = pos + 1;
+        }
+        x  = std::stod(var.at(0));
+        y  = std::stod(var.at(1));
+        vx = std::stod(var.at(3));
+        vy = std::stod(var.at(4));
+        periodic_coordinate(x, y, sysp);
+        int ip = static_cast<int>(floor((y-sysp->y_min)/lpx)*mi.npx + floor((x-sysp->x_min)/lpx));
+        if (ip==mi.rank) {
+            Atom a;
+            a.id = id;
+            a.x  = x;
+            a.y  = y;
+            a.vx = vx;
+            a.vy = vy;
+            vars->atoms.push_back(a);
+        }
+        id++;
+    }
+}
+
+
+
 // ----------------------------------------------------------------------
 
 
@@ -551,8 +657,12 @@ void MD::run(void) {
     
     /// MD
     // 初期配置orデータ読み込み
-    makeconf();
-   
+    if (this->config=="make") {
+        makeconf();
+    } else {
+        this->read_data(config, vars, sysp, mi);
+    }
+
      // ロードバランサー選択
     vars->set_initial_velocity(1.0, mi, sysp); // 初速決定
     obs->export_cdview(vars->atoms, *sysp, mi);
@@ -581,7 +691,7 @@ void MD::run(void) {
 
 
     // 計算ループ
-    for (int step=1; step<=steps; step++) {
+    for (int step=1+begin_step; step<=steps+begin_step; step++) {
         if (mi.rank==0 && step%ob_interval==0) fprintf(stderr, "step %d\n", step);
         vars->time += dt;
         // シンプレクティック積分
