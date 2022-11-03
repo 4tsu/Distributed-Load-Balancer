@@ -7,7 +7,7 @@ def three_to_two(path, output, z_range):
     VX = []
     VY = []
     VZ = []
-    step = 0
+    step = -1
     bounds = []
     with open(path) as f:
         Line = [s.strip() for s in f.readlines()]
@@ -90,8 +90,9 @@ def three_to_two(path, output, z_range):
                 VZ.append(vz)
 
     with open(output, "w") as f:
-        f.write("ITEM: TIMESTEP\n")
-        f.write(str(step)+"\n")
+        if step > 0:
+            f.write("ITEM: TIMESTEP\n")
+            f.write(str(step)+"\n")
         f.write("ITEM: NUMBER OF ATOMS\n")
         f.write(str(len(X))+"\n")
         f.write("ITEM: BOX BOUNDS pp pp pp\n")
