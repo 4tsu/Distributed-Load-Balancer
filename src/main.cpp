@@ -15,6 +15,7 @@ int main(int argc, char **argv) {
     md->set_box(2500, 50, 50, 3.5); // unsigned long N, double xl, double yl, double cutoff
     md->set_margin(0.5);
     md->set_config("smpl2d.dump");
+    md->set_sdd(0);
     md->run();
     delete md;
 

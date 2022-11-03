@@ -8,7 +8,9 @@
 
 class Sdd {
     public:
-        void init(const int, Variables*, Systemparam*, const MPIinfo &, SubRegion*);
+        Sdd(const int sdd_type);
+        ~Sdd(void);
+        void init(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
         void run(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
         unsigned long ideal(Systemparam*, const MPIinfo &);
     

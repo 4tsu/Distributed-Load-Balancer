@@ -5,6 +5,7 @@
 #include "mpiinfo.hpp"
 #include "pairlist.hpp"
 #include "subregion.hpp"
+#include "sdd.hpp"
 
 // =======================================
 
@@ -16,6 +17,7 @@ private:
     SubRegion *sr;
     PairList *pl;
     MPIinfo mi;
+    Sdd *sdd;
     void makeconf(void);
     void periodic(void);
     void update_position(double);
@@ -27,7 +29,6 @@ private:
     int begin_step = 0;
     int ob_interval;
     double dt;
-    int sdd_type = 0;
     void communicate_atoms(void);
     void communicate_force(void);
     std::string config;

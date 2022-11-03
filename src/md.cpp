@@ -15,6 +15,7 @@ MD::~MD(void){
     delete sysp;
     delete sr;
     delete pl;
+    delete sdd;
 }
 
 // -----------------------------------------------------
@@ -48,7 +49,7 @@ void MD::set_margin(double margin) {
 
 
 void MD::set_sdd(int sdd_type) {
-    this->sdd_type = sdd_type;
+    sdd = new Sdd(sdd_type);
 }
 
 
@@ -303,6 +304,7 @@ void MD::check_pairlist(void) {
     MPI_Allreduce(&local_max, &global_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     vars->margin_life -= global_max*2.0*dt;
     if (vars->margin_life < 0) {
+        sdd->run(vars, sysp, mi, sr);   // 領域分割の切り直しも同時に行う
         this->make_pair();
         vars->set_margin_life(sysp->margin);
     }
@@ -664,6 +666,7 @@ void MD::run(void) {
     }
 
      // ロードバランサー選択
+    sdd->init(vars, sysp, mi, sr);
     vars->set_initial_velocity(1.0, mi, sysp); // 初速決定
     obs->export_cdview(vars->atoms, *sysp, mi);
 
