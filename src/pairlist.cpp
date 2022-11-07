@@ -13,7 +13,7 @@ void set_pair(Pair &pair, unsigned long i, unsigned long j, unsigned long idi, u
 
 // ペアリスト作成・更新
 // ローカルにペアリスト作成
-void PairList::make_pair(Variables* &vars, Systemparam* sysp) {
+void PairList::make_pair(Variables* vars, Systemparam* sysp) {
     // 自領域内ペア
     list.clear();
     Atom *atoms = vars->atoms.data();

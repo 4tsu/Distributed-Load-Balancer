@@ -21,7 +21,7 @@ class PairList {
 public:
     std::vector<Pair> list;
     std::vector<std::vector<Pair>> other_list;
-    void make_pair(Variables* &vars, Systemparam*);
+    void make_pair(Variables* vars, Systemparam*);
 };
 
 // ============================================
