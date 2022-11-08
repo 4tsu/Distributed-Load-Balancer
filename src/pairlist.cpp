@@ -65,8 +65,11 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
     }
     vars->other_atoms = new_other_atom;
 
+int rank;
+MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+sleep(rank*2);
 for (auto l : list) {
-    printf("%lu-%lu\n", l.idi, l.idj);
+    printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
 }
 }
 
