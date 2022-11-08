@@ -68,7 +68,6 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
 for (auto l : list) {
     printf("%lu-%lu\n", l.idi, l.idj);
 }
-
 }
 
 
@@ -154,18 +153,11 @@ void PairList::search(int im, Variables* vars, Systemparam* sysp) {
 
 
 void PairList::search_neighbor(int im, int jm, Variables* vars, Systemparam* sysp) {
-    int ix = jm % nmx;
-    int iy = jm / nmx;
-    if (ix<0)
-        ix += nmx;
-    else if (ix>=nmx)
-        ix -= nmx;
-    if (iy<0)
-        iy += nmy;
-    else if (iy>=nmy)
-        iy -= nmy;
-
-    jm = ix + iy*nmx;
+    if (jm<0) {
+        jm += num_mesh;
+    } else if (jm>=num_mesh) {
+        jm -= num_mesh;
+    }
     Atom *atoms = vars->atoms.data();
     for (unsigned long m=head_index[im]; m<head_index[im]+counter[im]; m++) {
         for (unsigned long n=head_index[jm]; n<head_index[jm]+counter[jm]; n++) {
