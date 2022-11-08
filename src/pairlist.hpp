@@ -21,12 +21,15 @@ void set_pair(Pair &pair, unsigned long i, unsigned long j, unsigned long idi, u
 class PairList {
 private:
     void set_mesh(Variables*, Systemparam*);
-    void set_index(Variables*);
+    void set_index(Variables*, Systemparam*);
     void search(int, Variables*, Systemparam*);
-    void search_other(int, int, Variables*, Systemparam*);
-    double lmx, lmy, nmx, nmy;
-    int num_mesh;
+    void search_neighbor(int, int, Variables*, Systemparam*);
+    void mesh_search(Variables*, Systemparam*);
+    void clear_all(void);
+    double lmx, lmy;
+    int nmx, nmy, num_mesh;
     std::vector<unsigned long> counter, head_index, sorted_index;
+    std::vector<double> limits;
 public:
     std::vector<Pair> list;
     std::vector<std::vector<Pair>> other_list;
