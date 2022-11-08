@@ -207,4 +207,43 @@ void PairList::clear_all(void) {
     sorted_index.clear();
     limits.clear();
 }
+
+
+
+void PairList::set_index_ext(const std::vector<Atom> &atoms, Systemparam* sysp) {
+    unsigned long pn = atoms.size();
+    nmx_ext = nmx+2;
+    nmy_ext = nmy+2;
+    num_mesh_ext = nmx_ext*nmy_ext;
+    std::vector<unsigned long> inside_mesh_index, position_buffer;
+    std::vector<unsigned long> counter_ext(num_mesh_ext), head_index_ext(num_mesh_ext);
+    for (unsigned long i=0; i<pn; i++) {
+        int ix = std::floor((atoms.at(i).x-limits.at(0)+1)/lmx);
+        int iy = std::floor((atoms.at(i).y-limits.at(2)+1)/lmy);
+        int im = ix+iy*nmy_ext;
+        if (0<=im && im<num_mesh_ext) {
+            inside_mesh_index.push_back(i);
+            counter_ext.at(im)++;
+            position_buffer.push_back(im);
+        }
+    }
+
+    head_index_ext.at(0) = 0;
+    int sum = 0;
+    for (int i=1; i<num_mesh_ext; i++) {
+        sum += counter_ext.at(i-1);
+        head_index_ext.at(i) = sum;
+    }
+
+    std::vector<unsigned long> sorted_index_ext(sorted_index_ext.size());
+    std::vector<unsigned long> indexes(num_mesh_ext);
+    std::fill(indexes.begin(), indexes.end(), 0);
+    for (unsigned long i=0; i<inside_mesh_index.size(); i++) {
+        int im = position_buffer.at(i);
+        unsigned long j = head_index.at(im) + indexes.at(im);
+        assert(sorted_index_ext.at(j) == 0);
+        sorted_index_ext.at(j) = inside_mesh_index.at(i);
+        indexes.at(im)++;
+    }
+}
 // ============================================
