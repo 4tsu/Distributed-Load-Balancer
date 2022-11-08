@@ -138,8 +138,8 @@ void PairList::search(int im, Variables* vars, Systemparam* sysp) {
     Atom *atoms = vars->atoms.data();
     for (unsigned long m=ih; m<ih+pnm-1; m++) {
         for (unsigned long n=m+1; n<ih+pnm; n++) {
-            int i = sorted_index.at(m);
-            int j = sorted_index.at(n);
+            unsigned long i = sorted_index.at(m);
+            unsigned long j = sorted_index.at(n);
             double dx = atoms[j].x - atoms[i].x;
             double dy = atoms[j].y - atoms[i].y;
             periodic_distance(dx, dy, sysp);
@@ -164,8 +164,8 @@ void PairList::search_neighbor(int im, int jm, Variables* vars, Systemparam* sys
     Atom *atoms = vars->atoms.data();
     for (unsigned long m=head_index[im]; m<head_index[im]+counter[im]; m++) {
         for (unsigned long n=head_index[jm]; n<head_index[jm]+counter[jm]; n++) {
-            int i = sorted_index.at(m);
-            int j = sorted_index.at(n);
+            unsigned long i = sorted_index.at(m);
+            unsigned long j = sorted_index.at(n);
             double dx = atoms[j].x - atoms[i].x;
             double dy = atoms[j].y - atoms[i].y;
             periodic_distance(dx, dy, sysp);
