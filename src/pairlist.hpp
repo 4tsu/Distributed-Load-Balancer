@@ -31,11 +31,12 @@ private:
     std::vector<unsigned long> counter, head_index, sorted_index;
     std::vector<double> limits;
  
-    void set_mesh_ext(Variables*, Systemparam*);
-    void set_index_ext(const std::vector<Atom> &, Systemparam*);
-    void search_ext(int, Variables*, Systemparam*);
-    void search_neighbor_ext(int, int, Variables*, Systemparam*);
-    void mesh_search_ext(Variables*, Systemparam*);
+    void set_mesh_ext(const std::vector<Atom> &, Systemparam*);
+    void set_index_ext(const std::vector<Atom> &, Systemparam*,
+         std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &);
+    void search_ext(int, int, const std::vector<Atom> &, const std::vector<Atom> &, Systemparam*,
+         const std::vector<unsigned long> &, const std::vector<unsigned long> &, const std::vector<unsigned long> &, const std::vector<unsigned long> &, const std::vector<unsigned long> &);
+    void mesh_search_ext(const std::vector<Atom> &, Systemparam*);
     void clear_ext(void);
     int nmx_ext, nmy_ext, num_mesh_ext;
    
