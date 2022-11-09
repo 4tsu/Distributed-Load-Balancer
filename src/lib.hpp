@@ -26,17 +26,25 @@
 inline void ckpt() {
     static int c = 1;
     fprintf(stderr, "c.%d\n", c);
+    MPI_Barrier(MPI_COMM_WORLD);
     c++;
 }
 inline void ckpt2() {
     static int d = 1;
     fprintf(stderr, "d.%d\n", d);
+    MPI_Barrier(MPI_COMM_WORLD);
     d++;
 }
 inline void ckpt3() {
     static int e = 1;
     fprintf(stderr, "e.%d\n", e);
+    MPI_Barrier(MPI_COMM_WORLD);
     e++;
+}
+inline void slprnk() {
+    int my_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    sleep(my_rank*2);
 }
 
 // ----------------------
