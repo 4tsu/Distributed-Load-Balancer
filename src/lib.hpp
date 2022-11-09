@@ -41,6 +41,11 @@ inline void ckpt3() {
     MPI_Barrier(MPI_COMM_WORLD);
     e++;
 }
+inline int getrank() {
+    int my_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    return my_rank;
+}
 inline void slprnk() {
     int my_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
