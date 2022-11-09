@@ -31,7 +31,7 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
         mesh_search_ext(vars->atoms, one_other_atoms, sysp);
         
         if (one_other_list.size() != 0)
-// std::cout << one_other_list.size() << std::endl;
+// printf("l size : %ld\n", one_other_list.size());
             this->other_list.push_back(one_other_list);
 
 
@@ -78,9 +78,9 @@ int rank;
 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 sleep(rank*2);
 for (auto ool : other_list) {
-printf("#%d : %ld\n", rank, ool.size());
+// printf("#%d : %ld\n", rank, ool.size());
 for (auto l : ool) {
-    // printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
+    printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
 }}
 MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -263,56 +263,36 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms, Systemparam* sysp,
         int im = -1;
         if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
             im = ix+iy*nmx_ext;
-            inside_mesh_index.push_back(i);
-            counter_ext.at(im)++;
-            position_buffer.push_back(im);
-            continue;
-        }
-        /*
-        // x座標の境界をまたいで調査
-        if (across_border.at(0)) {
-            ix = std::floor((atoms.at(i).x - sysp->xl - limits.at(0))/lmx)+1;
-        } else if (across_border.at(2)) {
-            ix = std::floor((atoms.at(i).x + sysp->xl - limits.at(0))/lmx)+1;
-        } 
-        
-        if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
-            im = ix+iy*nmx_ext;
-        // x座標でなければ、y座標の境界をまたいで調査
-        } else if (across_border.at(1)) {
-            ix = std::floor((atoms.at(i).x-limits.at(0))/lmx)+1;
-            iy = std::floor((atoms.at(i).y - sysp->yl - limits.at(2))/lmy)+1;
-        } else if (across_border.at(3)) {
-            ix = std::floor((atoms.at(i).x-limits.at(0))/lmx)+1;
-            iy = std::floor((atoms.at(i).y + sysp->yl - limits.at(2))/lmy)+1;
-        }
-        
-        if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
-            im = ix+iy*nmx_ext;
-        // xもyまたいで当てはまらなければ、両方の境界をまたいで調査
         } else {
-            if (across_border.at(0)) {
-                ix = std::floor((atoms.at(i).x - sysp->xl - limits.at(0))/lmx)+1;
-            } else if(across_border.at(2)) {
-                ix = std::floor((atoms.at(i).x + sysp->xl - limits.at(0))/lmx)+1;
-            }
-            if (across_border.at(1)) {
-                iy = std::floor((atoms.at(i).y - sysp->yl - limits.at(2))/lmy)+1;
-            } else if (across_border.at(3)) {
-                iy = std::floor((atoms.at(i).y + sysp->yl - limits.at(2))/lmy)+1;
-            }
+            dy = atoms.at(i).y - limits.at(3);
+            periodic_distance(dx, dy, sysp);
+            iy = std::floor(dy/lmy)+nmy+1;
             if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
                 im = ix+iy*nmx_ext;
+            } else {
+                dx = atoms.at(i).x - limits.at(1);
+                periodic_distance(dx, dy, sysp);
+                ix = std::floor(dx/lmx)+nmx+1;
+                if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
+                    im = ix+iy*nmx_ext;
+                } else {
+                    dy = atoms.at(i).y - limits.at(2);
+                    periodic_distance(dx, dy, sysp);
+                    iy = std::floor(dy/lmy)+1;
+                    if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
+                        im = ix+iy*nmx_ext;
+                    }
+                }
             }
         }
-
-        if (im >= 0) {
+        if (im>=0) {
             inside_mesh_index.push_back(i);
             counter_ext.at(im)++;
             position_buffer.push_back(im);
-        }*/
+        }
     }
-    
+// printf("%ld\n", inside_mesh_index.size());
+// MPI_Barrier(MPI_COMM_WORLD);
     head_index_ext.at(0) = 0;
     int sum = 0;
     for (int i=1; i<num_mesh_ext; i++) {
