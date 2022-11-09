@@ -28,6 +28,14 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
     Atom* atoms = vars->atoms.data();
     std::vector<std::vector<Atom>> new_other_atom;
     for (auto &one_other_atoms : vars->other_atoms) {
+        mesh_search_ext(vars->atoms, one_other_atoms, sysp);
+        
+        if (one_other_list.size() != 0)
+// std::cout << one_other_list.size() << std::endl;
+            this->other_list.push_back(one_other_list);
+
+
+        /*
         Atom *other_atoms = one_other_atoms.data();
         const unsigned long other_pn = one_other_atoms.size();
         std::vector<Pair> one_other_list;
@@ -62,15 +70,19 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
         new_other_atom.push_back(one_new_other_atom);
         vars->recv_list.push_back(one_recv_list);
         vars->recv_size.push_back(one_recv_list.size()*sizeof(Atom));
+    */
     }
-    vars->other_atoms = new_other_atom;
+    // vars->other_atoms = new_other_atom;
 
 int rank;
 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 sleep(rank*2);
-for (auto l : list) {
-    printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
-}
+for (auto ool : other_list) {
+printf("#%d : %ld\n", rank, ool.size());
+for (auto l : ool) {
+    // printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
+}}
+MPI_Barrier(MPI_COMM_WORLD);
 }
 
 
@@ -210,11 +222,28 @@ void PairList::clear_all(void) {
 
 
 
-void PairList::set_mesh_ext(const std::vector<Atom> &atoms, Systemparam* sysp) {
+void PairList::set_mesh_ext(Systemparam* sysp) {
     nmx_ext = nmx+2;
     nmy_ext = nmy+2;
     num_mesh_ext = nmx_ext*nmy_ext;
+
+    across_border.resize(4);
+    std::fill(across_border.begin(), across_border.end(), false);
+    int ix = std::floor((sysp->x_min-limits.at(0))/lmx)+1;
+    int iy = std::floor((sysp->y_min-limits.at(2))/lmy)+1;
+    if (0<=ix && ix<nmx_ext)
+        across_border.at(0) = true;
+    if (0<=iy && iy<nmy_ext)
+        across_border.at(1) = true;
+    ix = std::floor((sysp->x_max-limits.at(0))/lmx)+1;
+    iy = std::floor((sysp->y_max-limits.at(2))/lmy)+1;
+    if (0<=ix && ix<nmx_ext)
+        across_border.at(2) = true;
+    if (0<=iy && iy<nmy_ext)
+        across_border.at(3) = true;
 }
+
+
 
 void PairList::set_index_ext(const std::vector<Atom> &atoms, Systemparam* sysp,
                              std::vector<unsigned long> &inside_mesh_index,
@@ -224,16 +253,66 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms, Systemparam* sysp,
                              std::vector<unsigned long> &sorted_index_ext) {
     unsigned long pn = atoms.size();
     for (unsigned long i=0; i<pn; i++) {
-        int ix = std::floor((atoms.at(i).x-limits.at(0)+1)/lmx);
-        int iy = std::floor((atoms.at(i).y-limits.at(2)+1)/lmy);
-        int im = ix+iy*nmy_ext;
-        if (0<=im && im<num_mesh_ext) {
+        double dx = atoms.at(i).x - limits.at(0);
+        double dy = atoms.at(i).y - limits.at(2);
+        periodic_distance(dx, dy, sysp);
+        int ix = std::floor(dx/lmx)+1;
+        int iy = std::floor(dy/lmy)+1;
+        // int ix = std::floor((atoms.at(i).x-limits.at(0))/lmx)+1;
+        // int iy = std::floor((atoms.at(i).y-limits.at(2))/lmy)+1;
+        int im = -1;
+        if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
+            im = ix+iy*nmx_ext;
             inside_mesh_index.push_back(i);
             counter_ext.at(im)++;
             position_buffer.push_back(im);
+            continue;
         }
-    }
+        /*
+        // x座標の境界をまたいで調査
+        if (across_border.at(0)) {
+            ix = std::floor((atoms.at(i).x - sysp->xl - limits.at(0))/lmx)+1;
+        } else if (across_border.at(2)) {
+            ix = std::floor((atoms.at(i).x + sysp->xl - limits.at(0))/lmx)+1;
+        } 
+        
+        if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
+            im = ix+iy*nmx_ext;
+        // x座標でなければ、y座標の境界をまたいで調査
+        } else if (across_border.at(1)) {
+            ix = std::floor((atoms.at(i).x-limits.at(0))/lmx)+1;
+            iy = std::floor((atoms.at(i).y - sysp->yl - limits.at(2))/lmy)+1;
+        } else if (across_border.at(3)) {
+            ix = std::floor((atoms.at(i).x-limits.at(0))/lmx)+1;
+            iy = std::floor((atoms.at(i).y + sysp->yl - limits.at(2))/lmy)+1;
+        }
+        
+        if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
+            im = ix+iy*nmx_ext;
+        // xもyまたいで当てはまらなければ、両方の境界をまたいで調査
+        } else {
+            if (across_border.at(0)) {
+                ix = std::floor((atoms.at(i).x - sysp->xl - limits.at(0))/lmx)+1;
+            } else if(across_border.at(2)) {
+                ix = std::floor((atoms.at(i).x + sysp->xl - limits.at(0))/lmx)+1;
+            }
+            if (across_border.at(1)) {
+                iy = std::floor((atoms.at(i).y - sysp->yl - limits.at(2))/lmy)+1;
+            } else if (across_border.at(3)) {
+                iy = std::floor((atoms.at(i).y + sysp->yl - limits.at(2))/lmy)+1;
+            }
+            if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
+                im = ix+iy*nmx_ext;
+            }
+        }
 
+        if (im >= 0) {
+            inside_mesh_index.push_back(i);
+            counter_ext.at(im)++;
+            position_buffer.push_back(im);
+        }*/
+    }
+    
     head_index_ext.at(0) = 0;
     int sum = 0;
     for (int i=1; i<num_mesh_ext; i++) {
@@ -241,12 +320,12 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms, Systemparam* sysp,
         head_index_ext.at(i) = sum;
     }
 
-    sorted_index_ext.resize(sorted_index_ext.size());
+    sorted_index_ext.resize(inside_mesh_index.size());
     std::vector<unsigned long> indexes(num_mesh_ext);
     std::fill(indexes.begin(), indexes.end(), 0);
     for (unsigned long i=0; i<inside_mesh_index.size(); i++) {
         int im = position_buffer.at(i);
-        unsigned long j = head_index.at(im) + indexes.at(im);
+        unsigned long j = head_index_ext.at(im) + indexes.at(im);
         assert(sorted_index_ext.at(j) == 0);
         sorted_index_ext.at(j) = inside_mesh_index.at(i);
         indexes.at(im)++;
@@ -257,27 +336,70 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms, Systemparam* sysp,
 
 void PairList::search_ext(int im, int jme, const std::vector<Atom> &my_atoms, const std::vector<Atom> &ext_atoms,
                           Systemparam* sysp,
-                          const std::vector<unsigned long> &inside_mesh_index,
-                          const std::vector<unsigned long> &position_buffer,
                           const std::vector<unsigned long> &counter_ext,
                           const std::vector<unsigned long> &head_index_ext,
-                          const std::vector<unsigned long> &sorted_index_ext) {
-    for (unsigned long m=head_index.at(im); m<head_index.at(im)+counter.at(im); m++) {
-        for (unsigned long n=head_index_ext.at(jme); n<head_index_ext.at(jme)+counter_ext.at(jme); n++) {
-            int i = sorted_index.at(m);
-            int j = sorted_index_ext.at(n);
+                          const std::vector<unsigned long> &sorted_index_ext,
+                          std::vector<bool> &survivor_list) {
+    for (unsigned long n=head_index_ext.at(jme); n<head_index_ext.at(jme)+counter_ext.at(jme); n++) {
+        bool survive = false;
+        unsigned long j = sorted_index_ext.at(n);
+        for (unsigned long m=head_index.at(im); m<head_index.at(im)+counter.at(im); m++) {
+            unsigned long i = sorted_index.at(m);
+            double dx = ext_atoms.at(j).x - my_atoms.at(i).x;
+            double dy = ext_atoms.at(j).y - my_atoms.at(i).y;
+            periodic_distance(dx, dy, sysp);
+            double r = sqrt(dx*dx + dy*dy);
+            if (r > sysp->co_margin)
+                continue;
+            Pair p;
+            set_pair(p, i, j, my_atoms.at(i).id, ext_atoms.at(j).id);
+            this->one_other_list.push_back(p);
+            bool survive = true;
+        }
+        if (survive) {
+            survivor_list.at(j) = true;
         }
     }
-    
 }
 
 
 
-void PairList::mesh_search_ext(const std::vector<Atom> &atoms, Systemparam* sysp) {
-    this->set_mesh_ext(atoms, sysp);
+// 実行はmesh_search()よりも後でなければならない。
+void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<Atom> &ext_atoms, Systemparam* sysp) {
+    this->clear_ext();
+    this->set_mesh_ext(sysp);
     std::vector<unsigned long> inside_mesh_index, position_buffer, sorted_index_ext;
     std::vector<unsigned long> counter_ext(num_mesh_ext), head_index_ext(num_mesh_ext);
-    this->set_index_ext(atoms, sysp, inside_mesh_index, position_buffer, counter_ext, head_index_ext, sorted_index_ext);
+    this->set_index_ext(ext_atoms, sysp, inside_mesh_index, position_buffer, counter_ext, head_index_ext, sorted_index_ext);
+    std::vector<bool> survivor_list(ext_atoms.size());
+    std::fill(survivor_list.begin(), survivor_list.end(), false);
+    for (int i=0; i<num_mesh; i++) {
+        int jme = (i/nmx+1)*nmx_ext + i%nmx + 1;
+        this->search_ext(i, jme   , my_atoms, ext_atoms, sysp, counter_ext, head_index_ext, sorted_index_ext, survivor_list);
+        this->search_ext(i, jme-1 , my_atoms, ext_atoms, sysp, counter_ext, head_index_ext, sorted_index_ext, survivor_list);
+        this->search_ext(i, jme+1 , my_atoms, ext_atoms, sysp, counter_ext, head_index_ext, sorted_index_ext, survivor_list);
+        this->search_ext(i, jme+nmx_ext-1 , my_atoms, ext_atoms, sysp, counter_ext, head_index_ext, sorted_index_ext, survivor_list);
+        this->search_ext(i, jme+nmx_ext   , my_atoms, ext_atoms, sysp, counter_ext, head_index_ext, sorted_index_ext, survivor_list);
+        this->search_ext(i, jme+nmx_ext+1 , my_atoms, ext_atoms, sysp, counter_ext, head_index_ext, sorted_index_ext, survivor_list);
+        this->search_ext(i, jme-nmx_ext-1 , my_atoms, ext_atoms, sysp, counter_ext, head_index_ext, sorted_index_ext, survivor_list);
+        this->search_ext(i, jme-nmx_ext   , my_atoms, ext_atoms, sysp, counter_ext, head_index_ext, sorted_index_ext, survivor_list);
+        this->search_ext(i, jme-nmx_ext+1 , my_atoms, ext_atoms, sysp, counter_ext, head_index_ext, sorted_index_ext, survivor_list);
+    }
+}
+
+
+
+void PairList::clear_ext(void) {
+    nmx_ext = 0;
+    nmy_ext = 0;
+    num_mesh_ext = 0;
+    one_other_list.clear();
+    across_border.clear();
+}
+
+
+
+void PairList::arrange_pairs_ext(std::vector<Atom>, const std::vector<bool>) {
 
 }
 // ============================================

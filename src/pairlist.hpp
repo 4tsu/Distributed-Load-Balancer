@@ -25,20 +25,24 @@ private:
     void search(int, Variables*, Systemparam*);
     void search_neighbor(int, int, Variables*, Systemparam*);
     void mesh_search(Variables*, Systemparam*);
+    void arrange_pairs(void);
     void clear_all(void);
     double lmx, lmy;
     int nmx, nmy, num_mesh;
     std::vector<unsigned long> counter, head_index, sorted_index;
     std::vector<double> limits;
  
-    void set_mesh_ext(const std::vector<Atom> &, Systemparam*);
+    void set_mesh_ext(Systemparam*);
     void set_index_ext(const std::vector<Atom> &, Systemparam*,
          std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &);
     void search_ext(int, int, const std::vector<Atom> &, const std::vector<Atom> &, Systemparam*,
-         const std::vector<unsigned long> &, const std::vector<unsigned long> &, const std::vector<unsigned long> &, const std::vector<unsigned long> &, const std::vector<unsigned long> &);
-    void mesh_search_ext(const std::vector<Atom> &, Systemparam*);
+         const std::vector<unsigned long> &, const std::vector<unsigned long> &, const std::vector<unsigned long> &, std::vector<bool> &survivor_list);
+    void mesh_search_ext(const std::vector<Atom> &, std::vector<Atom> &, Systemparam*);
+    void arrange_pairs_ext(std::vector<Atom>, const std::vector<bool>);
     void clear_ext(void);
     int nmx_ext, nmy_ext, num_mesh_ext;
+    std::vector<Pair> one_other_list;
+    std::vector<bool> across_border;
    
 public:
     std::vector<Pair> list;
