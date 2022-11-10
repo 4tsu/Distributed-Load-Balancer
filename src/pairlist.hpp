@@ -25,7 +25,7 @@ private:
     void search(int, Variables*, Systemparam*);
     void search_neighbor(int, int, Variables*, Systemparam*);
     void mesh_search(Variables*, Systemparam*);
-    void arrange_pairs(void);
+    void arrange_pairs(unsigned long);
     void clear_all(void);
     double lmx, lmy;
     int nmx, nmy, num_mesh;

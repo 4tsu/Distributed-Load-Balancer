@@ -40,8 +40,13 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
 
 int rank;
 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+MPI_Barrier(MPI_COMM_WORLD);
 sleep(rank*2);
-
+for (auto l : list){
+    printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
+}
+MPI_Barrier(MPI_COMM_WORLD);
+sleep(rank*2);
 for (auto ool : other_list) {
 for (auto l : ool) {
     printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
@@ -182,6 +187,38 @@ void PairList::clear_all(void) {
     head_index.clear();
     sorted_index.clear();
     limits.clear();
+}
+
+
+
+void PairList::arrange_pairs(unsigned long pn) {
+    unsigned long ln = list.size();
+    std::vector<Pair> new_list(ln);
+    std::vector<unsigned long> pair_counter(pn);
+    std::fill(pair_counter.begin(), pair_counter.end(), 0);
+    for (auto p : list) {
+        pair_counter.at(p.i);
+    }
+
+    std::vector<unsigned long> head_index_pair(pn);
+    unsigned long sum = 0;
+    for (unsigned long i=1; i<pn; i++) {
+        sum += pair_counter.at(i-1);
+        head_index_pair.at(i) = sum;
+    }
+
+    std::vector<unsigned long> indexes(pn);
+    std::fill(indexes.begin(), indexes.end(), 0);
+    for (std::size_t i=0; i<ln; i++) {
+        Pair p = list.at(i);
+        unsigned long j = head_index_pair.at(p.i) + indexes.at(p.i);
+        new_list.at(j) = p;
+        indexes.at(p.i)++;
+    }
+
+    list.clear();
+    list.resize(ln);
+    std::copy(new_list.begin(), new_list.end(), list.begin());
 }
 
 
