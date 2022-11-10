@@ -228,21 +228,6 @@ void PairList::set_mesh_ext(Systemparam* sysp) {
     nmy_ext = nmy+2;
     num_mesh_ext = nmx_ext*nmy_ext;
 
-    across_border.resize(4);
-    std::fill(across_border.begin(), across_border.end(), false);
-    int ix = std::floor((sysp->x_min-limits.at(0))/lmx)+1;
-    int iy = std::floor((sysp->y_min-limits.at(2))/lmy)+1;
-    if (0<=ix && ix<nmx_ext)
-        across_border.at(0) = true;
-    if (0<=iy && iy<nmy_ext)
-        across_border.at(1) = true;
-    ix = std::floor((sysp->x_max-limits.at(0))/lmx)+1;
-    iy = std::floor((sysp->y_max-limits.at(2))/lmy)+1;
-    if (0<=ix && ix<nmx_ext)
-        across_border.at(2) = true;
-    if (0<=iy && iy<nmy_ext)
-        across_border.at(3) = true;
-
     counter_ext.resize(num_mesh_ext);
     head_index_ext.resize(num_mesh_ext);
 }
@@ -365,7 +350,6 @@ void PairList::clear_ext(void) {
     nmy_ext = 0;
     num_mesh_ext = 0;
     one_other_list.clear();
-    across_border.clear();
     survivor_list.clear();
     counter_ext.clear();
     head_index_ext.clear();

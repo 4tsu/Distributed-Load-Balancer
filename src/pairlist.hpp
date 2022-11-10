@@ -42,7 +42,6 @@ private:
     int nmx_ext, nmy_ext, num_mesh_ext;
     std::vector<Pair> one_other_list;
     std::vector<unsigned long> counter_ext, head_index_ext, sorted_index_ext;
-    std::vector<bool> across_border;
     std::vector<bool> survivor_list;
    
 public:
