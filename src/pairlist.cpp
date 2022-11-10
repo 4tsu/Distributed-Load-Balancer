@@ -37,7 +37,7 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
         if (one_other_list.size() != 0)
             this->other_list.push_back(one_other_list);
     }
-
+/*
 // デバッグ用ペアリスト比較
 int rank;
 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -53,6 +53,7 @@ for (auto l : ool) {
     printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
 }}
 MPI_Barrier(MPI_COMM_WORLD);
+*/
 }
 
 
@@ -60,9 +61,9 @@ MPI_Barrier(MPI_COMM_WORLD);
 void PairList::set_mesh(Variables* vars, Systemparam* sysp) {
     this->limits = calc_limit(vars);
     this->nmx = static_cast<int>((limits.at(1) - limits.at(0))/sysp->co_margin) - 1;
-    this->lmx = static_cast<double>(limits.at(1) - limits.at(0))/nmx;
+    this->lmx = (limits.at(1) - limits.at(0))/static_cast<double>(nmx);
     this->nmy = static_cast<int>((limits.at(3) - limits.at(2))/sysp->co_margin) - 1;
-    this->lmy = static_cast<double>(limits.at(3) - limits.at(2))/nmy;
+    this->lmy = (limits.at(3) - limits.at(2))/static_cast<double>(nmy);
     assert(nmx>2 && nmy>2);
     assert(lmx>sysp->co_margin && lmy>sysp->co_margin);
     this->num_mesh = nmx*nmy;
@@ -341,6 +342,38 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
         this->search_ext(i, jme-nmx_ext-1 , my_atoms, ext_atoms, sysp);
         this->search_ext(i, jme-nmx_ext   , my_atoms, ext_atoms, sysp);
         this->search_ext(i, jme-nmx_ext+1 , my_atoms, ext_atoms, sysp);
+        if (i%nmx==0) {
+            this->search_ext(i, jme+nmx_ext-2   , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jme+nmx_ext*2-2 , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jme-2           , my_atoms, ext_atoms, sysp);
+        }
+        if (i%nmx==nmx-1) {
+            this->search_ext(i, jme-nmx_ext+2   , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jme-nmx_ext*2+2 , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jme+2           , my_atoms, ext_atoms, sysp);
+        }
+        if (i/nmx==0) {
+            this->search_ext(i, jme+num_mesh_ext-nmx_ext*2   , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jme+num_mesh_ext-nmx_ext*2+1 , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jme+num_mesh_ext-nmx_ext*2-1 , my_atoms, ext_atoms, sysp);
+        }
+        if (i/nmx==nmy-1) {
+            this->search_ext(i, jme-num_mesh_ext+nmx_ext*2   , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jme-num_mesh_ext+nmx_ext*2+1 , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jme-num_mesh_ext+nmx_ext*2-1 , my_atoms, ext_atoms, sysp);
+        }
+        if (i==0) {
+            this->search_ext(i, num_mesh_ext-1, my_atoms, ext_atoms, sysp);
+        }
+        if (i==nmx-1) {
+            this->search_ext(i, num_mesh_ext-nmx_ext, my_atoms, ext_atoms, sysp);
+        }
+        if (i==num_mesh-nmx) {
+            this->search_ext(i, nmx_ext-1, my_atoms, ext_atoms, sysp);
+        }
+        if (i==num_mesh-1) {
+            this->search_ext(i, 0, my_atoms, ext_atoms, sysp);
+        }
     }
 }
 

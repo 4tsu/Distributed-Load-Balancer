@@ -24,7 +24,7 @@ std::vector<double> calc_limit(Variables* vars) {
         else if (atom.y > y_max)
             y_max = atom.y;
     }
-    std::vector v{x_min, x_max, y_min, y_max};
+    std::vector<double> v{x_min, x_max, y_min, y_max};
     return v;
 }
 
