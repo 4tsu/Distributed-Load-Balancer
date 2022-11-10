@@ -36,13 +36,15 @@ private:
     void set_index_ext(const std::vector<Atom> &, Systemparam*,
          std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &);
     void search_ext(int, int, const std::vector<Atom> &, const std::vector<Atom> &, Systemparam*,
-         const std::vector<unsigned long> &, const std::vector<unsigned long> &, const std::vector<unsigned long> &, std::vector<bool> &survivor_list);
+         const std::vector<unsigned long> &, const std::vector<unsigned long> &, const std::vector<unsigned long> &);
     void mesh_search_ext(const std::vector<Atom> &, std::vector<Atom> &, Systemparam*);
-    void arrange_pairs_ext(std::vector<Atom>, const std::vector<bool>);
+    void arrange_pairs_ext(const std::vector<unsigned long> &new_index, unsigned long new_pn);
+    void pick_atoms(std::vector<Atom> &, std::vector<unsigned long> &, std::vector<unsigned long> &);
     void clear_ext(void);
     int nmx_ext, nmy_ext, num_mesh_ext;
     std::vector<Pair> one_other_list;
     std::vector<bool> across_border;
+    std::vector<bool> survivor_list;
    
 public:
     std::vector<Pair> list;
