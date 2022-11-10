@@ -33,16 +33,15 @@ private:
     std::vector<double> limits;
  
     void set_mesh_ext(Systemparam*);
-    void set_index_ext(const std::vector<Atom> &, Systemparam*,
-         std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &, std::vector<unsigned long> &);
-    void search_ext(int, int, const std::vector<Atom> &, const std::vector<Atom> &, Systemparam*,
-         const std::vector<unsigned long> &, const std::vector<unsigned long> &, const std::vector<unsigned long> &);
+    void set_index_ext(const std::vector<Atom> &, Systemparam*);
+    void search_ext(int, int, const std::vector<Atom> &, const std::vector<Atom> &, Systemparam*);
     void mesh_search_ext(const std::vector<Atom> &, std::vector<Atom> &, Systemparam*);
     void arrange_pairs_ext(const std::vector<unsigned long> &new_index, unsigned long new_pn);
     void pick_atoms(std::vector<Atom> &, std::vector<unsigned long> &, std::vector<unsigned long> &);
     void clear_ext(void);
     int nmx_ext, nmy_ext, num_mesh_ext;
     std::vector<Pair> one_other_list;
+    std::vector<unsigned long> counter_ext, head_index_ext, sorted_index_ext;
     std::vector<bool> across_border;
     std::vector<bool> survivor_list;
    
