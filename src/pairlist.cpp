@@ -38,6 +38,7 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
             this->other_list.push_back(one_other_list);
     }
 
+// デバッグ用ペアリスト比較
 int rank;
 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 MPI_Barrier(MPI_COMM_WORLD);
