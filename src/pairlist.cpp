@@ -37,7 +37,6 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
         if (one_other_list.size() != 0)
             this->other_list.push_back(one_other_list);
     }
-/*
 // デバッグ用ペアリスト比較
 int rank;
 MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -46,6 +45,7 @@ sleep(rank*1);
 for (auto l : list){
     printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
 }
+/*
 MPI_Barrier(MPI_COMM_WORLD);
 sleep(rank*1);
 for (auto ool : other_list) {
@@ -132,18 +132,25 @@ void PairList::search(int im, Variables* vars, Systemparam* sysp) {
             Pair p;
             set_pair(p, i, j, atoms[i].id, atoms[j].id);
             this->list.push_back(p);
+
         }
     }
 }
 
 
 
-void PairList::search_neighbor(int im, int jm, Variables* vars, Systemparam* sysp) {
-    if (jm<0) {
-        jm += num_mesh;
-    } else if (jm>=num_mesh) {
-        jm -= num_mesh;
+void PairList::search_neighbor(int im, int jmx, int jmy, Variables* vars, Systemparam* sysp) {
+    if (jmx<0) {
+        jmx += nmx;
+    } else if (jmx>=nmx) {
+        jmx -= nmx;
     }
+    if (jmy<0) {
+        jmy += nmy;
+    } else if (jmy>=nmy) {
+        jmy -= nmy;
+    }
+    int jm = jmx + jmy*nmx;
     Atom *atoms = vars->atoms.data();
     for (unsigned long m=head_index[im]; m<head_index[im]+counter[im]; m++) {
         for (unsigned long n=head_index[jm]; n<head_index[jm]+counter[jm]; n++) {
@@ -158,7 +165,8 @@ void PairList::search_neighbor(int im, int jm, Variables* vars, Systemparam* sys
             Pair p;
             set_pair(p, i, j, atoms[i].id, atoms[j].id);
             this->list.push_back(p);
-        }
+
+       }
     }
 }
 
@@ -170,10 +178,12 @@ void PairList::mesh_search(Variables* vars, Systemparam* sysp) {
     set_index(vars, sysp);
     for (int i=0; i<num_mesh; i++) {
         search(i, vars, sysp);
-        search_neighbor(i, i+1, vars, sysp);
-        search_neighbor(i, i+nmx, vars, sysp);
-        search_neighbor(i, i+nmx+1, vars, sysp);
-        search_neighbor(i, i-nmx+1, vars, sysp);
+        int ix = i%nmx;
+        int iy = i/nmx;
+        search_neighbor(i, ix+1, iy  , vars, sysp);
+        search_neighbor(i, ix, iy+1  , vars, sysp);
+        search_neighbor(i, ix+1, iy+1, vars, sysp);
+        search_neighbor(i, ix+1, iy-1, vars, sysp);
     }
 }
 

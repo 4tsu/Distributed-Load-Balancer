@@ -23,7 +23,7 @@ private:
     void set_mesh(Variables*, Systemparam*);
     void set_index(Variables*, Systemparam*);
     void search(int, Variables*, Systemparam*);
-    void search_neighbor(int, int, Variables*, Systemparam*);
+    void search_neighbor(int, int, int, Variables*, Systemparam*);
     void mesh_search(Variables*, Systemparam*);
     void arrange_pairs(unsigned long);
     void clear_all(void);
