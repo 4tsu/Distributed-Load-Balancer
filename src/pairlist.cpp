@@ -96,7 +96,7 @@ void PairList::set_index(Variables* vars, Systemparam* sysp) {
     assert(total==pn);
 
     head_index.at(0) = 0;
-    int sum = 0;
+    unsigned long sum = 0;
     for (int i=1; i<num_mesh; i++) {
         sum += counter.at(i-1);
         head_index.at(i) = sum;
@@ -288,7 +288,7 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms, Systemparam* sysp) 
         }
     }
     head_index_ext.at(0) = 0;
-    int sum = 0;
+    unsigned long sum = 0;
     for (int i=1; i<num_mesh_ext; i++) {
         sum += counter_ext.at(i-1);
         head_index_ext.at(i) = sum;
