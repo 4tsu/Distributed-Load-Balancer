@@ -62,7 +62,6 @@ void PairList::set_mesh(Variables* vars, Systemparam* sysp) {
     this->lmx = (limits.at(1) - limits.at(0))/static_cast<double>(nmx);
     this->nmy = static_cast<int>((limits.at(3) - limits.at(2))/sysp->co_margin) - 1;
     this->lmy = (limits.at(3) - limits.at(2))/static_cast<double>(nmy);
-    assert(nmx>2 && nmy>2);
     assert(lmx>sysp->co_margin && lmy>sysp->co_margin);
     this->num_mesh = nmx*nmy;
     assert(num_mesh < std::numeric_limits<int>::max());
@@ -163,7 +162,6 @@ void PairList::search_neighbor(int im, int jmx, int jmy, Variables* vars, System
             Pair p;
             set_pair(p, i, j, atoms[i].id, atoms[j].id);
             this->list.push_back(p);
-
        }
     }
 }
@@ -174,14 +172,18 @@ void PairList::mesh_search(Variables* vars, Systemparam* sysp) {
     clear_all();
     set_mesh(vars, sysp);
     set_index(vars, sysp);
-    for (int i=0; i<num_mesh; i++) {
-        search(i, vars, sysp);
-        int ix = i%nmx;
-        int iy = i/nmx;
-        search_neighbor(i, ix+1, iy  , vars, sysp);
-        search_neighbor(i, ix, iy+1  , vars, sysp);
-        search_neighbor(i, ix+1, iy+1, vars, sysp);
-        search_neighbor(i, ix+1, iy-1, vars, sysp);
+    if (nmx>2 && nmy>2) {
+        for (int i=0; i<num_mesh; i++) {
+            search(i, vars, sysp);
+            int ix = i%nmx;
+            int iy = i/nmx;
+            search_neighbor(i, ix+1, iy  , vars, sysp);
+            search_neighbor(i, ix, iy+1  , vars, sysp);
+            search_neighbor(i, ix+1, iy+1, vars, sysp);
+            search_neighbor(i, ix+1, iy-1, vars, sysp);
+        }
+    } else {
+        search_all(vars, sysp);
     }
 }
 
@@ -231,6 +233,29 @@ void PairList::arrange_pairs(unsigned long pn) {
     std::copy(new_list.begin(), new_list.end(), list.begin());
 }
 
+
+
+void PairList::search_all(Variables* vars, Systemparam* sysp) {
+    list.clear();
+    Atom *atoms = vars->atoms.data();
+    const unsigned long pn = vars->number_of_atoms();
+    for (unsigned long i=0; i<pn; i++) {
+        double ix = atoms[i].x;
+        double iy = atoms[i].y;
+        for (unsigned long j=i+1; j<pn; j++) {
+            double dx = atoms[j].x - ix;
+            double dy = atoms[j].y - iy;
+            periodic_distance(dx, dy, sysp);
+            double r = sqrt(dx*dx + dy*dy);
+            if (r > sysp->co_margin) {
+                continue;
+            }
+            Pair pair;
+            set_pair(pair, i, j, atoms[i].id, atoms[j].id);
+            this->list.push_back(pair);
+        }
+    }
+}
 
 
 void PairList::set_mesh_ext(Systemparam* sysp) {
@@ -350,66 +375,70 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
     this->set_index_ext(ext_atoms, sysp);
     survivor_list.resize(ext_atoms.size());
     std::fill(survivor_list.begin(), survivor_list.end(), false);
-    for (int i=0; i<num_mesh; i++) {
-        int jmex = i%nmx + 1;
-        int jmey = i/nmx + 1;
-        this->search_ext(i, jmex,   jmey , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jmex-1, jmey , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jmex+1, jmey , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jmex,   jmey-1 , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jmex-1, jmey-1 , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jmex+1, jmey-1 , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jmex,   jmey+1 , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jmex-1, jmey+1 , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jmex+1, jmey+1 , my_atoms, ext_atoms, sysp);
-        
-        // 拡張メッシュ領域が周期境界によってつながっている場合を考慮。
-        if (i%nmx<2) {
-            this->search_ext(i, jmex-2, jmey  , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-2, jmey+1, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-2, jmey-1, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-3, jmey  , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-3, jmey+1, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-3, jmey-1, my_atoms, ext_atoms, sysp);
-        }
-        if (i%nmx>nmx-3) {
-            this->search_ext(i, jmex+2, jmey  , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+2, jmey+1, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+2, jmey-1, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+3, jmey  , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+3, jmey+1, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+3, jmey-1, my_atoms, ext_atoms, sysp);
+    if (nmx>2 && nmy>2) {
+        for (int i=0; i<num_mesh; i++) {
+            int jmex = i%nmx + 1;
+            int jmey = i/nmx + 1;
+            this->search_ext(i, jmex,   jmey , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex-1, jmey , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex+1, jmey , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex,   jmey-1 , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex-1, jmey-1 , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex+1, jmey-1 , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex,   jmey+1 , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex-1, jmey+1 , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex+1, jmey+1 , my_atoms, ext_atoms, sysp);
+            
+            // 拡張メッシュ領域が周期境界によってつながっている場合を考慮。
+            if (i%nmx<2) {
+                this->search_ext(i, jmex-2, jmey  , my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex-2, jmey+1, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex-2, jmey-1, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex-3, jmey  , my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex-3, jmey+1, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex-3, jmey-1, my_atoms, ext_atoms, sysp);
+            }
+            if (i%nmx>nmx-3) {
+                this->search_ext(i, jmex+2, jmey  , my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex+2, jmey+1, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex+2, jmey-1, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex+3, jmey  , my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex+3, jmey+1, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex+3, jmey-1, my_atoms, ext_atoms, sysp);
 
-        }
-        if (i/nmx<2) {
-            this->search_ext(i, jmex  , jmey-2, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+1, jmey-2, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-1, jmey-2, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex  , jmey-3, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+1, jmey-3, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-1, jmey-3, my_atoms, ext_atoms, sysp);
-        }
-        if (i/nmx>nmy-3) {
-            this->search_ext(i, jmex  , jmey+2, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+1, jmey+2, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-1, jmey+2, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex  , jmey+3, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+1, jmey+3, my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-1, jmey+3, my_atoms, ext_atoms, sysp);
-        }
+            }
+            if (i/nmx<2) {
+                this->search_ext(i, jmex  , jmey-2, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex+1, jmey-2, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex-1, jmey-2, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex  , jmey-3, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex+1, jmey-3, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex-1, jmey-3, my_atoms, ext_atoms, sysp);
+            }
+            if (i/nmx>nmy-3) {
+                this->search_ext(i, jmex  , jmey+2, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex+1, jmey+2, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex-1, jmey+2, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex  , jmey+3, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex+1, jmey+3, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, jmex-1, jmey+3, my_atoms, ext_atoms, sysp);
+            }
 
-        if(i==0) {
-            this->search_ext(i, nmx_ext-1 , nmy_ext-1, my_atoms, ext_atoms, sysp);
+            if(i==0) {
+                this->search_ext(i, nmx_ext-1 , nmy_ext-1, my_atoms, ext_atoms, sysp);
+            }
+            if(i==nmx-1) {
+                this->search_ext(i, 0, nmy_ext-1, my_atoms, ext_atoms, sysp);
+            }
+            if(i==num_mesh-nmx) {
+                this->search_ext(i, nmx_ext-1, 0, my_atoms, ext_atoms, sysp);
+            }
+            if(i==num_mesh-1) {
+                this->search_ext(i, 0, 0, my_atoms, ext_atoms, sysp);
+            }
         }
-        if(i==nmx-1) {
-            this->search_ext(i, 0, nmy_ext-1, my_atoms, ext_atoms, sysp);
-        }
-        if(i==num_mesh-nmx) {
-            this->search_ext(i, nmx_ext-1, 0, my_atoms, ext_atoms, sysp);
-        }
-        if(i==num_mesh-1) {
-            this->search_ext(i, 0, 0, my_atoms, ext_atoms, sysp);
-        }
+    } else {
+        search_all_ext(my_atoms, ext_atoms, sysp);
     }
 }
 
@@ -424,6 +453,33 @@ void PairList::clear_ext(void) {
     counter_ext.clear();
     head_index_ext.clear();
     sorted_index_ext.clear();
+}
+
+
+
+void PairList::search_all_ext(const std::vector<Atom> &my_atoms, const std::vector<Atom> &ext_atoms, Systemparam* sysp) {
+    const unsigned long pn = ext_atoms.size();
+    for (unsigned long i=0; i<pn; i++) {
+        double ix = ext_atoms[i].x;
+        double iy = ext_atoms[i].y;
+        bool survive = false;
+        for (unsigned long j=0; j<my_atoms.size(); j++) {
+            double dx = my_atoms[j].x - ix;
+            double dy = my_atoms[j].y - iy;
+            periodic_distance(dx, dy, sysp);
+            double r = sqrt(dx*dx + dy*dy);
+            if (r > sysp->co_margin) {
+                continue;
+            }
+            Pair pair;
+            set_pair(pair, j, i, my_atoms[j].id, ext_atoms[i].id);
+            one_other_list.push_back(pair);
+            survive = true;
+        }
+        if (survive){
+            this->survivor_list.at(i) = true;
+        }
+    }
 }
 
 

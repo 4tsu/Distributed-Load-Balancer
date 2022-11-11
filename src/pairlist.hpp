@@ -25,6 +25,7 @@ private:
     void search(int, Variables*, Systemparam*);
     void search_neighbor(int, int, int, Variables*, Systemparam*);
     void mesh_search(Variables*, Systemparam*);
+    void search_all(Variables*, Systemparam*);
     void arrange_pairs(unsigned long);
     void clear_all(void);
     double lmx, lmy;
@@ -38,6 +39,7 @@ private:
     void mesh_search_ext(const std::vector<Atom> &, std::vector<Atom> &, Systemparam*);
     void arrange_pairs_ext(const std::vector<unsigned long> &new_index, unsigned long new_pn);
     void pick_atoms(std::vector<Atom> &, std::vector<unsigned long> &, std::vector<unsigned long> &);
+    void search_all_ext(const std::vector<Atom> &, const std::vector<Atom> &, Systemparam*);
     void clear_ext(void);
     int nmx_ext, nmy_ext, num_mesh_ext;
     std::vector<Pair> one_other_list;
