@@ -45,7 +45,6 @@ sleep(rank*1);
 for (auto l : list){
     printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
 }
-/*
 MPI_Barrier(MPI_COMM_WORLD);
 sleep(rank*1);
 for (auto ool : other_list) {
@@ -53,7 +52,6 @@ for (auto l : ool) {
     printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
 }}
 MPI_Barrier(MPI_COMM_WORLD);
-*/
 }
 
 
@@ -308,8 +306,19 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms, Systemparam* sysp) 
 
 
 
-void PairList::search_ext(int im, int jme, const std::vector<Atom> &my_atoms, const std::vector<Atom> &ext_atoms,
+void PairList::search_ext(int im, int jmex, int jmey, const std::vector<Atom> &my_atoms, const std::vector<Atom> &ext_atoms,
                           Systemparam* sysp) {
+    if (jmex<0) {
+        jmex += nmx_ext;
+    } else if (jmex>=nmx_ext) {
+        jmex -= nmx_ext;
+    }
+    if (jmey<0) {
+        jmey += nmy_ext;
+    } else if (jmey>=nmy_ext) {
+        jmey -= nmy_ext;
+    }
+    int jme = jmex + jmey*nmx_ext;
     for (unsigned long n=head_index_ext.at(jme); n<head_index_ext.at(jme)+counter_ext.at(jme); n++) {
         bool survive = false;
         unsigned long j = sorted_index_ext.at(n);
@@ -343,46 +352,50 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
     std::fill(survivor_list.begin(), survivor_list.end(), false);
     for (int i=0; i<num_mesh; i++) {
         int jme = (i/nmx+1)*nmx_ext + i%nmx + 1;
-        this->search_ext(i, jme   , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jme-1 , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jme+1 , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jme+nmx_ext-1 , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jme+nmx_ext   , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jme+nmx_ext+1 , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jme-nmx_ext-1 , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jme-nmx_ext   , my_atoms, ext_atoms, sysp);
-        this->search_ext(i, jme-nmx_ext+1 , my_atoms, ext_atoms, sysp);
+        int jmex = i%nmx + 1;
+        int jmey = i/nmx + 1;
+        this->search_ext(i, jmex,   jmey , my_atoms, ext_atoms, sysp);
+        this->search_ext(i, jmex-1, jmey , my_atoms, ext_atoms, sysp);
+        this->search_ext(i, jmex+1, jmey , my_atoms, ext_atoms, sysp);
+        this->search_ext(i, jmex,   jmey-1 , my_atoms, ext_atoms, sysp);
+        this->search_ext(i, jmex-1, jmey-1 , my_atoms, ext_atoms, sysp);
+        this->search_ext(i, jmex+1, jmey-1 , my_atoms, ext_atoms, sysp);
+        this->search_ext(i, jmex,   jmey+1 , my_atoms, ext_atoms, sysp);
+        this->search_ext(i, jmex-1, jmey+1 , my_atoms, ext_atoms, sysp);
+        this->search_ext(i, jmex+1, jmey+1 , my_atoms, ext_atoms, sysp);
+        
         if (i%nmx==0) {
-            this->search_ext(i, jme+nmx_ext-2   , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jme+nmx_ext*2-2 , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jme-2           , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex+nmx_ext-2,   jmey-1, my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex+nmx_ext-2,   jmey  , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex+nmx_ext-2,   jmey+1, my_atoms, ext_atoms, sysp);
         }
         if (i%nmx==nmx-1) {
-            this->search_ext(i, jme-nmx_ext+2   , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jme-nmx_ext*2+2 , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jme+2           , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex-nmx_ext+2,   jmey  , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex-nmx_ext+2,   jmey-1, my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex-nmx_ext+2,   jmey+1, my_atoms, ext_atoms, sysp);
         }
         if (i/nmx==0) {
-            this->search_ext(i, jme+num_mesh_ext-nmx_ext*2   , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jme+num_mesh_ext-nmx_ext*2+1 , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jme+num_mesh_ext-nmx_ext*2-1 , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex  , jmey+nmy_ext-2, my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex+1, jmey+nmy_ext-2, my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex-1, jmey+nmy_ext-2, my_atoms, ext_atoms, sysp);
         }
         if (i/nmx==nmy-1) {
-            this->search_ext(i, jme-num_mesh_ext+nmx_ext*2   , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jme-num_mesh_ext+nmx_ext*2+1 , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jme-num_mesh_ext+nmx_ext*2-1 , my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex  , jmey-nmy_ext+2, my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex+1, jmey-nmy_ext+2, my_atoms, ext_atoms, sysp);
+            this->search_ext(i, jmex-1, jmey-nmy_ext+2, my_atoms, ext_atoms, sysp);
         }
-        if (i==0) {
-            this->search_ext(i, num_mesh_ext-1, my_atoms, ext_atoms, sysp);
+
+        if(i==0) {
+            this->search_ext(i, nmx_ext-1 , nmy_ext-1, my_atoms, ext_atoms, sysp);
         }
-        if (i==nmx-1) {
-            this->search_ext(i, num_mesh_ext-nmx_ext, my_atoms, ext_atoms, sysp);
+        if(i==nmx-1) {
+            this->search_ext(i, 0, nmy_ext-1, my_atoms, ext_atoms, sysp);
         }
-        if (i==num_mesh-nmx) {
-            this->search_ext(i, nmx_ext-1, my_atoms, ext_atoms, sysp);
+        if(i==num_mesh-nmx) {
+            this->search_ext(i, nmx_ext-1, 0, my_atoms, ext_atoms, sysp);
         }
-        if (i==num_mesh-1) {
-            this->search_ext(i, 0, my_atoms, ext_atoms, sysp);
+        if(i==num_mesh-1) {
+            this->search_ext(i, 0, 0, my_atoms, ext_atoms, sysp);
         }
     }
 }

@@ -34,7 +34,7 @@ private:
  
     void set_mesh_ext(Systemparam*);
     void set_index_ext(const std::vector<Atom> &, Systemparam*);
-    void search_ext(int, int, const std::vector<Atom> &, const std::vector<Atom> &, Systemparam*);
+    void search_ext(int, int, int, const std::vector<Atom> &, const std::vector<Atom> &, Systemparam*);
     void mesh_search_ext(const std::vector<Atom> &, std::vector<Atom> &, Systemparam*);
     void arrange_pairs_ext(const std::vector<unsigned long> &new_index, unsigned long new_pn);
     void pick_atoms(std::vector<Atom> &, std::vector<unsigned long> &, std::vector<unsigned long> &);
