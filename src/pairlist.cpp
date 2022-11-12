@@ -64,7 +64,7 @@ void PairList::set_mesh(Variables* vars, Systemparam* sysp) {
     this->lmy = (limits.at(3) - limits.at(2))/static_cast<double>(nmy);
     assert(lmx>sysp->co_margin && lmy>sysp->co_margin);
     this->num_mesh = nmx*nmy;
-    assert(num_mesh < std::numeric_limits<int>::max());
+    assert((nmx+2)*(nmy+2)< std::numeric_limits<int>::max());
     this->counter.resize(num_mesh);
     this->head_index.resize(num_mesh);
     this->sorted_index.resize(vars->number_of_atoms());
