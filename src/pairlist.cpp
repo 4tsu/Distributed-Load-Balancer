@@ -24,8 +24,6 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
     this->other_list.clear();
     vars->recv_list.clear();
     vars->recv_size.clear();
-    unsigned long pn = vars->number_of_atoms();
-    Atom* atoms = vars->atoms.data();
     for (auto &one_other_atoms : vars->other_atoms) {
         mesh_search_ext(vars->atoms, one_other_atoms, sysp);
         std::vector<unsigned long> one_recv_list;
@@ -57,7 +55,7 @@ void PairList::set_mesh(Variables* vars, Systemparam* sysp) {
 
 
 
-void PairList::set_index(Variables* vars, Systemparam* sysp) {
+void PairList::set_index(Variables* vars) {
     unsigned long pn = vars->number_of_atoms();
     std::vector<unsigned long> position_buffer(pn);
     for (unsigned long i=0; i<pn; i++) {
@@ -157,7 +155,7 @@ void PairList::mesh_search(Variables* vars, Systemparam* sysp) {
     clear_all();
     set_mesh(vars, sysp);
     if (nmx>2 && nmy>2) {
-        set_index(vars, sysp);
+        set_index(vars);
         for (int i=0; i<num_mesh; i++) {
             search(i, vars, sysp);
             int ix = i%nmx;
@@ -243,7 +241,7 @@ void PairList::search_all(Variables* vars, Systemparam* sysp) {
 }
 
 
-void PairList::set_mesh_ext(Systemparam* sysp) {
+void PairList::set_mesh_ext(void) {
     nmx_ext = nmx+2;
     nmy_ext = nmy+2;
     num_mesh_ext = nmx_ext*nmy_ext;
@@ -356,7 +354,7 @@ void PairList::search_ext(int im, int jmex, int jmey, const std::vector<Atom> &m
 // 実行はmesh_search()よりも後でなければならない。
 void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<Atom> &ext_atoms, Systemparam* sysp) {
     this->clear_ext();
-    this->set_mesh_ext(sysp);
+    this->set_mesh_ext();
     this->set_index_ext(ext_atoms, sysp);
     survivor_list.resize(ext_atoms.size());
     std::fill(survivor_list.begin(), survivor_list.end(), false);
