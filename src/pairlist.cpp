@@ -171,8 +171,8 @@ void PairList::search_neighbor(int im, int jmx, int jmy, Variables* vars, System
 void PairList::mesh_search(Variables* vars, Systemparam* sysp) {
     clear_all();
     set_mesh(vars, sysp);
-    set_index(vars, sysp);
     if (nmx>2 && nmy>2) {
+        set_index(vars, sysp);
         for (int i=0; i<num_mesh; i++) {
             search(i, vars, sysp);
             int ix = i%nmx;
