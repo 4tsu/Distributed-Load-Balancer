@@ -379,49 +379,36 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
         for (int i=0; i<num_mesh; i++) {
             int jmex = i%nmx + 1;
             int jmey = i/nmx + 1;
-            this->search_ext(i, jmex,   jmey , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-1, jmey , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+1, jmey , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex,   jmey-1 , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-1, jmey-1 , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+1, jmey-1 , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex,   jmey+1 , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex-1, jmey+1 , my_atoms, ext_atoms, sysp);
-            this->search_ext(i, jmex+1, jmey+1 , my_atoms, ext_atoms, sysp);
+            for (int m=-1; m<2; m++) {
+                for (int n=-1; n<2; n++) {
+                    this->search_ext(i, jmex+m, jmey+n, my_atoms, ext_atoms, sysp);
+                }
+            }
             
             // 拡張メッシュ領域が周期境界によってつながっている場合を考慮。
             if (i%nmx<2) {
-                this->search_ext(i, jmex-2, jmey  , my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex-2, jmey+1, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex-2, jmey-1, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex-3, jmey  , my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex-3, jmey+1, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex-3, jmey-1, my_atoms, ext_atoms, sysp);
+                for (int m=-1; m<2; m++) {
+                    this->search_ext(i, jmex-2, jmey+m , my_atoms, ext_atoms, sysp);
+                    this->search_ext(i, jmex-3, jmey+m , my_atoms, ext_atoms, sysp);
+                }
             }
             if (i%nmx>nmx-3) {
-                this->search_ext(i, jmex+2, jmey  , my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex+2, jmey+1, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex+2, jmey-1, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex+3, jmey  , my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex+3, jmey+1, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex+3, jmey-1, my_atoms, ext_atoms, sysp);
-
+                for (int m=-1; m<2; m++) {
+                    this->search_ext(i, jmex+2, jmey+m , my_atoms, ext_atoms, sysp);
+                    this->search_ext(i, jmex+3, jmey+m , my_atoms, ext_atoms, sysp);
+                }
             }
             if (i/nmx<2) {
-                this->search_ext(i, jmex  , jmey-2, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex+1, jmey-2, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex-1, jmey-2, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex  , jmey-3, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex+1, jmey-3, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex-1, jmey-3, my_atoms, ext_atoms, sysp);
+                for (int m=-1; m<2; m++) {
+                    this->search_ext(i, jmex+m, jmey-2, my_atoms, ext_atoms, sysp);
+                    this->search_ext(i, jmex+m, jmey-3, my_atoms, ext_atoms, sysp);
+                }
             }
             if (i/nmx>nmy-3) {
-                this->search_ext(i, jmex  , jmey+2, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex+1, jmey+2, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex-1, jmey+2, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex  , jmey+3, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex+1, jmey+3, my_atoms, ext_atoms, sysp);
-                this->search_ext(i, jmex-1, jmey+3, my_atoms, ext_atoms, sysp);
+                for (int m=-1; m<2; m++) {
+                    this->search_ext(i, jmex+m, jmey+2, my_atoms, ext_atoms, sysp);
+                    this->search_ext(i, jmex+m, jmey+3, my_atoms, ext_atoms, sysp);
+                }
             }
 
             if(i==0) {
