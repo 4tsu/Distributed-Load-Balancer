@@ -37,21 +37,6 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
         if (one_other_list.size() != 0)
             this->other_list.push_back(one_other_list);
     }
-// デバッグ用ペアリスト比較
-int rank;
-MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-MPI_Barrier(MPI_COMM_WORLD);
-sleep(rank*1);
-for (auto l : list){
-    printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
-}
-MPI_Barrier(MPI_COMM_WORLD);
-sleep(rank*1);
-for (auto ool : other_list) {
-for (auto l : ool) {
-    printf("%lu-%lu\n", std::min(l.idi, l.idj), std::max(l.idi, l.idj));
-}}
-MPI_Barrier(MPI_COMM_WORLD);
 }
 
 
