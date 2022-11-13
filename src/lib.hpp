@@ -52,4 +52,15 @@ inline void slprnk() {
     sleep(my_rank*2);
 }
 
+inline double input_double() {
+    double d;
+    int my_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    if (my_rank==0) {
+        std::cin >> d;
+    }
+    MPI_Bcast(&d, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    return d;
+}
+
 // ----------------------
