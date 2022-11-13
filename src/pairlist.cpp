@@ -42,8 +42,10 @@ void PairList::make_pair(Variables* vars, Systemparam* sysp) {
 void PairList::set_mesh(Variables* vars, Systemparam* sysp) {
     this->limits = calc_limit(vars);
     this->nmx = static_cast<int>((limits.at(1) - limits.at(0))/sysp->co_margin) - 1;
-    this->lmx = (limits.at(1) - limits.at(0))/static_cast<double>(nmx);
     this->nmy = static_cast<int>((limits.at(3) - limits.at(2))/sysp->co_margin) - 1;
+    if (nmx<3 || nmy<3)
+        return;
+    this->lmx = (limits.at(1) - limits.at(0))/static_cast<double>(nmx);
     this->lmy = (limits.at(3) - limits.at(2))/static_cast<double>(nmy);
     assert(lmx>sysp->co_margin && lmy>sysp->co_margin);
     this->num_mesh = nmx*nmy;
