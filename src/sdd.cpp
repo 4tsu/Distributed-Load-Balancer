@@ -144,10 +144,69 @@ void Sdd::simple(Variables* vars, Systemparam* sysp, const MPIinfo &mi) {
         
         
 
-// 未実装
-#pragma GCC diagnostic ignored "-Wunused-parameter"
+// X,Y軸方向のそれぞれについて、各プロセスの粒子数が均等になるように壁を平行に動かす
 void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
+    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
+    unsigned long l = vars->atoms.size();
+    unsigned long max_l;
+    MPI_Allreduce(&l, &max_l, 1, MPI_UNSIGNED_LONG, MPI_MAX, MPI_COMM_WORLD);
+    vars->atoms.resize(max_l);
+    unsigned long diff_n = max_l - l;
+    std::vector<unsigned long> diffs(mi.procs);
+    MPI_Gather(&diff_n, 1, MPI_UNSIGNED_LONG, diffs.data(), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
+    std::vector<Atom> all_atoms(max_l*mi.procs);
+    unsigned long s = max_l*sizeof(Atom);
+    MPI_Gather(vars->atoms.data(), s, MPI_CHAR, all_atoms.data(), s, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+    if (mi.rank==0) {
+        auto compare_id = [](const Atom & a1, const Atom & a2) {return a1.id < a2.id;};
+        auto compare_x  = [](const Atom & a1, const Atom & a2) {return a1.x < a2.x;};
+        auto compare_y  = [](const Atom & a1, const Atom & a2) {return a1.y < a2.y;};
+        unsigned long sum = 0;
+        for (int i=0; i<mi.procs; i++) {
+            sum += max_l;
+            all_atoms.erase(all_atoms.begin()+sum-diffs.at(i), all_atoms.begin()+sum);
+            sum -= diffs.at(i);
+        }
+        // まずはY軸についてソート
+        std::sort(all_atoms.begin(), all_atoms.end(), compare_y);
+        unsigned long nay = std::floor(sysp->N/mi.npy) + 1;
+        unsigned long head = 0;
+        unsigned long y_count = nay;
+        unsigned long temp;
+        for (int i=0; i<mi.npy; i++) {
+            if (head+y_count>sysp->N)
+                y_count = sysp->N-head;
+            std::sort(all_atoms.begin()+head, all_atoms.begin()+head+y_count, compare_x);
+            unsigned long nax = std::floor(y_count/mi.npx) + 1;
+            unsigned long x_count = nax;
+            unsigned long x_sum = 0;
+            for (int j=0; j<mi.npx; j++) {
+                int p = j + i*mi.npx;
+                if (x_sum+x_count>y_count)
+                    x_count = y_count-x_sum;
+                migration_atoms.at(p).resize(x_count);
+                std::copy(all_atoms.begin()+head+x_sum, all_atoms.begin()+head+x_sum+x_count, migration_atoms.at(p).data());
+                x_sum += x_count;
+            }
+            head += y_count;
+        }
+    vars->atoms.clear();
+    vars->atoms.resize(migration_atoms.at(0).size());
+    std::copy(migration_atoms.at(0).begin(), migration_atoms.at(0).end(), vars->atoms.data());
+    migration_atoms.at(0).clear();
+// for (auto v : migration_atoms)
+// {for (auto a : v) printf("%ld : %lf, %lf\n", a.id, a.x, a.y); printf("\n");}
+    } else {
+        for (auto & oma : migration_atoms)
+                oma.clear();
+        vars->atoms.clear();
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    migrate_atoms(migration_atoms, vars, mi);
+
+// {for (auto a : vars->atoms) printf("%ld : %lf, %lf\n", a.id, a.x, a.y); printf("\n");}
 }
 
 
@@ -161,6 +220,5 @@ void Sdd::voronoi_init(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Su
 void Sdd::voronoi(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
 
 }
-#pragma GCC diagnostic warning "-Wunused-parameter"
 
 // ============================================
