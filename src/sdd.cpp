@@ -101,7 +101,7 @@ void Sdd::migrate_atoms(std::vector<std::vector<Atom>> migration_atoms, Variable
     for (auto& ireq : mpi_recv_requests) {
         MPI_Wait(&ireq, &st);
     }
-    for (auto& ireq : mpi_recv_requests) {
+    for (auto& ireq : mpi_send_requests) {
         MPI_Wait(&ireq, &st);
     }
 
@@ -196,8 +196,6 @@ void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Sub
     vars->atoms.resize(migration_atoms.at(0).size());
     std::copy(migration_atoms.at(0).begin(), migration_atoms.at(0).end(), vars->atoms.data());
     migration_atoms.at(0).clear();
-// for (auto v : migration_atoms)
-// {for (auto a : v) printf("%ld : %lf, %lf\n", a.id, a.x, a.y); printf("\n");}
     } else {
         for (auto & oma : migration_atoms)
                 oma.clear();
@@ -205,8 +203,6 @@ void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Sub
     }
     MPI_Barrier(MPI_COMM_WORLD);
     migrate_atoms(migration_atoms, vars, mi);
-
-// {for (auto a : vars->atoms) printf("%ld : %lf, %lf\n", a.id, a.x, a.y); printf("\n");}
 }
 
 
