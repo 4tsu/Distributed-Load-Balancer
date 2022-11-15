@@ -101,7 +101,7 @@ void Sdd::migrate_atoms(std::vector<std::vector<Atom>> migration_atoms, Variable
     for (auto& ireq : mpi_recv_requests) {
         MPI_Wait(&ireq, &st);
     }
-    for (auto& ireq : mpi_recv_requests) {
+    for (auto& ireq : mpi_send_requests) {
         MPI_Wait(&ireq, &st);
     }
 
