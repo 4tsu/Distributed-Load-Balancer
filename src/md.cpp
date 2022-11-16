@@ -658,13 +658,13 @@ void MD::run(void) {
     // 初期配置orデータ読み込み
     if (this->config=="make") {
         makeconf();
+        vars->set_initial_velocity(1.0, mi, sysp); // 初速決定
     } else {
         this->read_data(config, vars, sysp, mi);
     }
 
      // ロードバランサー選択
     sdd->init(vars, sysp, mi, sr);
-    vars->set_initial_velocity(1.0, mi, sysp); // 初速決定
     obs->export_cdview(vars->atoms, *sysp, mi);
 
     //最初のペアリスト作成
