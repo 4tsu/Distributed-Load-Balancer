@@ -342,6 +342,10 @@ void MD::calculate_force(void) {
             continue;
         
         double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
+        if (df>10) {
+            fprintf(stderr, "Abnormal Force! (pair[%ld-%ld])\n", ia.id, ja.id);
+            abort();
+        }
         atoms[pl.i].vx += df * dx;
         atoms[pl.i].vy += df * dy;
         atoms[pl.j].vx -= df * dx;
