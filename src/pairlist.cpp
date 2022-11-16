@@ -400,15 +400,23 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
 
             if(i==0) {
                 this->search_ext(i, nmx_ext-1 , nmy_ext-1, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, nmx_ext-2 , nmy_ext-1, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, nmx_ext-1 , nmy_ext-2, my_atoms, ext_atoms, sysp);
             }
             if(i==nmx-1) {
                 this->search_ext(i, 0, nmy_ext-1, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, 0, nmy_ext-2, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, 1, nmy_ext-1, my_atoms, ext_atoms, sysp);
             }
             if(i==num_mesh-nmx) {
                 this->search_ext(i, nmx_ext-1, 0, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, nmx_ext-2, 0, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, nmx_ext-1, 1, my_atoms, ext_atoms, sysp);
             }
             if(i==num_mesh-1) {
                 this->search_ext(i, 0, 0, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, 0, 1, my_atoms, ext_atoms, sysp);
+                this->search_ext(i, 1, 0, my_atoms, ext_atoms, sysp);
             }
         }
     } else {
