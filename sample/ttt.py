@@ -14,13 +14,11 @@ def three_to_two(path, output, z_range):
         is_step   = False
         is_bounds = False
         is_atoms  = False
-        is_init = False
         for l in Line:
             if ("ITEM: TIMESTEP" in l):
                 is_step = True
                 is_bounds = False
                 is_atoms = False
-                is_init = False
                 continue
             elif ("ITEM: BOX BOUNDS" in l):
                 is_step = False
@@ -32,18 +30,17 @@ def three_to_two(path, output, z_range):
                 is_bounds = False
                 is_atoms = True
                 continue
-
-            if (is_step and l=="0"):
-                is_init = True
-                is_step = False
-                continue
-            
-            if is_init:
-                continue
             
             if is_step:
-                step = l
+                step = int(l)
                 is_step = False
+                X = []
+                Y = []
+                Z = []
+                VX = []
+                VY = []
+                VZ = []
+                bounds = []
             elif is_bounds:
                 x_min = ''
                 x_max = ''
@@ -56,6 +53,7 @@ def three_to_two(path, output, z_range):
                     elif index==1:
                         x_max += s
                 bounds.append([x_min, x_max])
+
             elif is_atoms:
                 x = ''
                 y = ''
@@ -110,4 +108,4 @@ def three_to_two(path, output, z_range):
 
 
 
-three_to_two("sample.dump", "smpl2d.dump", 0.2)
+three_to_two("sample.dump", "sample2d.dump", 0.2)
