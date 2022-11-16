@@ -6,6 +6,13 @@
 
 // ============================================
 
+struct Workload {
+    int rank;
+    unsigned long counts;
+};
+
+// ============================================
+
 class Sdd {
     public:
         Sdd(const int sdd_type);
