@@ -101,8 +101,10 @@ void PairList::search(int im, Variables* vars, Systemparam* sysp) {
     int ih = head_index.at(im);
     unsigned long pnm = counter.at(im);
     Atom *atoms = vars->atoms.data();
-    for (unsigned long m=ih; m<ih+pnm-1; m++) {
+    for (unsigned long m=ih; m<ih+pnm; m++) {
         for (unsigned long n=m+1; n<ih+pnm; n++) {
+            if (m==n)
+                continue;
             unsigned long i = sorted_index.at(m);
             unsigned long j = sorted_index.at(n);
             double dx = atoms[j].x - atoms[i].x;
