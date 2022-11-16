@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
     md->set_box(1600, 40, 40, 3.5); // unsigned long N, double xl, double yl, double cutoff
     md->set_margin(0.5);
     md->set_config("make");
-    md->set_sdd(1);
+    md->set_sdd(2);
     md->run();
     delete md;
 
