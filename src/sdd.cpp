@@ -23,8 +23,12 @@ void Sdd::init(Variables* vars, Systemparam* sysp
         global_sort(vars, sysp, mi, sr);
 
     } else if (sdd_type==2) {
-        calc_bounds(sysp, mi);
-        simple(vars, sysp, mi);
+        std::vector<double> v(4);
+        v = calc_limit(vars);
+        this->left   = v.at(0);
+        this->right  = v.at(1);
+        this->bottom = v.at(2);
+        this->top    = v.at(3);
         voronoi_init(vars, sysp, mi, sr);
         return;
     }
@@ -207,6 +211,7 @@ void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Sub
 
 
 
+// 領域が空だとvoronoiに参加できないので、最も重い領域たちから粒子を分けてもらう
 void Sdd::voronoi_init(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
     unsigned long na = vars->number_of_atoms();
     Workload wl;
@@ -215,7 +220,8 @@ void Sdd::voronoi_init(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Su
     std::vector<Workload> loads(mi.procs);
     MPI_Allgather(&wl, sizeof(wl), MPI_CHAR, loads.data(), sizeof(wl), MPI_CHAR, MPI_COMM_WORLD);
     
-    auto compare_wl = [](const Workload & wl1, const Workload & wl2) {return wl1.counts < wl2.counts;};
+    // 昇順比較
+    auto compare_wl = [](const Workload & wl1, const Workload & wl2) {return wl1.counts > wl2.counts;};
     std::sort(loads.begin(), loads.end(), compare_wl);
     int zero_regions = 0;
     int my_position;
@@ -223,15 +229,15 @@ void Sdd::voronoi_init(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Su
         wl = loads.at(i);
         if (wl.counts==0)
             zero_regions++;
-        if(wl.rank==0)
+        if(wl.rank==mi.rank)
             my_position = i;
     }
     int zero_head = mi.procs - zero_regions;
     assert(zero_regions <= mi.procs/2);
-
+    
     if (na==0) {
         // 相手から半分もらう作業
-        int source_proc = my_position - zero_head;
+        int source_proc = loads.at(my_position - zero_head).rank;
         unsigned long num_recv;
         MPI_Status st;
         MPI_Recv(&num_recv, 1, MPI_UNSIGNED_LONG, source_proc, 0, MPI_COMM_WORLD, &st);
@@ -240,7 +246,7 @@ void Sdd::voronoi_init(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Su
     } else if (my_position < zero_regions) {
         // 相手に半分渡す作業
         int target_proc = zero_head + my_position;
-        double center_line = right - (right-left)/2;
+        double center_line = (right+left)/2;
         std::vector<Atom> send_atoms;
         std::vector<Atom> new_atoms;
         for (const auto &a : vars->atoms) {
@@ -257,7 +263,6 @@ void Sdd::voronoi_init(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Su
         vars->atoms.resize(new_atoms.size());
         vars->atoms = new_atoms;
     }
-    printf("%ld\n", vars->atoms.size());
 }
 
 
