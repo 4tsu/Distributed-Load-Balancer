@@ -294,13 +294,12 @@ void Sdd::voronoi(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegi
     sr->calc_center(vars, sysp);
     sr->calc_radius(vars, sysp);
   
-    for (int s=0; s<iteration; s++) {
-        // fprintf(stderr, "voronoi step.%d\n", s);
+    for (int s=1; s<=iteration; s++) {
         unsigned long pn = vars->number_of_atoms();
         MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
         unsigned long max_count = *std::max_element(counts.begin(), counts.end());
-        if (max_count <= ideal_count) {
-            // fprintf(stderr, "early stop\n");
+        if (max_count <= ideal_count_max) {
+            // fprintf(stderr, "early stop (iter #%d)\n", s);
             break;
         }
 
