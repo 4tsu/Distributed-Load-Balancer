@@ -1,18 +1,12 @@
 {
     "cSpell.words": [
-        "cdict",
-        "Irecv",
-        "Isend",
-        "mpiinfo",
+        "jmex",
+        "jmey",
+        "smpl",
         "sysp",
-        "xlimn",
-        "xlimp",
+        "Wunused",
         "xppl",
-        "ylimn",
-        "ylimp",
-        "yppl",
-        "zlimn",
-        "zlimp"
+        "yppl"
     ],
     "files.associations": {
         "ostream": "cpp",

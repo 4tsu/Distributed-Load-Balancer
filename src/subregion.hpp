@@ -31,8 +31,11 @@ public:
     double radius;
     void calc_center(Variables*, Systemparam*);
     void calc_radius(Variables*, Systemparam*);
-    void set_limit(double, double, double, double);
     void set_bias(double);
 };
+
+// --------------------------------------------
+
+std::vector<double> calc_limit(Variables*);
 
 // ============================================

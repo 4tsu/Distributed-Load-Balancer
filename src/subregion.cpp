@@ -7,6 +7,27 @@ void set_dp(DomainPair &dp, int ip, int jp) {
     dp.j = jp;
 }
 
+
+
+std::vector<double> calc_limit(Variables* vars) {
+    double x_min = vars->atoms.at(0).x;
+    double x_max = vars->atoms.at(0).x;
+    double y_min = vars->atoms.at(0).y;
+    double y_max = vars->atoms.at(0).y;
+    for (auto atom : vars->atoms) {
+        if      (atom.x < x_min)
+            x_min = atom.x;
+        else if (atom.x > x_max)
+            x_max = atom.x;
+        if      (atom.y < y_min)
+            y_min = atom.y;
+        else if (atom.y > y_max)
+            y_max = atom.y;
+    }
+    std::vector<double> v{x_min, x_max, y_min, y_max};
+    return v;
+}
+
 // --------------------------------------------
 
 // 相互作用する可能性のある領域ぺア検出
