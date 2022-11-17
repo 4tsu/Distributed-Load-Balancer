@@ -112,7 +112,7 @@ mpirun -np 並列数 ./md.exe
 - makeconf.py : 液滴や、気泡の原子配置を作り、LAMMPSに与えることができる。これは本プログラムでは読み込めない。
 - ttt.py : 3次元シミュレーションの結果得た`.dump`ファイルから一部の粒子を抜き出し、2次元の粒子配置ファイルを生成する。
 
-`makeconf.py` -> `run.in` -> `ttt.py` の順に実行すると、デフォルトでは`smpl2d.dump`がsampleフォルダ内に生成されるので、これを`md.exe`と同じ場所に移動し、`set_config()`の引数にファイル名を指定することで、液滴のサンプルシミュレーションが動く。
+`makeconf.py` -> `run.in` -> `ttt.py` の順に実行すると、デフォルトでは`sample2d.dump`がsampleフォルダ内に生成されるので、これを`md.exe`と同じ場所に移動し、`set_config()`の引数にファイル名を指定することで、液滴のサンプルシミュレーションが動く。
 ```
 cd sample
 python3 makeconf.py
@@ -123,10 +123,10 @@ lmp_serial -in run.in
 
 python3 ttt.py
 
-mv smpl2d.dump ..
+mv sample2d.dump ..
 
 vi src/main.cpp
-# md->set_config("smpl2d.dump");に書き換える
+# md->set_config("sample2d.dump");に書き換える
 
 mpirun -np 並列数 ./md.exe
 ```
