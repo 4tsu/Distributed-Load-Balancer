@@ -24,12 +24,16 @@ class Sdd {
     private:
         int sdd_type = -1;
         double top, bottom, right, left;
+        unsigned long ideal_count;
+        void set_limits(double, double, double, double);
         void migrate_atoms(std::vector<std::vector<Atom>>, Variables*, const MPIinfo &);
         void calc_bounds(Systemparam*, const MPIinfo &);
         void simple(Variables*, Systemparam*, const MPIinfo &);
         void global_sort(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
         void voronoi_init(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
-        void voronoi(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
+        void voronoi(Variables*, Systemparam*, const MPIinfo &, SubRegion*, int, double, double);
+        void voronoi_allocate(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
+        void center_atom_distance(int, double &, int &, const Atom, SubRegion*, Systemparam*);
 };
 
 // ============================================

@@ -669,6 +669,7 @@ void MD::run(void) {
 
      // ロードバランサー選択
     sdd->init(vars, sysp, mi, sr);
+    sdd->run(vars, sysp, mi, sr);
     obs->export_cdview(vars->atoms, *sysp, mi);
 
     //最初のペアリスト作成
