@@ -233,48 +233,62 @@ void Sdd::voronoi_init(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Su
     // 昇順比較
     auto compare_wl = [](const Workload & wl1, const Workload & wl2) {return wl1.counts > wl2.counts;};
     std::sort(loads.begin(), loads.end(), compare_wl);
-    int zero_regions = 0;
-    int my_position;
-    for (int i=0; i<mi.procs; i++) {
-        wl = loads.at(i);
-        if (wl.counts==0)
-            zero_regions++;
-        if(wl.rank==mi.rank)
-            my_position = i;
-    }
-    int zero_head = mi.procs - zero_regions;
-    assert(zero_regions <= mi.procs/2);
-    
-    if (na==0) {
-        // 相手から半分もらう作業
-        int source_proc = loads.at(my_position - zero_head).rank;
-        unsigned long num_recv;
-        MPI_Status st;
-        MPI_Recv(&num_recv, 1, MPI_UNSIGNED_LONG, source_proc, 0, MPI_COMM_WORLD, &st);
-        vars->atoms.resize(num_recv);
-        MPI_Recv(vars->atoms.data(), num_recv*sizeof(Atom), MPI_CHAR, source_proc, 0, MPI_COMM_WORLD, &st);
-    } else if (my_position < zero_regions) {
-        // 相手に半分渡す作業
-        int target_proc = zero_head + my_position;
-        double center_line = (right+left)/2;
-        std::vector<Atom> send_atoms;
-        std::vector<Atom> new_atoms;
-        for (const auto &a : vars->atoms) {
-            if (a.x<center_line) {
-                send_atoms.push_back(a);
+
+    while (loads.at(mi.procs-1).counts==0) {
+        int zero_regions = 0;
+        int non_zero_regions = 0;
+        int my_position;
+        for (int i=0; i<mi.procs; i++) {
+            wl = loads.at(i);
+            if (wl.counts==0) {
+                zero_regions++;
             } else {
-                new_atoms.push_back(a);
+                non_zero_regions++;
             }
+            if(wl.rank==mi.rank)
+                my_position = i;
         }
-        unsigned long num_send = send_atoms.size();
-        MPI_Send(&num_send, 1, MPI_UNSIGNED_LONG, target_proc, 0, MPI_COMM_WORLD);
-        MPI_Send(send_atoms.data(), num_send*sizeof(Atom), MPI_CHAR, target_proc, 0, MPI_COMM_WORLD);
-        vars->atoms.clear();
-        vars->atoms.resize(new_atoms.size());
-        vars->atoms = new_atoms;
-    }
+        int zero_head = mi.procs - zero_regions;
+        if (non_zero_regions < zero_regions) {
+            zero_regions = non_zero_regions;
+        }
+        if (zero_head <= my_position && my_position < zero_head+zero_regions) {
+            // 相手から半分もらう作業
+            int source_proc = loads.at(my_position - zero_head).rank;
+            unsigned long num_recv;
+            MPI_Status st;
+            MPI_Recv(&num_recv, 1, MPI_UNSIGNED_LONG, source_proc, 0, MPI_COMM_WORLD, &st);
+            vars->atoms.resize(num_recv);
+            MPI_Recv(vars->atoms.data(), num_recv*sizeof(Atom), MPI_CHAR, source_proc, 0, MPI_COMM_WORLD, &st);
+        } else if (my_position < zero_regions) {
+            // 相手に半分渡す作業
+            int target_proc = zero_head + my_position;
+            double center_line = (right+left)/2;
+            std::vector<Atom> send_atoms;
+            std::vector<Atom> new_atoms;
+            for (const auto &a : vars->atoms) {
+                if (a.x<center_line) {
+                    send_atoms.push_back(a);
+                } else {
+                    new_atoms.push_back(a);
+                }
+            }
+            unsigned long num_send = send_atoms.size();
+            MPI_Send(&num_send, 1, MPI_UNSIGNED_LONG, target_proc, 0, MPI_COMM_WORLD);
+            MPI_Send(send_atoms.data(), num_send*sizeof(Atom), MPI_CHAR, target_proc, 0, MPI_COMM_WORLD);
+            vars->atoms.clear();
+            vars->atoms.resize(new_atoms.size());
+            vars->atoms = new_atoms;
+        }
+        wl.counts = vars->number_of_atoms();
+        loads.clear(); 
+        loads.resize(mi.procs);
+        MPI_Allgather(&wl, sizeof(wl), MPI_CHAR, loads.data(), sizeof(wl), MPI_CHAR, MPI_COMM_WORLD);
+        std::sort(loads.begin(), loads.end(), compare_wl);
+    } 
     sr->bias = 0;
     this->ideal_count = ideal(sysp, mi);
+    printf("%d:%ld\n", mi.rank, vars->number_of_atoms());
 }
 
 
