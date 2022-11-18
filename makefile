@@ -8,7 +8,7 @@ OPTIONS = -std=c++17 -include $(SRCDIR)/lib.hpp
 TESTOPT = -Wall -Wextra --pedantic-error -Wno-cast-function-type -g -O0
 
 # if filesystem is available
-OPTIONS += -DFS
+# OPTIONS += -DFS
 
 # for make dep
 DEPFLAGS=-MM -MG
@@ -36,7 +36,7 @@ $(SRCDIR)/%_test.o: $(SRCDIR)/%.cpp
 	$(CC) $(OPTIONS) $(TESTOPT) -c $< -o $@
 
 test: test.exe
-	-rm *.cdv
+	-rm *.cdv energy.dat
 	mpirun --oversubscribe -np 4 ./test.exe
 	-gnuplot $(VISDIR)/energy_test.plt
 
