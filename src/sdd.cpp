@@ -20,11 +20,15 @@ void Sdd::init(Variables* vars, Systemparam* sysp
         return;
 
     } else if (sdd_type==1) {
-        global_sort(vars, sysp, mi, sr);
+        global_sort(vars, sysp, mi);
 
     } else if (sdd_type==2) {
-        calc_bounds(sysp, mi);
-        simple(vars, sysp, mi);
+        std::vector<double> v(4);
+        v = calc_limit(vars);
+        this->left   = v.at(0);
+        this->right  = v.at(1);
+        this->bottom = v.at(2);
+        this->top    = v.at(3);
         voronoi_init(vars, sysp, mi, sr);
         return;
     }
@@ -38,10 +42,10 @@ void Sdd::run(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* 
         simple(vars, sysp, mi);
 
     } else if (sdd_type==1) {
-        global_sort(vars, sysp, mi, sr);
+        global_sort(vars, sysp, mi);
 
     } else if (sdd_type==2) {
-        voronoi(vars, sysp, mi, sr);
+        voronoi(vars, sysp, mi, sr, 900, 0.030, 0.02);
     }
 }
 
@@ -49,6 +53,15 @@ void Sdd::run(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* 
 
 unsigned long Sdd::ideal(Systemparam* sysp, const MPIinfo &mi) {
     return static_cast<unsigned long>(sysp->N/mi.procs);
+}
+
+
+
+void Sdd::set_limits(double t, double b, double r, double l) {
+    this->top    = t;
+    this->bottom = b;
+    this->right  = r;
+    this->left   = l;
 }
 
 
@@ -144,23 +157,243 @@ void Sdd::simple(Variables* vars, Systemparam* sysp, const MPIinfo &mi) {
         
         
 
-// 未実装
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
+// X,Y軸方向のそれぞれについて、各プロセスの粒子数が均等になるように壁を平行に動かす
+void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi) {
+    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
+    unsigned long l = vars->atoms.size();
+    unsigned long max_l;
+    MPI_Allreduce(&l, &max_l, 1, MPI_UNSIGNED_LONG, MPI_MAX, MPI_COMM_WORLD);
+    vars->atoms.resize(max_l);
+    unsigned long diff_n = max_l - l;
+    std::vector<unsigned long> diffs(mi.procs);
+    MPI_Gather(&diff_n, 1, MPI_UNSIGNED_LONG, diffs.data(), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
+    std::vector<Atom> all_atoms(max_l*mi.procs);
+    unsigned long s = max_l*sizeof(Atom);
+    MPI_Gather(vars->atoms.data(), s, MPI_CHAR, all_atoms.data(), s, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+    if (mi.rank==0) {
+        auto compare_x  = [](const Atom & a1, const Atom & a2) {return a1.x < a2.x;};
+        auto compare_y  = [](const Atom & a1, const Atom & a2) {return a1.y < a2.y;};
+        unsigned long sum = 0;
+        for (int i=0; i<mi.procs; i++) {
+            sum += max_l;
+            all_atoms.erase(all_atoms.begin()+sum-diffs.at(i), all_atoms.begin()+sum);
+            sum -= diffs.at(i);
+        }
+        // まずはY軸についてソート
+        std::sort(all_atoms.begin(), all_atoms.end(), compare_y);
+        unsigned long nay = std::floor(sysp->N/mi.npy) + 1;
+        unsigned long head = 0;
+        unsigned long y_count = nay;
+        for (int i=0; i<mi.npy; i++) {
+            if (head+y_count>sysp->N)
+                y_count = sysp->N-head;
+            // X軸についてソート
+            std::sort(all_atoms.begin()+head, all_atoms.begin()+head+y_count, compare_x);
+            unsigned long nax = std::floor(y_count/mi.npx) + 1;
+            unsigned long x_count = nax;
+            unsigned long x_sum = 0;
+            for (int j=0; j<mi.npx; j++) {
+                int p = j + i*mi.npx;
+                if (x_sum+x_count>y_count)
+                    x_count = y_count-x_sum;
+                migration_atoms.at(p).resize(x_count);
+                std::copy(all_atoms.begin()+head+x_sum, all_atoms.begin()+head+x_sum+x_count, migration_atoms.at(p).data());
+                x_sum += x_count;
+            }
+            head += y_count;
+        }
+    vars->atoms.clear();
+    vars->atoms.resize(migration_atoms.at(0).size());
+    std::copy(migration_atoms.at(0).begin(), migration_atoms.at(0).end(), vars->atoms.data());
+    migration_atoms.at(0).clear();
+    } else {
+        for (auto & oma : migration_atoms)
+                oma.clear();
+        vars->atoms.clear();
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    migrate_atoms(migration_atoms, vars, mi);
 }
 
 
 
+// 領域が空だとvoronoiに参加できないので、最も重い領域たちから粒子を分けてもらう
 void Sdd::voronoi_init(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
+    unsigned long na = vars->number_of_atoms();
+    Workload wl;
+    wl.rank = mi.rank;
+    wl.counts = na;
+    std::vector<Workload> loads(mi.procs);
+    MPI_Allgather(&wl, sizeof(wl), MPI_CHAR, loads.data(), sizeof(wl), MPI_CHAR, MPI_COMM_WORLD);
+    
+    // 昇順比較
+    auto compare_wl = [](const Workload & wl1, const Workload & wl2) {return wl1.counts > wl2.counts;};
+    std::sort(loads.begin(), loads.end(), compare_wl);
 
+    while (loads.at(mi.procs-1).counts==0) {
+        int zero_regions = 0;
+        int non_zero_regions = 0;
+        int my_position;
+        for (int i=0; i<mi.procs; i++) {
+            wl = loads.at(i);
+            if (wl.counts==0) {
+                zero_regions++;
+            } else {
+                non_zero_regions++;
+            }
+            if(wl.rank==mi.rank)
+                my_position = i;
+        }
+        int zero_head = mi.procs - zero_regions;
+        if (non_zero_regions < zero_regions) {
+            zero_regions = non_zero_regions;
+        }
+        if (zero_head <= my_position && my_position < zero_head+zero_regions) {
+            // 相手から半分もらう作業
+            int source_proc = loads.at(my_position - zero_head).rank;
+            unsigned long num_recv;
+            MPI_Status st;
+            MPI_Recv(&num_recv, 1, MPI_UNSIGNED_LONG, source_proc, 0, MPI_COMM_WORLD, &st);
+            vars->atoms.resize(num_recv);
+            MPI_Recv(vars->atoms.data(), num_recv*sizeof(Atom), MPI_CHAR, source_proc, 0, MPI_COMM_WORLD, &st);
+        } else if (my_position < zero_regions) {
+            // 相手に半分渡す作業
+            int target_proc = zero_head + my_position;
+            double center_line = (right+left)/2;
+            std::vector<Atom> send_atoms;
+            std::vector<Atom> new_atoms;
+            for (const auto &a : vars->atoms) {
+                if (a.x<center_line) {
+                    send_atoms.push_back(a);
+                } else {
+                    new_atoms.push_back(a);
+                }
+            }
+            unsigned long num_send = send_atoms.size();
+            MPI_Send(&num_send, 1, MPI_UNSIGNED_LONG, target_proc, 0, MPI_COMM_WORLD);
+            MPI_Send(send_atoms.data(), num_send*sizeof(Atom), MPI_CHAR, target_proc, 0, MPI_COMM_WORLD);
+            vars->atoms.clear();
+            vars->atoms.resize(new_atoms.size());
+            vars->atoms = new_atoms;
+        }
+        wl.counts = vars->number_of_atoms();
+        loads.clear(); 
+        loads.resize(mi.procs);
+        MPI_Allgather(&wl, sizeof(wl), MPI_CHAR, loads.data(), sizeof(wl), MPI_CHAR, MPI_COMM_WORLD);
+        std::sort(loads.begin(), loads.end(), compare_wl);
+    } 
+    sr->bias = 0;
+    this->ideal_count = ideal(sysp, mi);
 }
 
 
 
-void Sdd::voronoi(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
+void Sdd::voronoi(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr,
+                  int iteration, double alpha, double early_stop_range) {
+    std::vector<double> biases(mi.procs);
+    std::vector<double> send_biases(mi.procs);
+    std::vector<double> recv_biases(mi.procs);
+    std::vector<unsigned long> counts(mi.procs);
+    unsigned long ideal_count_max = std::ceil(ideal_count*(1+early_stop_range));
 
+    MPI_Allgather(&sr->bias, 1, MPI_DOUBLE, biases.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+    sr->calc_center(vars, sysp);
+    sr->calc_radius(vars, sysp);
+    Sdd::voronoi_allocate(vars, sysp, mi, sr);
+    sr->calc_center(vars, sysp);
+    sr->calc_radius(vars, sysp);
+  
+    for (int s=1; s<=iteration; s++) {
+        unsigned long pn = vars->number_of_atoms();
+        MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+        unsigned long max_count = *std::max_element(counts.begin(), counts.end());
+        if (max_count <= ideal_count_max) {
+            // fprintf(stderr, "early stop (iter #%d)\n", s);
+            break;
+        }
+
+        sr->make_dplist(mi, vars, sysp);
+        std::vector<DomainPair> dp_all;
+        for (auto dp:sr->dplist)
+            dp_all.push_back(dp);
+        for (auto dp:sr->dplist_reverse)
+            dp_all.push_back(dp);
+        
+        std::fill(send_biases.begin(), send_biases.end(), 0);
+        for (auto dp : dp_all) {
+            int i = dp.i;
+            int j = dp.j;
+            assert(i==mi.rank);
+            double db = pow((alpha*(counts.at(i)-counts.at(j))), 3);
+            sr->bias         -= db;
+            send_biases.at(j) = db;
+        }
+        std::fill(recv_biases.begin(), recv_biases.end(), 0);
+        MPI_Allreduce(send_biases.data(), recv_biases.data(), mi.procs, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        sr->bias += recv_biases.at(mi.rank);
+        std::vector<double> limits(4);
+        limits = calc_limit(vars);
+        double min_xyl = std::min(limits.at(1)-limits.at(0), limits.at(3)-limits.at(2));
+        if (sr->bias < -sr->radius) {
+            sr->bias = -sr->radius;
+        } else if (sr->bias > min_xyl) {
+            sr->bias = min_xyl;
+        }
+
+        voronoi_allocate(vars, sysp, mi, sr);
+        sr->calc_center(vars, sysp);
+        sr->calc_radius(vars, sysp);
+    }
 }
-#pragma GCC diagnostic warning "-Wunused-parameter"
+
+
+
+void Sdd::voronoi_allocate(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
+    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
+    std::vector<Atom> new_atoms;
+    sr->communicate_centradi(mi);
+
+    std::vector<DomainPair> dp_all;
+    for (auto dp:sr->dplist) {
+        assert(dp.i == mi.rank);
+        dp_all.push_back(dp);
+    }
+    for (auto dp:sr->dplist_reverse) {
+        assert(dp.i == mi.rank);
+        dp_all.push_back(dp);
+    }
+    int closest_proc;
+    double min_distance;
+    for (const Atom atom : vars->atoms) {
+        min_distance = sysp->xl*sysp->xl+sysp->yl*sysp->yl;
+        for (auto dp : dp_all) {
+            center_atom_distance(dp.j, min_distance, closest_proc, atom, sr, sysp);
+        }
+        center_atom_distance(mi.rank, min_distance, closest_proc, atom, sr, sysp);
+        migration_atoms.at(closest_proc).push_back(atom);
+    }
+    vars->atoms.clear();
+    vars->atoms.resize(migration_atoms.at(mi.rank).size());
+    std::copy(migration_atoms.at(mi.rank).begin(), migration_atoms.at(mi.rank).end(), vars->atoms.data());
+    migration_atoms.at(mi.rank).clear();
+    MPI_Barrier(MPI_COMM_WORLD);
+    migrate_atoms(migration_atoms, vars, mi);
+}
+
+
+
+void Sdd::center_atom_distance(int rank, double & min_distance, int & closest_proc,
+                               const Atom atom, SubRegion* sr, Systemparam* sysp) {
+    double dx = atom.x - sr->centers.at(rank).at(0);
+    double dy = atom.y - sr->centers.at(rank).at(1);
+    periodic_distance(dx, dy, sysp);
+    double r2 = dx*dx + dy*dy;
+    if (r2<min_distance) {
+        min_distance = r2;
+        closest_proc = rank;
+    }
+}
 
 // ============================================

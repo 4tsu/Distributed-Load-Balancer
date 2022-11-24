@@ -314,6 +314,10 @@ void MD::check_pairlist(void) {
 
 void MD::update_position(double coefficient) {
     for (auto& atom : vars->atoms) {
+        if (atom.vx>9 || atom.vy>9) {
+            fprintf(stderr, "Abnormal velocity!(rank#%d atom#%ld:[%lf, %lf])",mi.rank, atom.id, atom.vx, atom.vy);
+            abort();
+        }
         double x = atom.x + atom.vx * dt * coefficient;
         double y = atom.y + atom.vy * dt * coefficient;
         periodic_coordinate(x, y, sysp);
@@ -342,6 +346,10 @@ void MD::calculate_force(void) {
             continue;
         
         double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
+        if ((df*df)>1.5) {
+            fprintf(stderr, "Abnormal Force! (rank#%d pair[%ld-%ld])\n", mi.rank, ia.id, ja.id);
+            abort();
+        }
         atoms[pl.i].vx += df * dx;
         atoms[pl.i].vy += df * dy;
         atoms[pl.j].vx -= df * dx;
@@ -367,7 +375,6 @@ void MD::calculate_force(void) {
             if (r > sysp->cutoff){
                 continue;
             }
-            
             double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
             atoms[pl.i].vx += df * dx;
             atoms[pl.i].vy += df * dy;
@@ -665,6 +672,7 @@ void MD::run(void) {
 
      // ロードバランサー選択
     sdd->init(vars, sysp, mi, sr);
+    sdd->run(vars, sysp, mi, sr);
     obs->export_cdview(vars->atoms, *sysp, mi);
 
     //最初のペアリスト作成
