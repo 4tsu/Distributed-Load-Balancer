@@ -140,6 +140,80 @@ double Observer::potential_energy(Variables *vars, PairList *pl, Systemparam *sy
     return v_global;
 }
 
+
+
+void Observer::export_checkpoint(std::string filename, const int step, Variables* vars, Systemparam* sysp, MPIinfo & mi) {
+    this->checkpoint_independent(step, vars, sysp, mi);
+    MPI_Barrier(MPI_COMM_WORLD);
+    this->concatenate_checkpoint(filename, mi);
+}
+
+
+
+void Observer::checkpoint_independent(const int step, Variables* vars, Systemparam* sysp, MPIinfo &mi) {
+    char filename[256];
+#ifdef FS
+    std::filesystem::create_directory("./ckpt");
+    sprintf(filename, "ckpt/ckpt%d.temp", mi.rank);
+#else
+    sprintf(filename, "ckpt%d.temp", mi.rank);
+#endif
+    std::ofstream ofs(filename, std::ios::out);
+    if (mi.rank==0) {
+        ofs << "ITEM: TIMESTEP" << std::endl;
+        ofs << step             << std::endl;
+        ofs << "ITEM: NUMBER OF ATOMS" << std::endl;
+        ofs << sysp->N                 << std::endl;
+        ofs << "ITEM: BOX BOUNDS pp pp pp" << std::endl;
+        ofs << sysp->x_min << " " << sysp->x_max << std::endl;
+        ofs << sysp->y_min << " " << sysp->y_max << std::endl;
+        ofs << "0 0"                             << std::endl;
+        ofs << "ITEM: ATOMS x y z vx vy vz" << std::endl;
+    }
+    for (auto &a : vars->atoms) {
+        ofs << a.x        << " ";
+        ofs << a.y        << " ";
+        ofs << "0"        << " ";
+        ofs << a.vx        << " ";
+        ofs << a.vy        << " ";
+        ofs << "0"        << " ";
+        ofs << std::endl;
+    }
+}
+
+void Observer::concatenate_checkpoint(std::string filename, MPIinfo & mi) {
+    if(mi.rank==0) {
+#ifdef FS
+        filename = "ckpt/" + filename;
+#endif
+        std::ofstream ofs(filename, std::ios::out);
+		for (int i=0; i<mi.procs; i++) {
+            char filename[256];
+#ifdef FS
+            sprintf(filename, "ckpt/ckpt%d.temp", i);
+#else
+            sprintf(filename, "ckpt%d.temp", i);
+#endif
+            std::ifstream reading_file;
+            reading_file.open(filename, std::ios::in);
+            std::string line;
+            while(std::getline(reading_file, line)) {
+                ofs << line << std::endl;
+            }
+		}
+#ifdef aFS
+        for (const auto & file : std::filesystem::directory_iterator("./ckpt/")) {
+            std::string path = file.path();
+            size_t word_pos = path.find(".temp");
+            if (word_pos != std::string::npos) {
+                std::filesystem::remove(path);
+                continue;
+            }
+        }
+#endif
+    }
+}
+
 // ======================================================
 
 void export_three(const std::string filename, const int s, const double a, const double b, const double c) {

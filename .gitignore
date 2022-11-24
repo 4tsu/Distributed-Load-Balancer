@@ -33,6 +33,7 @@
 
 ## User Defined
 *.temp
+*.ckpt
 
 # Incremental Compile
 *.depend
