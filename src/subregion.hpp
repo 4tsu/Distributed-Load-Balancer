@@ -16,9 +16,6 @@ struct DomainPair{
 class SubRegion {
 private:
     bool judge(int, int, Systemparam*);
-    void communicate_centradi(const MPIinfo &mi);
-    std::vector<std::vector<double>> centers;
-    std::vector<double> radii;
     std::vector<bool> is_empties;
     bool is_empty;
 
@@ -31,7 +28,10 @@ public:
     double radius;
     void calc_center(Variables*, Systemparam*);
     void calc_radius(Variables*, Systemparam*);
-    void set_bias(double);
+    void communicate_centradi(const MPIinfo &mi);
+    std::vector<std::vector<double>> centers;
+    std::vector<double> radii;
+    double bias;
 };
 
 // --------------------------------------------

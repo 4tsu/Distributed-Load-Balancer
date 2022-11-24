@@ -10,22 +10,27 @@ void set_dp(DomainPair &dp, int ip, int jp) {
 
 
 std::vector<double> calc_limit(Variables* vars) {
-    double x_min = vars->atoms.at(0).x;
-    double x_max = vars->atoms.at(0).x;
-    double y_min = vars->atoms.at(0).y;
-    double y_max = vars->atoms.at(0).y;
-    for (auto atom : vars->atoms) {
-        if      (atom.x < x_min)
-            x_min = atom.x;
-        else if (atom.x > x_max)
-            x_max = atom.x;
-        if      (atom.y < y_min)
-            y_min = atom.y;
-        else if (atom.y > y_max)
-            y_max = atom.y;
+    if (vars->number_of_atoms() > 0) {
+        double x_min = vars->atoms.at(0).x;
+        double x_max = vars->atoms.at(0).x;
+        double y_min = vars->atoms.at(0).y;
+        double y_max = vars->atoms.at(0).y;
+        for (auto atom : vars->atoms) {
+            if      (atom.x < x_min)
+                x_min = atom.x;
+            else if (atom.x > x_max)
+                x_max = atom.x;
+            if      (atom.y < y_min)
+                y_min = atom.y;
+            else if (atom.y > y_max)
+                y_max = atom.y;
+        }
+        std::vector<double> v{x_min, x_max, y_min, y_max};
+        return v;
+    } else {
+        std::vector<double> v{0, 0, 0, 0};
+        return v;
     }
-    std::vector<double> v{x_min, x_max, y_min, y_max};
-    return v;
 }
 
 // --------------------------------------------
@@ -36,7 +41,6 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
     this->calc_center(vars, sysp);
     this->calc_radius(vars, sysp);
     this->communicate_centradi(mi);
-
     this->dplist.clear();
     this->dplist_reverse.clear();
     DomainPair dp;
@@ -157,6 +161,7 @@ void SubRegion::calc_center(Variables* vars, Systemparam* sysp) {
         return;
     }
     
+    is_empty = false;
     const double origin_ax = vars->atoms.at(0).x;
     const double origin_ay = vars->atoms.at(0).y;
     double sx = 0;

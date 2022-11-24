@@ -36,7 +36,7 @@ $(SRCDIR)/%_test.o: $(SRCDIR)/%.cpp
 	$(CC) $(OPTIONS) $(TESTOPT) -c $< -o $@
 
 test: test.exe
-	-rm *.cdv
+	-rm *.cdv energy.dat
 	mpirun --oversubscribe -np 4 ./test.exe
 	-gnuplot $(VISDIR)/energy_test.plt
 
