@@ -20,7 +20,7 @@ void Observer::export_cdview_independent(Variables* vars, Systemparam* sysp, MPI
     sprintf(filename, "tconf%03d_%d.temp", count, mi.rank);
 #endif
     ++count;
-    std::ofstream ofs(filename, std::ios::app);
+    std::ofstream ofs(filename, std::ios::out);
     if (mi.rank==0) {
         ofs << "#box_sx=" << sysp->x_min << std::endl;
         ofs << "#box_sy=" << sysp->y_min << std::endl;
@@ -50,7 +50,7 @@ void Observer::concatenate_cdview(MPIinfo &mi) {
 #else
 		sprintf(output, "conf%03d.cdv", count);
 #endif
-        std::ofstream ofs(output, std::ios::app);
+        std::ofstream ofs(output, std::ios::out);
 		for (int i=0; i<mi.procs; i++) {
             char filename[256];
 #ifdef FS
