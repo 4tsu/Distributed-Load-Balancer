@@ -288,7 +288,6 @@ void Sdd::voronoi_init(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Su
     } 
     sr->bias = 0;
     this->ideal_count = ideal(sysp, mi);
-    printf("%d:%ld\n", mi.rank, vars->number_of_atoms());
 }
 
 
