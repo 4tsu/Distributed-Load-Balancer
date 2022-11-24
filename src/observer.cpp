@@ -3,13 +3,21 @@
 // ======================================================
 
 void Observer::export_cdview(Variables* vars, Systemparam* sysp, MPIinfo mi) {
+    this->export_cdview_independent(vars, sysp, mi);
+    MPI_Barrier(MPI_COMM_WORLD);
+    this->concatenate_cdview(mi);
+}
+
+
+
+void Observer::export_cdview_independent(Variables* vars, Systemparam* sysp, MPIinfo &mi) {
     static int count = 0;
     char filename[256];
 #ifdef FS
     std::filesystem::create_directory("./cdv");
-    sprintf(filename, "cdv/conf%03d.cdv", count);
+    sprintf(filename, "cdv/tconf%03d_%d.temp", count, mi.rank);
 #else
-    sprintf(filename, "conf%03d.cdv", count);
+    sprintf(filename, "tconf%03d_%d.temp", count, mi.rank);
 #endif
     ++count;
     std::ofstream ofs(filename, std::ios::app);
@@ -21,7 +29,6 @@ void Observer::export_cdview(Variables* vars, Systemparam* sysp, MPIinfo mi) {
         ofs << "#box_sz=0" << std::endl;
         ofs << "#box_ez=0" << std::endl;
     }
-    MPI_Barrier(MPI_COMM_WORLD);
     for (auto &a : vars->atoms) {
         ofs << a.id       << " ";
         ofs << mi.rank%9  << " ";   // cdviewの描画色が9色なので
@@ -31,6 +38,47 @@ void Observer::export_cdview(Variables* vars, Systemparam* sysp, MPIinfo mi) {
         ofs << std::endl;
     }
 }
+
+
+
+void Observer::concatenate_cdview(MPIinfo &mi) {
+    if(mi.rank==0) {
+		static int count = 0;
+		char output[256];
+#ifdef FS
+		sprintf(output, "cdv/conf%03d.cdv", count);
+#else
+		sprintf(output, "conf%03d.cdv", count);
+#endif
+        std::ofstream ofs(output, std::ios::app);
+		for (int i=0; i<mi.procs; i++) {
+            char filename[256];
+#ifdef FS
+            sprintf(filename, "cdv/tconf%03d_%d.temp", count, i);
+#else
+            sprintf(filename, "tconf%03d_%d.temp", count, i);
+#endif
+            std::ifstream reading_file;
+            reading_file.open(filename, std::ios::in);
+            std::string line;
+            while(std::getline(reading_file, line)) {
+                ofs << line << std::endl;
+            }
+		}
+#ifdef FS
+        for (const auto & file : std::filesystem::directory_iterator("./cdv/")) {
+            std::string path = file.path();
+            size_t word_pos = path.find(".temp");
+            if (word_pos != std::string::npos) {
+                std::filesystem::remove(path);
+                continue;
+            }
+        }
+#endif
+        count++;
+    }
+}
+
 
 
 

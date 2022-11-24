@@ -36,13 +36,13 @@ $(SRCDIR)/%_test.o: $(SRCDIR)/%.cpp
 	$(CC) $(OPTIONS) $(TESTOPT) -c $< -o $@
 
 test: test.exe
-	-rm *.cdv energy.dat
+	-rm *.cdv *.temp energy.dat
 	mpirun --oversubscribe -np 4 ./test.exe
 	-gnuplot $(VISDIR)/energy_test.plt
 
 dumperr: test.exe
 	-rm err.dat
-	-rm *.cdv
+	-rm *.cdv *.temp
 	mpirun --oversubscribe -np 4 ./test.exe 2> err.dat
 	-gnuplot $(VISDIR)/energy_test.plt
 
@@ -52,7 +52,7 @@ dep:
 	g++ $(DEPFLAGS) $(SRC) $(OPTIONS) >makefile.depend
 
 run: md.exe
-	-rm *.cdv
+	-rm *.cdv *.temp
 	mpirun -np 4 ./md.exe
 
 fig:
@@ -60,6 +60,6 @@ fig:
 
 clean:
 	rm -f md.exe $(SRCDIR)/*.o test.exe 
-	-rm *.cdv *.dat
+	-rm *.cdv *.dat *.temp
 
 # ===========================================

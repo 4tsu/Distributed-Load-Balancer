@@ -32,6 +32,8 @@
 *.app
 
 ## User Defined
+*.temp
+
 # Incremental Compile
 *.depend
 
