@@ -20,7 +20,7 @@ void Sdd::init(Variables* vars, Systemparam* sysp
         return;
 
     } else if (sdd_type==1) {
-        global_sort(vars, sysp, mi, sr);
+        global_sort(vars, sysp, mi);
 
     } else if (sdd_type==2) {
         std::vector<double> v(4);
@@ -42,7 +42,7 @@ void Sdd::run(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* 
         simple(vars, sysp, mi);
 
     } else if (sdd_type==1) {
-        global_sort(vars, sysp, mi, sr);
+        global_sort(vars, sysp, mi);
 
     } else if (sdd_type==2) {
         voronoi(vars, sysp, mi, sr, 900, 0.030, 0.02);
@@ -158,7 +158,7 @@ void Sdd::simple(Variables* vars, Systemparam* sysp, const MPIinfo &mi) {
         
 
 // X,Y軸方向のそれぞれについて、各プロセスの粒子数が均等になるように壁を平行に動かす
-void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi, SubRegion* sr) {
+void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi) {
     std::vector<std::vector<Atom>> migration_atoms(mi.procs);
     unsigned long l = vars->atoms.size();
     unsigned long max_l;
@@ -173,7 +173,6 @@ void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Sub
     MPI_Gather(vars->atoms.data(), s, MPI_CHAR, all_atoms.data(), s, MPI_CHAR, 0, MPI_COMM_WORLD);
 
     if (mi.rank==0) {
-        auto compare_id = [](const Atom & a1, const Atom & a2) {return a1.id < a2.id;};
         auto compare_x  = [](const Atom & a1, const Atom & a2) {return a1.x < a2.x;};
         auto compare_y  = [](const Atom & a1, const Atom & a2) {return a1.y < a2.y;};
         unsigned long sum = 0;
@@ -187,7 +186,6 @@ void Sdd::global_sort(Variables* vars, Systemparam* sysp, const MPIinfo &mi, Sub
         unsigned long nay = std::floor(sysp->N/mi.npy) + 1;
         unsigned long head = 0;
         unsigned long y_count = nay;
-        unsigned long temp;
         for (int i=0; i<mi.npy; i++) {
             if (head+y_count>sysp->N)
                 y_count = sysp->N-head;

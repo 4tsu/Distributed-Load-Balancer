@@ -29,7 +29,7 @@ class Sdd {
         void migrate_atoms(std::vector<std::vector<Atom>>, Variables*, const MPIinfo &);
         void calc_bounds(Systemparam*, const MPIinfo &);
         void simple(Variables*, Systemparam*, const MPIinfo &);
-        void global_sort(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
+        void global_sort(Variables*, Systemparam*, const MPIinfo &);
         void voronoi_init(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
         void voronoi(Variables*, Systemparam*, const MPIinfo &, SubRegion*, int, double, double);
         void voronoi_allocate(Variables*, Systemparam*, const MPIinfo &, SubRegion*);
