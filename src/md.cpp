@@ -673,7 +673,7 @@ void MD::run(void) {
      // ロードバランサー選択
     sdd->init(vars, sysp, mi, sr);
     sdd->run(vars, sysp, mi, sr);
-    obs->export_cdview(vars->atoms, *sysp, mi);
+    obs->export_cdview(vars, sysp, mi);
 
     //最初のペアリスト作成
     assert(sysp->N != 0);
@@ -697,7 +697,7 @@ void MD::run(void) {
             export_three("energy.dat", step, k, v, k+v);
         }
         if (step % ob_interval == 0) {
-            obs->export_cdview(vars->atoms, *sysp, mi);
+            obs->export_cdview(vars, sysp, mi);
         }
         this->check_pairlist();
     }

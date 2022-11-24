@@ -2,7 +2,7 @@
 
 // ======================================================
 
-void Observer::export_cdview(std::vector<Atom> atoms, Systemparam sysp, MPIinfo mi) {
+void Observer::export_cdview(Variables* vars, Systemparam* sysp, MPIinfo mi) {
     static int count = 0;
     char filename[256];
 #ifdef FS
@@ -14,15 +14,15 @@ void Observer::export_cdview(std::vector<Atom> atoms, Systemparam sysp, MPIinfo 
     ++count;
     std::ofstream ofs(filename, std::ios::app);
     if (mi.rank==0) {
-        ofs << "#box_sx=" << sysp.x_min << std::endl;
-        ofs << "#box_sy=" << sysp.y_min << std::endl;
-        ofs << "#box_ex=" << sysp.x_max << std::endl;
-        ofs << "#box_ey=" << sysp.y_max << std::endl;
+        ofs << "#box_sx=" << sysp->x_min << std::endl;
+        ofs << "#box_sy=" << sysp->y_min << std::endl;
+        ofs << "#box_ex=" << sysp->x_max << std::endl;
+        ofs << "#box_ey=" << sysp->y_max << std::endl;
         ofs << "#box_sz=0" << std::endl;
         ofs << "#box_ez=0" << std::endl;
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    for (auto &a : atoms) {
+    for (auto &a : vars->atoms) {
         ofs << a.id       << " ";
         ofs << mi.rank%9  << " ";   // cdviewの描画色が9色なので
         ofs << a.x        << " ";
