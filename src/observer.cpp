@@ -2,10 +2,10 @@
 
 // ======================================================
 
-void Observer::export_cdview(Variables* vars, Systemparam* sysp, MPIinfo mi) {
+void Observer::export_cdview(Variables* vars, Systemparam* sysp, MPIinfo mi, int count_begin) {
     this->export_cdview_independent(vars, sysp, mi);
     MPI_Barrier(MPI_COMM_WORLD);
-    this->concatenate_cdview(mi);
+    this->concatenate_cdview(mi, count_begin);
 }
 
 
@@ -41,14 +41,15 @@ void Observer::export_cdview_independent(Variables* vars, Systemparam* sysp, MPI
 
 
 
-void Observer::concatenate_cdview(MPIinfo &mi) {
+void Observer::concatenate_cdview(MPIinfo &mi, int count_begin) {
     if(mi.rank==0) {
+		static int cdv_count = count_begin;
 		static int count = 0;
 		char output[256];
 #ifdef FS
-		sprintf(output, "cdv/conf%03d.cdv", count);
+		sprintf(output, "cdv/conf%03d.cdv", cdv_count);
 #else
-		sprintf(output, "conf%03d.cdv", count);
+		sprintf(output, "conf%03d.cdv", cdv_count);
 #endif
         std::ofstream ofs(output, std::ios::out);
 		for (int i=0; i<mi.procs; i++) {
@@ -76,6 +77,7 @@ void Observer::concatenate_cdview(MPIinfo &mi) {
         }
 #endif
         count++;
+        cdv_count++;
     }
 }
 
