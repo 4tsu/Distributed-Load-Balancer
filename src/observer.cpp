@@ -201,7 +201,7 @@ void Observer::concatenate_checkpoint(std::string filename, MPIinfo & mi) {
                 ofs << line << std::endl;
             }
 		}
-#ifdef aFS
+#ifdef FS
         for (const auto & file : std::filesystem::directory_iterator("./ckpt/")) {
             std::string path = file.path();
             size_t word_pos = path.find(".temp");
