@@ -680,6 +680,8 @@ void MD::run(int trial) {
                 std::filesystem::remove(path);
             } else if (path == "./time_whole.dat") {
                 std::filesystem::remove(path);
+            } else if (path == "./load_balance.dat") {
+                std::filesystem::remove(path);
             }
         }
     }
@@ -766,6 +768,7 @@ void MD::run(int trial) {
         this->get_exec_time(step, calctimer,  net_time_out);
         grosstimer->reset();
         calctimer->reset();
+        obs->export_workload(step, vars, mi);
 
         this->check_pairlist();
         this->get_exec_time(step, sddtimer, sdd_time_out);

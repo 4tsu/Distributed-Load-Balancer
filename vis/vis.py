@@ -234,6 +234,51 @@ def plot_time(inputfile, outputfile):
     ax.legend()
     plt.savefig(outputfile)
 
+    
+    
+def plot_load_balance(inputfile):
+    STEP   = []
+    MIN    = []
+    MAX    = []
+    IDEAL  = []
+    with open(inputfile) as f:
+        Line = [s.strip() for s in f.readlines()]
+        for l in range(0,len(Line)):
+            step = ''
+            min_load = ''
+            max_load = ''
+            ideal_load = ''
+            index = 0
+            for s in Line[l]:
+                if s == ' ':
+                    index += 1
+                    continue
+                if index == 0:
+                    step += s
+                elif index == 1:
+                    min_load += s
+                elif index == 2:
+                    max_load += s
+                elif index == 3:
+                    ideal_load += s
+            STEP.append(int(step))
+            MIN.append(int(min_load))
+            MAX.append(int(max_load))
+            IDEAL.append(float(ideal_load))
+    
+    print("exporting load_balance.png ...")
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.cla()
+    # ax.scatter(STEP, MIN, label='min', c=colors[4], s=16, marker="o")
+    ax.scatter(STEP, MAX, label='max', c=colors[2], s=16, marker="x")
+    ax.plot(STEP, IDEAL, label='ideal', c=colors[0])
+    # ax.set_ylim(0,)
+    ax.set_xlabel('step')
+    ax.set_ylabel('workload [a.u.]')
+    ax.legend()
+    plt.savefig('load_balance.png')
+
 ###=============================================
 path = os.getcwd()
 if re.search("myMD.vis", path):
@@ -262,6 +307,8 @@ plot_time("../time_avg_gross.dat", "time_gross.png")
 avg_time("time_sdd")
 plot_time("../time_avg_sdd.dat", "time_sdd.png")
 
+# load balance plot
+plot_load_balance("../load_balance.dat")
 
 # .cdv animation
 plt.close()

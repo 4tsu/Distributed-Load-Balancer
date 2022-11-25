@@ -18,6 +18,7 @@ public:
     void export_checkpoint(std::string, const int, Variables*, Systemparam* sysp, MPIinfo &);
     double kinetic_energy(Variables*, Systemparam*);
     double potential_energy(Variables*, PairList*, Systemparam*);
+    void export_workload(const int, Variables*, MPIinfo &);
 };
 
 // =================================================

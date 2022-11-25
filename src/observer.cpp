@@ -216,6 +216,24 @@ void Observer::concatenate_checkpoint(std::string filename, MPIinfo & mi) {
     }
 }
 
+
+
+void Observer::export_workload(const int step, Variables* vars, MPIinfo &mi) {
+    const unsigned long pn = vars->number_of_atoms();
+    std::vector<unsigned long> all_pns(mi.procs);
+    MPI_Gather(&pn, 1, MPI_UNSIGNED_LONG, all_pns.data(), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+    if (mi.rank == 0) {
+        unsigned long max_pn = *std::max_element(all_pns.begin(), all_pns.end());
+        unsigned long min_pn = *std::min_element(all_pns.begin(), all_pns.end());
+        unsigned long ideal_pn = std::accumulate(all_pns.begin(), all_pns.end(), 0)/mi.procs;
+        std::ofstream ofs("load_balance.dat", std::ios::app);
+        ofs << step     << " ";
+        ofs << min_pn   << " ";
+        ofs << max_pn   << " ";
+        ofs << ideal_pn << std::endl;
+    }
+}
+
 // ======================================================
 
 void export_three(const std::string filename, const int s, const double a, const double b, const double c) {
