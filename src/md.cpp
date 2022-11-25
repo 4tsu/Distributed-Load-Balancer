@@ -659,7 +659,7 @@ void MD::get_exec_time(int step, CalcTimer* ct, const std::string filename) {
 
 
 
-void MD::run(void) {
+void MD::run(int trial) {
 #ifdef FS
     // std::filesystemは使用できない環境もある．コンパイル時に選択可
     // 結果出力が追記なので、同名ファイルは事前に削除しておく
@@ -692,6 +692,22 @@ void MD::run(void) {
         exit(EXIT_FAILURE);
     }
     
+    // 出力ファイル準備
+    std::string net_time_out   = "time_net";
+    std::string gross_time_out = "time_gross";
+    std::string sdd_time_out   = "time_sdd";
+    std::string whole_time_out = "time_whole";
+    if (trial > 0) {
+        net_time_out   += "_" + std::to_string(trial);
+        gross_time_out += "_" + std::to_string(trial);
+        sdd_time_out   += "_" + std::to_string(trial);
+        whole_time_out += "_" + std::to_string(trial);
+    }
+    net_time_out   += ".dat";
+    gross_time_out += ".dat";
+    sdd_time_out   += ".dat";
+    whole_time_out += ".dat";
+
     /// MD
     // 初期配置orデータ読み込み
     if (this->config=="make") {
@@ -706,7 +722,7 @@ void MD::run(void) {
     sdd->init(vars, sysp, mi, sr);
     sdd->run(vars, sysp, mi, sr);
     sddtimer->stop();
-    this->get_exec_time(0, sddtimer, "sdd_time.dat");
+    this->get_exec_time(0, sddtimer, sdd_time_out);
     sddtimer->reset();
     
     obs->export_cdview(vars, sysp, mi, std::ceil(begin_step/ob_interval));
@@ -746,17 +762,17 @@ void MD::run(void) {
             }
         }
 
-        this->get_exec_time(step, grosstimer, "time_gross.dat");
-        this->get_exec_time(step, calctimer,   "time_net.dat");
+        this->get_exec_time(step, grosstimer, gross_time_out);
+        this->get_exec_time(step, calctimer,  net_time_out);
         grosstimer->reset();
         calctimer->reset();
 
         this->check_pairlist();
-        this->get_exec_time(step, sddtimer, "time_sdd.dat");
+        this->get_exec_time(step, sddtimer, sdd_time_out);
         sddtimer->reset();
 
         wholetimer->stop();
-        this->get_exec_time(step, wholetimer, "time_whole.dat");
+        this->get_exec_time(step, wholetimer, whole_time_out);
         wholetimer->reset();
     }
 }
