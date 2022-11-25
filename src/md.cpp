@@ -698,9 +698,9 @@ void MD::run(void) {
         }
         if (step % ob_interval == 0) {
             obs->export_cdview(vars, sysp, mi);
-            if (step % (ob_interval*4) == 0) {
+            if (step % (ob_interval*10) == 0) {
                 obs->export_checkpoint("1.ckpt", step, vars, sysp, mi);
-            } else if (step % (ob_interval*2) == 0) {
+            } else if (step % (ob_interval*5) == 0) {
                 obs->export_checkpoint("2.ckpt", step, vars, sysp, mi);
             }
         }
