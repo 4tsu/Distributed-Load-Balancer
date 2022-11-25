@@ -6,6 +6,7 @@
 #include "pairlist.hpp"
 #include "subregion.hpp"
 #include "sdd.hpp"
+#include "calctimer.hpp"
 
 // =======================================
 
@@ -18,6 +19,10 @@ private:
     PairList *pl;
     MPIinfo mi;
     Sdd *sdd;
+    CalcTimer *calctimer;
+    CalcTimer *grosstimer;
+    CalcTimer *sddtimer;
+    CalcTimer *wholetimer;
     void makeconf(void);
     void periodic(void);
     void update_position(double);
@@ -33,6 +38,7 @@ private:
     void communicate_force(void);
     std::string config;
     void read_data(std::string filename, Variables* vars, Systemparam* sysp, const MPIinfo &mi);
+    void get_exec_time(const int, CalcTimer*, const std::string);
 
 public:
     MD(MPIinfo mi);

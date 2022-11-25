@@ -36,13 +36,15 @@ $(SRCDIR)/%_test.o: $(SRCDIR)/%.cpp
 	$(CC) $(OPTIONS) $(TESTOPT) -c $< -o $@
 
 test: test.exe
-	-rm *.cdv *.temp energy.dat
+	-rm *.cdv *.temp 
+	-rm energy.dat time_*.dat
 	mpirun --oversubscribe -np 4 ./test.exe
 	-gnuplot $(VISDIR)/energy_test.plt
 
 dumperr: test.exe
 	-rm err.dat
 	-rm *.cdv *.temp
+	-rm energy.dat time_*.dat
 	mpirun --oversubscribe -np 4 ./test.exe 2> err.dat
 	-gnuplot $(VISDIR)/energy_test.plt
 
@@ -53,6 +55,7 @@ dep:
 
 run: md.exe
 	-rm *.cdv *.temp
+	-rm energy.dat time_*.dat
 	mpirun -np 4 ./md.exe
 
 fig:

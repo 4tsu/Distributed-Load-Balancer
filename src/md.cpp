@@ -6,6 +6,10 @@ MD::MD(MPIinfo mi){
     obs = new Observer();
     sr = new SubRegion();
     pl = new PairList();
+    calctimer = new CalcTimer();
+    grosstimer = new CalcTimer();
+    sddtimer = new CalcTimer();
+    wholetimer = new CalcTimer();
     this->mi = mi;
 }
 
@@ -301,7 +305,9 @@ void MD::check_pairlist(void) {
     MPI_Allreduce(&local_max, &global_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     vars->margin_life -= global_max*2.0*dt;
     if (vars->margin_life < 0) {
+        sddtimer->start();
         sdd->run(vars, sysp, mi, sr);   // 領域分割の切り直しも同時に行う
+        sddtimer->stop();
         this->make_pair();
         vars->set_margin_life(sysp->margin);
     }
@@ -313,6 +319,7 @@ void MD::check_pairlist(void) {
 
 
 void MD::update_position(double coefficient) {
+    calctimer->start();
     for (auto& atom : vars->atoms) {
         if (atom.vx>9 || atom.vy>9) {
             fprintf(stderr, "Abnormal velocity!(rank#%d atom#%ld:[%lf, %lf])",mi.rank, atom.id, atom.vx, atom.vy);
@@ -326,11 +333,13 @@ void MD::update_position(double coefficient) {
         assert(sysp->x_min <= x && x <= sysp->x_max);
         assert(sysp->y_min <= y && x <= sysp->y_max);
     }
+    calctimer->stop();
 }
 
 
 
 void MD::calculate_force(void) {
+    calctimer->start();
     // 自領域内粒子同士
     Atom *atoms = vars->atoms.data();
     for (auto &pl : pl->list) {
@@ -386,6 +395,7 @@ void MD::calculate_force(void) {
         }
         vars->sending_force.push_back(one_sending_force);
     }
+    calctimer->stop();
 }
 
 
@@ -632,6 +642,19 @@ void MD::read_data(const std::string filename, Variables* vars, Systemparam* sys
 
 
 
+void MD::get_exec_time(int step, CalcTimer* ct, const std::string filename) {
+    std::vector<double> results(mi.procs);
+    ct->share(results.data());
+
+    if (mi.rank==0) {
+        double max_time = *std::max_element(results.begin(), results.end());
+        double min_time = *std::min_element(results.begin(), results.end());
+        double avg_time = std::accumulate(results.begin(), results.end(), 0.0);
+        avg_time /= static_cast<double>(mi.procs);
+        export_three(filename, step, min_time, max_time, avg_time);
+    }
+}
+
 // ----------------------------------------------------------------------
 
 
@@ -648,6 +671,14 @@ void MD::run(void) {
                 std::filesystem::remove_all(path);
                 continue;
             } else if (path == "./energy.dat") {
+                std::filesystem::remove(path);
+            } else if (path == "./time_gross.dat") {
+                std::filesystem::remove(path);
+            } else if (path == "./time_net.dat") {
+                std::filesystem::remove(path);
+            } else if (path == "./time_sdd.dat") {
+                std::filesystem::remove(path);
+            } else if (path == "./time_whole.dat") {
                 std::filesystem::remove(path);
             }
         }
@@ -671,8 +702,13 @@ void MD::run(void) {
     }
 
      // ロードバランサー選択
+    sddtimer->start();
     sdd->init(vars, sysp, mi, sr);
     sdd->run(vars, sysp, mi, sr);
+    sddtimer->stop();
+    this->get_exec_time(0, sddtimer, "sdd_time.dat");
+    sddtimer->reset();
+    
     obs->export_cdview(vars, sysp, mi, std::ceil(begin_step/ob_interval));
 
     //最初のペアリスト作成
@@ -682,7 +718,10 @@ void MD::run(void) {
     // 計算ループ
     for (int step=1+begin_step; step<=steps+begin_step; step++) {
         if (mi.rank==0 && step%ob_interval==0) fprintf(stderr, "step %d\n", step);
+        wholetimer->start();
         vars->time += dt;
+
+        grosstimer->start();
         // シンプレクティック積分
         this->update_position(0.5);
         this->communicate_atoms();
@@ -690,6 +729,8 @@ void MD::run(void) {
         this->communicate_force();
         this->update_position(0.5);
         this->communicate_atoms();
+        grosstimer->stop();
+
         // 情報の出力
         double k = obs->kinetic_energy(vars, sysp);
         double v = obs->potential_energy(vars, pl, sysp);
@@ -704,7 +745,19 @@ void MD::run(void) {
                 obs->export_checkpoint("2.ckpt", step, vars, sysp, mi);
             }
         }
+
+        this->get_exec_time(step, grosstimer, "time_gross.dat");
+        this->get_exec_time(step, calctimer,   "time_net.dat");
+        grosstimer->reset();
+        calctimer->reset();
+
         this->check_pairlist();
+        this->get_exec_time(step, sddtimer, "time_sdd.dat");
+        sddtimer->reset();
+
+        wholetimer->stop();
+        this->get_exec_time(step, wholetimer, "time_whole.dat");
+        wholetimer->reset();
     }
 }
 

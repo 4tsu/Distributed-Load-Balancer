@@ -117,6 +117,71 @@ def plot_energy(inputfile):
     ax.legend()
     plt.savefig('energy.png')
 
+    
+
+def plot_time(inputfile, outputfile):
+    STEP = []
+    T1   = []
+    T2   = []
+    T3   = []
+    with open(inputfile) as f:
+        Line = [s.strip() for s in f.readlines()]
+        for l in range(0,len(Line)):
+            step = ''
+            t1   = ''
+            t2   = ''
+            t3   = ''
+            index = 0
+            for s in Line[l]:
+                if s == ' ':
+                    index += 1
+                    continue
+                if index == 0:
+                    step += s
+                elif index == 1:
+                    t1 += s
+                elif index == 2:
+                    t2 += s
+                elif index == 3:
+                    t3 += s
+            STEP.append(int(step))
+            T1.append(float(t1))
+            T2.append(float(t2))
+            T3.append(float(t3))
+    new_STEP = []
+    T4 = []
+    T5 = []
+    T6 = []
+    t4 = 0
+    t5 = 0
+    t6 = 0
+    interval = 5
+    for i in STEP:
+        t4 += T1[i-1]
+        t5 += T2[i-1]
+        t6 += T3[i-1]
+        if (i%interval==0):
+            new_STEP.append(i)
+            T4.append(t4/interval)
+            T5.append(t5/interval)
+            T6.append(t6/interval)
+            t4 = 0
+            t5 = 0
+            t6 = 0
+
+    
+    print("exporting", outputfile, "...")
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.cla()
+    ax.scatter(new_STEP, T4, label='min.', c=colors[4], marker='^', alpha=0.5, s=16.0)
+    ax.scatter(new_STEP, T5, label='max.', c=colors[2], marker='o', alpha=0.8, s=16.0)
+    ax.scatter(new_STEP, T6, label='avg.', c=colors[0], marker='x', alpha=0.7, s=16.0)
+    ax.set_xlabel('step')
+    ax.set_ylabel('time [ms]')
+    ax.legend()
+    plt.savefig(outputfile)
+
 ###=============================================
 path = os.getcwd()
 if re.search("myMD.vis", path):
@@ -134,7 +199,10 @@ for filename in os.listdir(".."):
 
 # energy plot
 plot_energy("../energy.dat")
-
+plot_time("../time_whole.dat", "time_whole.png")
+plot_time("../time_net.dat", "time_net.png")
+plot_time("../time_gross.dat", "time_gross.png")
+plot_time("../time_sdd.dat", "time_sdd.png")
 
 
 # .cdv animation
