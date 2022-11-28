@@ -39,7 +39,7 @@ public:
     void add_atoms(unsigned long id, double x, double y);
     void export_cdview(void);
     unsigned long number_of_atoms(void) {return atoms.size();}
-    void set_initial_velocity(const double, MPIinfo, Systemparam*);
+    void set_initial_velocity(const double, MPIinfo);
     double margin_life;
     void set_margin_life(double);
     double max_velocity(void);

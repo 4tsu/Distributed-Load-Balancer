@@ -20,12 +20,12 @@ void set_pair(Pair &pair, unsigned long i, unsigned long j, unsigned long idi, u
 // ペアリストクラス
 class PairList {
 private:
-    void set_mesh(Variables*, Systemparam*);
+    void set_mesh(Variables*);
     void set_index(Variables*);
-    void search(int, Variables*, Systemparam*);
-    void search_neighbor(int, int, int, Variables*, Systemparam*);
-    void mesh_search(Variables*, Systemparam*);
-    void search_all(Variables*, Systemparam*);
+    void search(int, Variables*);
+    void search_neighbor(int, int, int, Variables*);
+    void mesh_search(Variables*);
+    void search_all(Variables*);
     void arrange_pairs(unsigned long);
     void clear_all(void);
     double lmx, lmy;
@@ -34,12 +34,12 @@ private:
     std::vector<double> limits;
  
     void set_mesh_ext(void);
-    void set_index_ext(const std::vector<Atom> &, Systemparam*);
-    void search_ext(int, int, int, const std::vector<Atom> &, const std::vector<Atom> &, Systemparam*);
-    void mesh_search_ext(const std::vector<Atom> &, std::vector<Atom> &, Systemparam*);
+    void set_index_ext(const std::vector<Atom> &);
+    void search_ext(int, int, int, const std::vector<Atom> &, const std::vector<Atom> &);
+    void mesh_search_ext(const std::vector<Atom> &, std::vector<Atom> &);
     void arrange_pairs_ext(const std::vector<unsigned long> &new_index, unsigned long new_pn);
     void pick_atoms(std::vector<Atom> &, std::vector<unsigned long> &, std::vector<unsigned long> &);
-    void search_all_ext(const std::vector<Atom> &, const std::vector<Atom> &, Systemparam*);
+    void search_all_ext(const std::vector<Atom> &, const std::vector<Atom> &);
     void clear_ext(void);
     int nmx_ext, nmy_ext, num_mesh_ext;
     std::vector<Pair> one_other_list;
@@ -49,7 +49,7 @@ private:
 public:
     std::vector<Pair> list;
     std::vector<std::vector<Pair>> other_list;
-    void make_pair(Variables* vars, Systemparam*);
+    void make_pair(Variables* vars);
 };
 
 // ============================================

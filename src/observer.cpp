@@ -1,16 +1,18 @@
 #include "observer.hpp"
 
+namespace sysp = systemparam;
+
 // ======================================================
 
-void Observer::export_cdview(Variables* vars, Systemparam* sysp, MPIinfo mi, int count_begin) {
-    this->export_cdview_independent(vars, sysp, mi);
+void Observer::export_cdview(Variables* vars, MPIinfo mi, int count_begin) {
+    this->export_cdview_independent(vars, mi);
     MPI_Barrier(MPI_COMM_WORLD);
     this->concatenate_cdview(mi, count_begin);
 }
 
 
 
-void Observer::export_cdview_independent(Variables* vars, Systemparam* sysp, MPIinfo &mi) {
+void Observer::export_cdview_independent(Variables* vars, MPIinfo &mi) {
     static int count = 0;
     char filename[256];
 #ifdef FS
@@ -22,10 +24,10 @@ void Observer::export_cdview_independent(Variables* vars, Systemparam* sysp, MPI
     ++count;
     std::ofstream ofs(filename, std::ios::out);
     if (mi.rank==0) {
-        ofs << "#box_sx=" << sysp->x_min << std::endl;
-        ofs << "#box_sy=" << sysp->y_min << std::endl;
-        ofs << "#box_ex=" << sysp->x_max << std::endl;
-        ofs << "#box_ey=" << sysp->y_max << std::endl;
+        ofs << "#box_sx=" << sysp::x_min << std::endl;
+        ofs << "#box_sy=" << sysp::y_min << std::endl;
+        ofs << "#box_ex=" << sysp::x_max << std::endl;
+        ofs << "#box_ey=" << sysp::y_max << std::endl;
         ofs << "#box_sz=0" << std::endl;
         ofs << "#box_ez=0" << std::endl;
     }
@@ -84,7 +86,7 @@ void Observer::concatenate_cdview(MPIinfo &mi, int count_begin) {
 
 
 
-double Observer::kinetic_energy(Variables *vars, Systemparam *sysp) {
+double Observer::kinetic_energy(Variables *vars) {
     double k = 0;
     for (auto& a : vars->atoms) {
         k += a.vx * a.vx;
@@ -93,7 +95,7 @@ double Observer::kinetic_energy(Variables *vars, Systemparam *sysp) {
 
     double k_global;
     MPI_Allreduce(&k, &k_global, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    k_global /= static_cast<double>(sysp->N)*2;
+    k_global /= static_cast<double>(sysp::N)*2;
     return k_global;
 }
 
@@ -101,7 +103,7 @@ double Observer::kinetic_energy(Variables *vars, Systemparam *sysp) {
 
 // ポテンシャルエネルギーの算出
 /// ペアリストを使用するので、事前に構築しておくこと
-double Observer::potential_energy(Variables *vars, PairList *pl, Systemparam *sysp) {
+double Observer::potential_energy(Variables *vars, PairList *pl) {
     double v = 0;
 
     for (auto& l : pl->list) {
@@ -111,13 +113,13 @@ double Observer::potential_energy(Variables *vars, PairList *pl, Systemparam *sy
         assert(ja.id == l.idj);
         double dx = ja.x - ia.x;
         double dy = ja.y - ia.y;
-        periodic_distance(dx, dy, sysp);
+        periodic_distance(dx, dy);
         double r = sqrt(dx*dx + dy*dy);
-        if (r > sysp->cutoff)
+        if (r > sysp::cutoff)
             continue;
         double r6 = pow(r, 6);
         double r12 = r6*r6;
-        v += 4.0 * (1.0/r12 - 1.0/r6) + sysp->C0;
+        v += 4.0 * (1.0/r12 - 1.0/r6) + sysp::C0;
     }
     for (std::size_t i=0; i<pl->other_list.size(); i++) {
         for (auto& l : pl->other_list.at(i)) {
@@ -127,32 +129,32 @@ double Observer::potential_energy(Variables *vars, PairList *pl, Systemparam *sy
             assert(ja.id == l.idj);
             double dx = ja.x - ia.x;
             double dy = ja.y - ia.y;
-            periodic_distance(dx, dy, sysp);
+            periodic_distance(dx, dy);
             double r = sqrt(dx*dx + dy*dy);
-            if (r > sysp->cutoff)
+            if (r > sysp::cutoff)
                 continue;
             double r6 = pow(r, 6);
             double r12 = r6*r6;
-            v += 4.0 * (1.0/r12 - 1.0/r6) + sysp->C0;
+            v += 4.0 * (1.0/r12 - 1.0/r6) + sysp::C0;
         }
     }
     double v_global;
     MPI_Allreduce(&v, &v_global, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    v_global /= static_cast<double>(sysp->N);
+    v_global /= static_cast<double>(sysp::N);
     return v_global;
 }
 
 
 
-void Observer::export_checkpoint(std::string filename, const int step, Variables* vars, Systemparam* sysp, MPIinfo & mi) {
-    this->checkpoint_independent(step, vars, sysp, mi);
+void Observer::export_checkpoint(std::string filename, const int step, Variables* vars, MPIinfo & mi) {
+    this->checkpoint_independent(step, vars, mi);
     MPI_Barrier(MPI_COMM_WORLD);
     this->concatenate_checkpoint(filename, mi);
 }
 
 
 
-void Observer::checkpoint_independent(const int step, Variables* vars, Systemparam* sysp, MPIinfo &mi) {
+void Observer::checkpoint_independent(const int step, Variables* vars, MPIinfo &mi) {
     char filename[256];
 #ifdef FS
     std::filesystem::create_directory("./ckpt");
@@ -165,10 +167,10 @@ void Observer::checkpoint_independent(const int step, Variables* vars, Systempar
         ofs << "ITEM: TIMESTEP" << std::endl;
         ofs << step             << std::endl;
         ofs << "ITEM: NUMBER OF ATOMS" << std::endl;
-        ofs << sysp->N                 << std::endl;
+        ofs << sysp::N                 << std::endl;
         ofs << "ITEM: BOX BOUNDS pp pp pp" << std::endl;
-        ofs << sysp->x_min << " " << sysp->x_max << std::endl;
-        ofs << sysp->y_min << " " << sysp->y_max << std::endl;
+        ofs << sysp::x_min << " " << sysp::x_max << std::endl;
+        ofs << sysp::y_min << " " << sysp::y_max << std::endl;
         ofs << "0 0"                             << std::endl;
         ofs << "ITEM: ATOMS x y z vx vy vz" << std::endl;
     }

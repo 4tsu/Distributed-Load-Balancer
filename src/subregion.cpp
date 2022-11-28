@@ -1,5 +1,7 @@
 #include "subregion.hpp"
 
+namespace sysp = systemparam;
+
 // ============================================
 
 void set_dp(DomainPair &dp, int ip, int jp) {
@@ -36,10 +38,10 @@ std::vector<double> calc_limit(Variables* vars) {
 // --------------------------------------------
 
 // 相互作用する可能性のある領域ぺア検出
-void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
+void SubRegion::make_dplist(MPIinfo mi, Variables* vars) {
     /// まずは中心と半径を計算して共有する
-    this->calc_center(vars, sysp);
-    this->calc_radius(vars, sysp);
+    this->calc_center(vars);
+    this->calc_radius(vars);
     this->communicate_centradi(mi);
     this->dplist.clear();
     this->dplist_reverse.clear();
@@ -55,7 +57,7 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
         for (int j=i+1; j<(mi.procs/2+i+1); j++) {
             if (i!=mi.rank && j!=mi.rank)
                 continue;
-            if (this->judge(i,j,sysp))
+            if (this->judge(i,j))
                 continue;
             if (i==mi.rank) {
                 set_dp(dp, i, j);
@@ -70,7 +72,7 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
         for (int j=0; j<(i-(mi.procs/2)); j++) {
             if (i!=mi.rank && j!=mi.rank)
                 continue;
-            if (this->judge(i,j,sysp))
+            if (this->judge(i,j))
                 continue;
             if (i==mi.rank) {
                 set_dp(dp, i, j);
@@ -83,7 +85,7 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
         for (int j=i+1; j<mi.procs; j++) {
             if (i!=mi.rank && j!=mi.rank)
                 continue;
-            if (this->judge(i,j,sysp))
+            if (this->judge(i,j))
                 continue;
             if (i==mi.rank) {
                 set_dp(dp, i, j);
@@ -98,7 +100,7 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
         for (int j=0; j<(i-mi.procs/2); j++) {
             if (i!=mi.rank && j!=mi.rank)
                 continue;
-            if (this->judge(i,j,sysp))
+            if (this->judge(i,j))
                 continue;
             if (i==mi.rank) {
                 set_dp(dp, i, j);
@@ -113,16 +115,16 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars, Systemparam* sysp) {
 
 
 
-bool SubRegion::judge(int i, int j, Systemparam* sysp) {
+bool SubRegion::judge(int i, int j) {
     if (i==j)
         return true;
     if (is_empties.at(i) || is_empties.at(j))
         return true;
     double dx = centers.at(i).at(0) - centers.at(j).at(0);
     double dy = centers.at(i).at(1) - centers.at(j).at(1);
-    periodic_distance(dx, dy, sysp);
+    periodic_distance(dx, dy);
     double gap = sqrt(dx*dx + dy*dy) - radii.at(i) - radii.at(j);
-    if (gap > sysp->co_margin)
+    if (gap > sysp::co_margin)
         return true;
     return false;
 }
@@ -151,7 +153,7 @@ void SubRegion::communicate_centradi(const MPIinfo &mi) {
 
 
 
-void SubRegion::calc_center(Variables* vars, Systemparam* sysp) {
+void SubRegion::calc_center(Variables* vars) {
     const unsigned long pn = vars->atoms.size();
 
     if (pn == 0) {
@@ -169,7 +171,7 @@ void SubRegion::calc_center(Variables* vars, Systemparam* sysp) {
     for (auto atom: vars->atoms) {
         double dx = atom.x - origin_ax;
         double dy = atom.y - origin_ay;
-        periodic_distance(dx, dy, sysp);
+        periodic_distance(dx, dy);
         sx += dx;
         sy += dy;
     }
@@ -177,19 +179,19 @@ void SubRegion::calc_center(Variables* vars, Systemparam* sysp) {
     sy /= static_cast<double>(pn);
     sx += origin_ax;
     sy += origin_ay;
-    periodic_coordinate(sx, sy, sysp);
+    periodic_coordinate(sx, sy);
     this->center[0] = sx;
     this->center[1] = sy;
 }
 
 
 
-void SubRegion::calc_radius(Variables* vars, Systemparam* sysp) {
+void SubRegion::calc_radius(Variables* vars) {
     double r_max = 0;
     for (auto atom: vars->atoms) {
         double dx = atom.x - this->center[0];
         double dy = atom.y - this->center[1];
-        periodic_distance(dx, dy, sysp);
+        periodic_distance(dx, dy);
         double r = sqrt(dx*dx + dy*dy);
         if (r>r_max) {
             r_max = r;

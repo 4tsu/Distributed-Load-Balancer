@@ -1,8 +1,9 @@
 #include "md.hpp"
 
+namespace sysp = systemparam;
+
 MD::MD(MPIinfo mi){
     vars = new Variables();
-    sysp = new Systemparam();
     obs = new Observer();
     sr = new SubRegion();
     pl = new PairList();
@@ -16,7 +17,6 @@ MD::MD(MPIinfo mi){
 MD::~MD(void){
     delete vars;
     delete obs;
-    delete sysp;
     delete sr;
     delete pl;
     delete sdd;
@@ -33,20 +33,28 @@ void MD::set_params(int steps, int ob_interval, double dt) {
 
 
 
-void MD::set_box(unsigned long N, double xl, double yl, double cutoff) {
-    sysp->set_params(N, xl, yl, cutoff);
+void MD::set_box(unsigned long N, double xl, double yl) {
+    sysp::N = N;
+    sysp::xl = xl;
+    sysp::yl = yl;
     if (N<std::numeric_limits<unsigned long>::min() || std::numeric_limits<unsigned long>::max()<N) {
         fprintf(stderr, "=== input 'N' is too large! ===\n");
         exit(EXIT_FAILURE);
     }
-    sysp->calc_params();
+}
+
+
+
+void MD::set_cutoff(double cutoff) {
+    sysp::cutoff = cutoff;
+    sysp::calc_params();
 }
 
 
 
 void MD::set_margin(double margin) {
-    sysp->margin = margin;
-    sysp->calc_margin();
+    sysp::margin = margin;
+    sysp::calc_margin();
     vars->set_margin_life(margin);
 }
 
@@ -65,15 +73,15 @@ void MD::set_config(const std::string conf) {
 
 
 void MD::makeconf(void) {
-    const unsigned long N = sysp->N;
-    const double xl = sysp->xl;
-    const double yl = sysp->yl;
-    const double x_min = sysp->x_min;
-    const double y_min = sysp->y_min;
-    const double x_max = sysp->x_max;
-    const double y_max = sysp->y_max;
-    const double lpx = sysp->xl/mi.npx;
-    const double lpy = sysp->yl/mi.npy;
+    const unsigned long N = sysp::N;
+    const double xl = sysp::xl;
+    const double yl = sysp::yl;
+    const double x_min = sysp::x_min;
+    const double y_min = sysp::y_min;
+    const double x_max = sysp::x_max;
+    const double y_max = sysp::y_max;
+    const double lpx = sysp::xl/mi.npx;
+    const double lpy = sysp::yl/mi.npy;
     const unsigned long xppl = ceil(sqrt(xl*N/yl));
     const unsigned long yppl = ceil(sqrt(yl*N/xl));
     const double pitch = std::min(xl/xppl, yl/yppl);
@@ -103,7 +111,7 @@ void MD::makeconf(void) {
 void MD::make_pair(void) {
     // centerとradiusを計算済みである事を仮定
     // domainpairlistの作成
-    sr->make_dplist(mi, vars, sysp);
+    sr->make_dplist(mi, vars);
 
     // 他領域粒子情報をすべて持ってくる
     if (mi.procs > 1) {
@@ -176,7 +184,7 @@ void MD::make_pair(void) {
 
 
     // ローカルにペアリスト作成
-    pl->make_pair(vars, sysp);
+    pl->make_pair(vars);
 
 
 
@@ -306,10 +314,10 @@ void MD::check_pairlist(void) {
     vars->margin_life -= global_max*2.0*dt;
     if (vars->margin_life < 0) {
         sddtimer->start();
-        sdd->run(vars, sysp, mi, sr);   // 領域分割の切り直しも同時に行う
+        sdd->run(vars, mi, sr);   // 領域分割の切り直しも同時に行う
         sddtimer->stop();
         this->make_pair();
-        vars->set_margin_life(sysp->margin);
+        vars->set_margin_life(sysp::margin);
     }
     double ml = vars->margin_life;
     MPI_Bcast(&ml, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -327,11 +335,11 @@ void MD::update_position(double coefficient) {
         }
         double x = atom.x + atom.vx * dt * coefficient;
         double y = atom.y + atom.vy * dt * coefficient;
-        periodic_coordinate(x, y, sysp);
+        periodic_coordinate(x, y);
         atom.x = x;
         atom.y = y;
-        assert(sysp->x_min <= x && x <= sysp->x_max);
-        assert(sysp->y_min <= y && x <= sysp->y_max);
+        assert(sysp::x_min <= x && x <= sysp::x_max);
+        assert(sysp::y_min <= y && x <= sysp::y_max);
     }
     calctimer->stop();
 }
@@ -349,9 +357,9 @@ void MD::calculate_force(void) {
         assert(pl.idj == ja.id);
         double dx = ja.x - ia.x;
         double dy = ja.y - ia.y;
-        periodic_distance(dx, dy, sysp);
+        periodic_distance(dx, dy);
         double r = sqrt(dx*dx + dy*dy);
-        if (r > sysp->cutoff)
+        if (r > sysp::cutoff)
             continue;
         
         double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
@@ -379,9 +387,9 @@ void MD::calculate_force(void) {
             assert(pl.idj == ja.id);
             double dx = ja.x - ia.x;
             double dy = ja.y - ia.y;
-            periodic_distance(dx, dy, sysp);
+            periodic_distance(dx, dy);
             double r = sqrt(dx*dx + dy*dy);
-            if (r > sysp->cutoff){
+            if (r > sysp::cutoff){
                 continue;
             }
             double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
@@ -542,7 +550,7 @@ void MD::communicate_force(void) {
 
 
 
-void MD::read_data(const std::string filename, Variables* vars, Systemparam* sysp, const MPIinfo &mi) {
+void MD::read_data(const std::string filename, Variables* vars, const MPIinfo &mi) {
     std::ifstream reading_file;
     reading_file.open(filename, std::ios::in);
     std::string line;
@@ -577,7 +585,7 @@ void MD::read_data(const std::string filename, Variables* vars, Systemparam* sys
             continue;
         } else if (is_num) {
             is_num = false;
-            sysp->N = std::stoul(line);
+            sysp::N = std::stoul(line);
             continue;
         }
 
@@ -596,14 +604,14 @@ void MD::read_data(const std::string filename, Variables* vars, Systemparam* sys
             for (std::size_t i=space_pos; i<length; i++)
                 var2 += line[i];
             if (is_bounds==1) {
-                sysp->x_min = std::stod(var1);
-                sysp->x_max = std::stod(var2);
-                sysp->xl = sysp->x_max - sysp->x_min;
-                lpx = sysp->xl/mi.npx;
+                sysp::x_min = std::stod(var1);
+                sysp::x_max = std::stod(var2);
+                sysp::xl = sysp::x_max - sysp::x_min;
+                lpx = sysp::xl/mi.npx;
             } else if (is_bounds==2) {
-                sysp->y_min = std::stod(var1);
-                sysp->y_max = std::stod(var2);
-                sysp->yl = sysp->y_max - sysp->y_min;
+                sysp::y_min = std::stod(var1);
+                sysp::y_max = std::stod(var2);
+                sysp::yl = sysp::y_max - sysp::y_min;
             }
             is_bounds++;
             continue;
@@ -625,8 +633,8 @@ void MD::read_data(const std::string filename, Variables* vars, Systemparam* sys
         y  = std::stod(var.at(1));
         vx = std::stod(var.at(3));
         vy = std::stod(var.at(4));
-        periodic_coordinate(x, y, sysp);
-        int ip = static_cast<int>(floor((y-sysp->y_min)/lpx)*mi.npx + floor((x-sysp->x_min)/lpx));
+        periodic_coordinate(x, y);
+        int ip = static_cast<int>(floor((y-sysp::y_min)/lpx)*mi.npx + floor((x-sysp::x_min)/lpx));
         if (ip==mi.rank) {
             Atom a;
             a.id = id;
@@ -714,23 +722,23 @@ void MD::run(int trial) {
     // 初期配置orデータ読み込み
     if (this->config=="make") {
         makeconf();
-        vars->set_initial_velocity(1.0, mi, sysp); // 初速決定
+        vars->set_initial_velocity(1.0, mi); // 初速決定
     } else {
-        this->read_data(config, vars, sysp, mi);
+        this->read_data(config, vars, mi);
     }
 
      // ロードバランサー選択
     sddtimer->start();
-    sdd->init(vars, sysp, mi, sr);
-    sdd->run(vars, sysp, mi, sr);
+    sdd->init(vars, mi, sr);
+    sdd->run(vars, mi, sr);
     sddtimer->stop();
     this->get_exec_time(0, sddtimer, sdd_time_out);
     sddtimer->reset();
     
-    obs->export_cdview(vars, sysp, mi, std::ceil(begin_step/ob_interval));
+    obs->export_cdview(vars, mi, std::ceil(begin_step/ob_interval));
 
     //最初のペアリスト作成
-    assert(sysp->N != 0);
+    assert(sysp::N != 0);
     this->make_pair();
 
     // 計算ループ
@@ -750,17 +758,17 @@ void MD::run(int trial) {
         grosstimer->stop();
 
         // 情報の出力
-        double k = obs->kinetic_energy(vars, sysp);
-        double v = obs->potential_energy(vars, pl, sysp);
+        double k = obs->kinetic_energy(vars);
+        double v = obs->potential_energy(vars, pl);
         if (mi.rank==0) {
             export_three("energy.dat", step, k, v, k+v);
         }
         if (step % ob_interval == 0) {
-            obs->export_cdview(vars, sysp, mi);
+            obs->export_cdview(vars, mi);
             if (step % (ob_interval*10) == 0) {
-                obs->export_checkpoint("1.ckpt", step, vars, sysp, mi);
+                obs->export_checkpoint("1.ckpt", step, vars, mi);
             } else if (step % (ob_interval*5) == 0) {
-                obs->export_checkpoint("2.ckpt", step, vars, sysp, mi);
+                obs->export_checkpoint("2.ckpt", step, vars, mi);
             }
         }
 
