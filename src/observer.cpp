@@ -15,9 +15,9 @@ void Observer::export_cdview_independent(Variables* vars, Systemparam* sysp, MPI
     char filename[256];
 #ifdef FS
     std::filesystem::create_directory("./cdv");
-    sprintf(filename, "cdv/tconf%03d_%d.temp", count, mi.rank);
+    sprintf(filename, "cdv/tconf%04d_%d.temp", count, mi.rank);
 #else
-    sprintf(filename, "tconf%03d_%d.temp", count, mi.rank);
+    sprintf(filename, "tconf%04d_%d.temp", count, mi.rank);
 #endif
     ++count;
     std::ofstream ofs(filename, std::ios::out);
@@ -47,17 +47,17 @@ void Observer::concatenate_cdview(MPIinfo &mi, int count_begin) {
 		static int count = 0;
 		char output[256];
 #ifdef FS
-		sprintf(output, "cdv/conf%03d.cdv", cdv_count);
+		sprintf(output, "cdv/conf%04d.cdv", cdv_count);
 #else
-		sprintf(output, "conf%03d.cdv", cdv_count);
+		sprintf(output, "conf%04d.cdv", cdv_count);
 #endif
         std::ofstream ofs(output, std::ios::out);
 		for (int i=0; i<mi.procs; i++) {
             char filename[256];
 #ifdef FS
-            sprintf(filename, "cdv/tconf%03d_%d.temp", count, i);
+            sprintf(filename, "cdv/tconf%04d_%d.temp", count, i);
 #else
-            sprintf(filename, "tconf%03d_%d.temp", count, i);
+            sprintf(filename, "tconf%04d_%d.temp", count, i);
 #endif
             std::ifstream reading_file;
             reading_file.open(filename, std::ios::in);
