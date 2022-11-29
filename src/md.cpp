@@ -383,27 +383,29 @@ void MD::calculate_force(void) {
 
         // Atom *one_other_atoms = vars->other_atoms[i].data();
         std::vector<Atom> one_other_atoms = vars->other_atoms.at(i);
-        std::vector<Force> one_sending_force;
-        for (auto &pl : pl->other_list[i]) {
-            Atom ia = atoms[pl.i];
-            Atom ja = one_other_atoms[pl.j];
-            assert(pl.idi == ia.id);
-            assert(pl.idj == ja.id);
+        std::vector<Force> one_sending_force(pl->other_list[i].size());
+        for (std::size_t j=0; j<pl->other_list[i].size(); j++) {
+            Pair pair = pl->other_list[i][j];
+            Atom ia = atoms[pair.i];
+            Atom ja = one_other_atoms[pair.j];
+            assert(pair.idi == ia.id);
+            assert(pair.idj == ja.id);
             double dx = ja.x - ia.x;
             double dy = ja.y - ia.y;
             periodic_distance(dx, dy);
             double r = sqrt(dx*dx + dy*dy);
-            if (r > sysp::cutoff){
-                continue;
-            }
-            double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
-            atoms[pl.i].vx += df * dx;
-            atoms[pl.i].vy += df * dy;
             Force sf;
             sf.id = ja.id;
-            sf.vx =  - df * dx;
-            sf.vy =  - df * dy;
-            one_sending_force.push_back(sf);
+            sf.vx = 0.0;
+            sf.vy = 0.0;
+            if (r <= sysp::cutoff){
+                double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
+                atoms[pair.i].vx += df * dx;
+                atoms[pair.i].vy += df * dy;
+                sf.vx =  - df * dx;
+                sf.vy =  - df * dy;
+            }
+           one_sending_force[j] = sf;
         }
         vars->sending_force.push_back(one_sending_force);
     }
