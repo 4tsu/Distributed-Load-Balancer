@@ -758,8 +758,8 @@ void MD::run(int trial) {
         grosstimer->stop();
 
         // 情報の出力
-        double k = obs->kinetic_energy(vars);
-        double v = obs->potential_energy(vars, pl);
+        double k = obs->kinetic_energy(vars);   // rank0が値を受け取る
+        double v = obs->potential_energy(vars, pl);   // rank0が値を受け取る
         if (mi.rank==0) {
             export_three("energy.dat", step, k, v, k+v);
         }
