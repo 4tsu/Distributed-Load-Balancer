@@ -27,8 +27,26 @@ namespace systemparam {
 
 // ====================================================
 
+namespace sysp = systemparam;
 
-void periodic_distance(double &dx, double &dy);
-void periodic_coordinate(double &x, double &y);
+
+
+inline
+void periodic_distance(double &dx, double &dy) {
+    if (dx < -sysp::xlh) dx += sysp::xl;
+    else if (dx >  sysp::xlh) dx -= sysp::xl;
+    if (dy < -sysp::ylh) dy += sysp::yl;
+    else if (dy >  sysp::ylh) dy -= sysp::yl;
+}
+
+
+
+inline
+void periodic_coordinate(double &x, double &y) {
+    if (sysp::x_min > x)      x += sysp::xl;
+    else if (sysp::x_max < x) x -= sysp::xl;
+    if (sysp::y_min > y)      y += sysp::yl;
+    else if (sysp::y_max < y) y -= sysp::yl;
+}
 
 // ===================================================
