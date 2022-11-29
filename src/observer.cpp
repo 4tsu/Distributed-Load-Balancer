@@ -109,8 +109,8 @@ double Observer::potential_energy(Variables *vars, PairList *pl) {
     for (auto& l : pl->list) {
         Atom ia = vars->atoms[l.i];
         Atom ja = vars->atoms[l.j];
-        assert(ia.id == l.idi);
-        assert(ja.id == l.idj);
+        // assert(ia.id == l.idi);
+        // assert(ja.id == l.idj);
         double dx = ja.x - ia.x;
         double dy = ja.y - ia.y;
         periodic_distance(dx, dy);
@@ -127,8 +127,8 @@ double Observer::potential_energy(Variables *vars, PairList *pl) {
         for (auto& l : pl->other_list.at(i)) {
             Atom ia = vars->atoms[l.i];
             Atom ja = vars->other_atoms[i][l.j];
-            assert(ia.id == l.idi);
-            assert(ja.id == l.idj);
+            // assert(ia.id == l.idi);
+            // assert(ja.id == l.idj);
             double dx = ja.x - ia.x;
             double dy = ja.y - ia.y;
             periodic_distance(dx, dy);
