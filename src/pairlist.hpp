@@ -30,7 +30,8 @@ private:
     void clear_all(void);
     double lmx, lmy;
     int nmx, nmy, num_mesh;
-    std::vector<unsigned long> counter, head_index, sorted_index;
+    std::vector<unsigned long> counter, head_index;
+    std::vector<Atom> sorted_atoms;
     std::vector<double> limits;
  
     void set_mesh_ext(void);
@@ -50,6 +51,7 @@ public:
     std::vector<Pair> list;
     std::vector<std::vector<Pair>> other_list;
     void make_pair(Variables* vars);
+    void make_pair_ext(Variables* vars);
 };
 
 // ============================================

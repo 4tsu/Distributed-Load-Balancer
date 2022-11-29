@@ -113,6 +113,10 @@ void MD::make_pair(void) {
     // domainpairlistの作成
     sr->make_dplist(mi, vars);
 
+    // 領域内でペアリスト作成
+    // 粒子の空間ソートも同時に行うので、通信の前に行うのが良い
+    pl->make_pair(vars);
+
     // 他領域粒子情報をすべて持ってくる
     if (mi.procs > 1) {
         // あらかじめ、送受信のデータ容量だけやりとりしておく
@@ -183,8 +187,8 @@ void MD::make_pair(void) {
 
 
 
-    // ローカルにペアリスト作成
-    pl->make_pair(vars);
+    // ローカルに領域間ペアリスト作成
+    pl->make_pair_ext(vars);
 
 
 
