@@ -359,14 +359,14 @@ void MD::calculate_force(void) {
         double dy = ja.y - ia.y;
         periodic_distance(dx, dy);
         double r = sqrt(dx*dx + dy*dy);
-        if (r > sysp::cutoff)
-            continue;
-        
-        double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
-        if ((df*df)>1.5) {
-            fprintf(stderr, "Abnormal Force! (rank#%d pair[%ld-%ld])\n", mi.rank, ia.id, ja.id);
-            abort();
+        double df = 0.0;
+        if (r <= sysp::cutoff) {
+            df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
         }
+        // if ((df*df)>1.5) {
+        //    fprintf(stderr, "Abnormal Force! (rank#%d pair[%ld-%ld])\n", mi.rank, ia.id, ja.id);
+        //    abort();
+        // }
         atoms[pl.i].vx += df * dx;
         atoms[pl.i].vy += df * dy;
         atoms[pl.j].vx -= df * dx;
@@ -382,7 +382,7 @@ void MD::calculate_force(void) {
         std::vector<Force> one_sending_force;
         for (auto &pl : pl->other_list[i]) {
             Atom ia = atoms[pl.i];
-            Atom ja = one_other_atoms.at(pl.j);
+            Atom ja = one_other_atoms[pl.j];
             assert(pl.idi == ia.id);
             assert(pl.idj == ja.id);
             double dx = ja.x - ia.x;
