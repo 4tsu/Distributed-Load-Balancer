@@ -13,6 +13,7 @@
 #include <random>
 #include <string>
 #include <limits>
+#include <chrono>
 
 #include <mpi.h>
 

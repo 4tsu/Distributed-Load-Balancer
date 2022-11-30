@@ -1,5 +1,6 @@
-#include "systemparam.hpp"
 #include "variables.hpp"
+
+namespace sysp = systemparam;
 
 // =================================
 
@@ -15,7 +16,7 @@ void Variables::add_atoms(unsigned long id, double x, double y) {
 
 
 
-void Variables::set_initial_velocity(const double V0, MPIinfo mi, Systemparam* sysp) {
+void Variables::set_initial_velocity(const double V0, MPIinfo mi) {
     std::mt19937 mt(mi.rank);
     std::uniform_real_distribution<double> ud(0.0, 1.0);
     double local_avx = 0.0;
@@ -35,8 +36,8 @@ void Variables::set_initial_velocity(const double V0, MPIinfo mi, Systemparam* s
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Allreduce(&local_avx, &avx_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(&local_avy, &avy_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    double avx = avx_sum / static_cast<double>(sysp->N);
-    double avy = avy_sum / static_cast<double>(sysp->N);
+    double avx = avx_sum / static_cast<double>(sysp::N);
+    double avy = avy_sum / static_cast<double>(sysp::N);
 
     // 全粒子平均速度を引いて、平均速度をゼロにする
     for (auto &a: atoms) {

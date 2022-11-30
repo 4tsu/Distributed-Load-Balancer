@@ -6,6 +6,7 @@
 #include "pairlist.hpp"
 #include "subregion.hpp"
 #include "sdd.hpp"
+#include "calctimer.hpp"
 
 // =======================================
 
@@ -13,11 +14,14 @@ class MD {
 private:
     Variables *vars;
     Observer *obs;
-    Systemparam *sysp;
     SubRegion *sr;
     PairList *pl;
     MPIinfo mi;
     Sdd *sdd;
+    CalcTimer *calctimer;
+    CalcTimer *grosstimer;
+    CalcTimer *sddtimer;
+    CalcTimer *wholetimer;
     void makeconf(void);
     void periodic(void);
     void update_position(double);
@@ -32,14 +36,16 @@ private:
     void communicate_atoms(void);
     void communicate_force(void);
     std::string config;
-    void read_data(std::string filename, Variables* vars, Systemparam* sysp, const MPIinfo &mi);
+    void read_data(std::string filename, Variables* vars, const MPIinfo &mi);
+    void get_exec_time(const int, CalcTimer*, const std::string);
 
 public:
     MD(MPIinfo mi);
     ~MD(void);
-    void run(void);
+    void run(int trial = 0);
     void set_params(int steps, int ob_interval, double dt);
-    void set_box(unsigned long N, double xl, double y, double cutoff);
+    void set_box(unsigned long N, double xl, double y);
+    void set_cutoff(double cutoff);
     void set_margin(double margin);
     void set_sdd(int sdd_type);
     void set_config(const std::string);

@@ -1,35 +1,34 @@
 #pragma once
-#include "mpiinfo.hpp"
 
-// ====================================================
-
-class Systemparam {
-public:
-    double xl;
-    double yl;
-    unsigned long N = 0;
-    double cutoff;
-    double margin;
-    double co_margin;
+namespace systemparam {
+    extern double xl;
+    extern double yl;
+    extern double xlh;
+    extern double ylh;
+    extern unsigned long N;
+    extern double cutoff;
+    extern double margin;
+    extern double co_margin;
     
-    double CL2;
-    double RC2;
-    double RC6;
-    double RC12;
-    double C0;
+    extern double CL2;
+    extern double RC2;
+    extern double RC6;
+    extern double RC12;
+    extern double C0;
 
-    double x_max;
-    double x_min;
-    double y_max;
-    double y_min;
+    extern double x_max;
+    extern double x_min;
+    extern double y_max;
+    extern double y_min;
 
-    void set_params(unsigned long N, double xl, double yl, double cutoff);
-    void calc_params(void);
-    void calc_margin(void);
-
-};
-
-void periodic_distance(double &dx, double &dy, Systemparam*);
-void periodic_coordinate(double &x, double &y, Systemparam*);
+    void calc_params();
+    void calc_margin();
+} // namespace
 
 // ====================================================
+
+
+void periodic_distance(double &dx, double &dy);
+void periodic_coordinate(double &x, double &y);
+
+// ===================================================

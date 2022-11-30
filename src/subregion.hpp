@@ -15,19 +15,19 @@ struct DomainPair{
 // 空間分割し、1プロセスに1つ割り当てられた領域
 class SubRegion {
 private:
-    bool judge(int, int, Systemparam*);
+    bool judge(int, int);
     std::vector<bool> is_empties;
     bool is_empty;
 
 public:
     std::vector<DomainPair> dplist;
     std::vector<DomainPair> dplist_reverse;
-    void make_dplist(MPIinfo, Variables*, Systemparam*);
+    void make_dplist(MPIinfo, Variables*);
 
     double center[2];
     double radius;
-    void calc_center(Variables*, Systemparam*);
-    void calc_radius(Variables*, Systemparam*);
+    void calc_center(Variables*);
+    void calc_radius(Variables*);
     void communicate_centradi(const MPIinfo &mi);
     std::vector<std::vector<double>> centers;
     std::vector<double> radii;
