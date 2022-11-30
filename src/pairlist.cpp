@@ -19,10 +19,15 @@ void PairList::make_pair(Variables* vars) {
     // 自領域内ペア
     list.clear();
     this->mesh_search(vars);
-    // 他領域粒子とのペア
-    // ペアリストに載らない粒子情報はother_atomsから削除する
-    // 通信がいらなくなった他領域も、DomainPairListから削除する
-    // 他領域から情報を受け取るべき粒子のリストcomm_recv_listも作成
+    this->arrange_pairs(vars->number_of_atoms());
+}
+
+
+// 他領域粒子とのペア
+// ペアリストに載らない粒子情報はother_atomsから削除する
+// 通信がいらなくなった他領域も、DomainPairListから削除する
+// 他領域から情報を受け取るべき粒子のリストcomm_recv_listも作成
+void PairList::make_pair_ext(Variables* vars) {
     this->other_list.clear();
     vars->recv_list.clear();
     vars->recv_size.clear();
@@ -54,7 +59,6 @@ void PairList::set_mesh(Variables* vars) {
     assert((nmx+2)*(nmy+2)< std::numeric_limits<int>::max());
     this->counter.resize(num_mesh);
     this->head_index.resize(num_mesh);
-    this->sorted_index.resize(vars->number_of_atoms());
 }
 
 
@@ -88,13 +92,14 @@ void PairList::set_index(Variables* vars) {
 
     std::vector<unsigned long> indexes(num_mesh);
     std::fill(indexes.begin(), indexes.end(), 0);
+    sorted_atoms.resize(pn);
     for (unsigned long i=0; i<pn; i++) {
         int im = position_buffer.at(i);
         unsigned long j = head_index.at(im) + indexes.at(im);
-        assert(sorted_index.at(j) == 0);
-        sorted_index.at(j) = i;
+        sorted_atoms.at(j) = vars->atoms.at(i);
         indexes.at(im)++;
     }
+    std::copy(sorted_atoms.begin(), sorted_atoms.end(), vars->atoms.begin());
 }
 
 
@@ -103,12 +108,10 @@ void PairList::search(int im, Variables* vars) {
     int ih = head_index.at(im);
     unsigned long pnm = counter.at(im);
     Atom *atoms = vars->atoms.data();
-    for (unsigned long m=ih; m<ih+pnm; m++) {
-        for (unsigned long n=m+1; n<ih+pnm; n++) {
-            if (m==n)
+    for (unsigned long i=ih; i<ih+pnm; i++) {
+        for (unsigned long j=i+1; j<ih+pnm; j++) {
+            if (i==j)
                 continue;
-            unsigned long i = sorted_index.at(m);
-            unsigned long j = sorted_index.at(n);
             double dx = atoms[j].x - atoms[i].x;
             double dy = atoms[j].y - atoms[i].y;
             periodic_distance(dx, dy);
@@ -138,10 +141,8 @@ void PairList::search_neighbor(int im, int jmx, int jmy, Variables* vars) {
     }
     int jm = jmx + jmy*nmx;
     Atom *atoms = vars->atoms.data();
-    for (unsigned long m=head_index[im]; m<head_index[im]+counter[im]; m++) {
-        for (unsigned long n=head_index[jm]; n<head_index[jm]+counter[jm]; n++) {
-            unsigned long i = sorted_index.at(m);
-            unsigned long j = sorted_index.at(n);
+    for (unsigned long i=head_index[im]; i<head_index[im]+counter[im]; i++) {
+        for (unsigned long j=head_index[jm]; j<head_index[jm]+counter[jm]; j++) {
             double dx = atoms[j].x - atoms[i].x;
             double dy = atoms[j].y - atoms[i].y;
             periodic_distance(dx, dy);
@@ -186,7 +187,7 @@ void PairList::clear_all(void) {
     num_mesh = 0;
     counter.clear();
     head_index.clear();
-    sorted_index.clear();
+    sorted_atoms.clear();
     limits.clear();
 }
 
@@ -198,7 +199,7 @@ void PairList::arrange_pairs(unsigned long pn) {
     std::vector<unsigned long> pair_counter(pn);
     std::fill(pair_counter.begin(), pair_counter.end(), 0);
     for (auto p : list) {
-        pair_counter.at(p.i);
+        pair_counter.at(p.i)++;
     }
 
     std::vector<unsigned long> head_index_pair(pn);
@@ -341,8 +342,7 @@ void PairList::search_ext(int im, int jmex, int jmey, const std::vector<Atom> &m
     for (unsigned long n=head_index_ext.at(jme); n<head_index_ext.at(jme)+counter_ext.at(jme); n++) {
         bool survive = false;
         unsigned long j = sorted_index_ext.at(n);
-        for (unsigned long m=head_index.at(im); m<head_index.at(im)+counter.at(im); m++) {
-            unsigned long i = sorted_index.at(m);
+        for (unsigned long i=head_index.at(im); i<head_index.at(im)+counter.at(im); i++) {
             double dx = ext_atoms.at(j).x - my_atoms.at(i).x;
             double dy = ext_atoms.at(j).y - my_atoms.at(i).y;
             periodic_distance(dx, dy);
