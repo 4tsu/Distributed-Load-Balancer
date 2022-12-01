@@ -292,13 +292,14 @@ void Sdd::voronoi_init(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
 
 void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
                   int iteration, double alpha, double early_stop_range) {
-    std::vector<double> biases(mi.procs);
     std::vector<double> send_biases(mi.procs);
     std::vector<double> recv_biases(mi.procs);
     std::vector<unsigned long> counts(mi.procs);
     unsigned long ideal_count_max = std::ceil(ideal_count*(1+early_stop_range));
 
-    MPI_Allgather(&sr->bias, 1, MPI_DOUBLE, biases.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+    all_biases.clear();
+    all_biases.resize(mi.procs);
+    MPI_Allgather(&sr->bias, 1, MPI_DOUBLE, all_biases.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
     sr->calc_center(vars);
     sr->calc_radius(vars);
     Sdd::voronoi_allocate(vars, mi, sr);
@@ -326,7 +327,10 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
             int i = dp.i;
             int j = dp.j;
             assert(i==mi.rank);
-            double db = pow((alpha*(counts.at(i)-counts.at(j))), 3);
+            double c_i = static_cast<double>(counts.at(i));
+            double c_j = static_cast<double>(counts.at(j));
+            double db = pow((alpha*(c_i-c_j)), 3);
+            // printf("%d-%d:(%lf(%ld-%ld))^3=%lf\n", i, j, alpha, counts.at(i), counts.at(j), db);
             sr->bias         -= db;
             send_biases.at(j) = db;
         }
@@ -341,6 +345,9 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         } else if (sr->bias > min_xyl) {
             sr->bias = min_xyl;
         }
+        all_biases.clear();
+        all_biases.resize(mi.procs);
+        MPI_Allgather(&sr->bias, 1, MPI_DOUBLE, all_biases.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
 
         voronoi_allocate(vars, mi, sr);
         sr->calc_center(vars);
@@ -389,7 +396,7 @@ void Sdd::center_atom_distance(int rank, double & min_distance, int & closest_pr
     double dx = atom.x - sr->centers.at(rank).at(0);
     double dy = atom.y - sr->centers.at(rank).at(1);
     periodic_distance(dx, dy);
-    double r2 = dx*dx + dy*dy;
+    double r2 = dx*dx + dy*dy - all_biases.at(rank);
     if (r2<min_distance) {
         min_distance = r2;
         closest_proc = rank;
