@@ -343,7 +343,6 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
             double c_i = static_cast<double>(counts.at(i));
             double c_j = static_cast<double>(counts.at(j));
             double db = pow((alpha*(c_i-c_j)), 3);
-            // printf("%d-%d:(%lf(%ld-%ld))^3=%lf\n", i, j, alpha, counts.at(i), counts.at(j), db);
             sr->bias         -= db;
             send_biases.at(j) = db;
         }
@@ -372,7 +371,7 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
             printf("\n");
         }
         */
-        // printf("%d:%lf [%lf,%lf] %lf\n", mi.rank, sr->bias, sr->center[0], sr->center[1], sr->radius);
+        
         voronoi_allocate(vars, mi, sr);
         sr->calc_center(vars);
         sr->calc_radius(vars);
