@@ -45,7 +45,7 @@ void Sdd::run(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
         global_sort(vars, mi);
 
     } else if (sdd_type==2) {
-        voronoi(vars, mi, sr, 900, 0.030, 0.02);
+        voronoi(vars, mi, sr, 900, 0.050, 0.02);
     }
 }
 
@@ -292,8 +292,6 @@ void Sdd::voronoi_init(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
 
 void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
                   int iteration, double alpha, double early_stop_range) {
-    std::vector<double> send_biases(mi.procs);
-    std::vector<double> recv_biases(mi.procs);
     std::vector<unsigned long> counts(mi.procs);
     unsigned long ideal_count_max = std::ceil(ideal_count*(1+early_stop_range));
 
@@ -322,9 +320,10 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
             }
             printf("\n");
         }
-
+        
+        // early stop
        if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
-            // fprintf(stderr, "early stop (iter #%d)\n", s);
+            // fprintf(stderr, "***early stop (iter #%d)***\n", s);
             break;
         }
 
@@ -335,7 +334,6 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         for (auto dp:sr->dplist_reverse)
             dp_all.push_back(dp);
         
-        std::fill(send_biases.begin(), send_biases.end(), 0);
         for (auto dp : dp_all) {
             int i = dp.i;
             int j = dp.j;
@@ -343,12 +341,8 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
             double c_i = static_cast<double>(counts.at(i));
             double c_j = static_cast<double>(counts.at(j));
             double db = pow((alpha*(c_i-c_j)), 3);
-            sr->bias         -= db;
-            send_biases.at(j) = db;
+            sr->bias -= db;
         }
-        std::fill(recv_biases.begin(), recv_biases.end(), 0);
-        MPI_Allreduce(send_biases.data(), recv_biases.data(), mi.procs, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        sr->bias += recv_biases.at(mi.rank);
         std::vector<double> limits(4);
         limits = calc_limit(vars);
         double min_xyl = std::min(limits.at(1)-limits.at(0), limits.at(3)-limits.at(2));
