@@ -305,13 +305,14 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
     sr->calc_radius(vars);
 
     // ボロノイの分割最適化の様子出力
-    voronoi_figure(vars, mi);
+    // voronoi_figure(vars, mi);
 
     for (int s=1; s<=iteration; s++) {
         unsigned long pn = vars->number_of_atoms();
         MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
         unsigned long max_count = *std::max_element(counts.begin(), counts.end());
- 
+
+        /*
         // ボロノイ最適化中のロードバランスの変化を出力
         if (mi.rank==0) {
             printf("%d ", s);
@@ -320,6 +321,7 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
             }
             printf("\n");
         }
+        */
         
         // early stop
        if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
@@ -370,7 +372,7 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         sr->calc_center(vars);
         sr->calc_radius(vars);
 
-        voronoi_figure(vars, mi);
+        // voronoi_figure(vars, mi);
 
     }
 }
