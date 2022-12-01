@@ -35,6 +35,7 @@ class Sdd {
         void voronoi(Variables*, const MPIinfo &, SubRegion*, int, double, double);
         void voronoi_allocate(Variables*, const MPIinfo &, SubRegion*);
         void center_atom_distance(int, double &, int &, const Atom, SubRegion*);
+        void voronoi_figure(Variables*, const MPIinfo &);
 };
 
 // ============================================

@@ -305,12 +305,25 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
     Sdd::voronoi_allocate(vars, mi, sr);
     sr->calc_center(vars);
     sr->calc_radius(vars);
-  
+
+    // ボロノイの分割最適化の様子出力
+    voronoi_figure(vars, mi);
+
     for (int s=1; s<=iteration; s++) {
         unsigned long pn = vars->number_of_atoms();
         MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
         unsigned long max_count = *std::max_element(counts.begin(), counts.end());
-        if (max_count <= ideal_count_max) {
+ 
+        // ボロノイ最適化中のロードバランスの変化を出力
+        if (mi.rank==0) {
+            printf("%d ", s);
+            for (auto c : counts) {
+                printf("%ld ", c);
+            }
+            printf("\n");
+        }
+
+       if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
             // fprintf(stderr, "early stop (iter #%d)\n", s);
             break;
         }
@@ -349,9 +362,23 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         all_biases.resize(mi.procs);
         MPI_Allgather(&sr->bias, 1, MPI_DOUBLE, all_biases.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
 
+        /*
+        // ボロノイ最適化中のバイアスの変化を出力
+        if (mi.rank==0) {
+            printf("%d ", s);
+            for (auto b : all_biases) {
+                printf("%lf ", b);
+            }
+            printf("\n");
+        }
+        */
+        // printf("%d:%lf [%lf,%lf] %lf\n", mi.rank, sr->bias, sr->center[0], sr->center[1], sr->radius);
         voronoi_allocate(vars, mi, sr);
         sr->calc_center(vars);
         sr->calc_radius(vars);
+
+        voronoi_figure(vars, mi);
+
     }
 }
 
@@ -401,6 +428,33 @@ void Sdd::center_atom_distance(int rank, double & min_distance, int & closest_pr
         min_distance = r2;
         closest_proc = rank;
     }
+}
+
+
+
+void Sdd::voronoi_figure(Variables* vars, const MPIinfo &mi) {
+    static int s = 0;
+    char filename[256];
+    sprintf(filename, "voronoi_%03d.cdv", s);
+    std::ofstream ofs(filename, std::ios::app);
+    if (mi.rank==0) {
+        ofs << "#box_sx=" << sysp::x_min << std::endl;
+        ofs << "#box_sy=" << sysp::y_min << std::endl;
+        ofs << "#box_ex=" << sysp::x_max << std::endl;
+        ofs << "#box_ey=" << sysp::y_max << std::endl;
+        ofs << "#box_sz=0" << std::endl;
+        ofs << "#box_ez=0" << std::endl;
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    for (auto &a : vars->atoms) {
+        ofs << a.id       << " ";
+        ofs << mi.rank%9  << " ";   // cdviewの描画色が9色なので
+        ofs << a.x        << " ";
+        ofs << a.y        << " ";
+        ofs << "0"        << " ";
+        ofs << std::endl;
+    }
+    s++;
 }
 
 // ============================================
