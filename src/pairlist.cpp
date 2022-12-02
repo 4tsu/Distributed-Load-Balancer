@@ -19,10 +19,15 @@ void PairList::make_pair(Variables* vars) {
     // 自領域内ペア
     list.clear();
     this->mesh_search(vars);
-    // 他領域粒子とのペア
-    // ペアリストに載らない粒子情報はother_atomsから削除する
-    // 通信がいらなくなった他領域も、DomainPairListから削除する
-    // 他領域から情報を受け取るべき粒子のリストcomm_recv_listも作成
+    this->arrange_pairs(vars->number_of_atoms());
+}
+
+
+// 他領域粒子とのペア
+// ペアリストに載らない粒子情報はother_atomsから削除する
+// 通信がいらなくなった他領域も、DomainPairListから削除する
+// 他領域から情報を受け取るべき粒子のリストcomm_recv_listも作成
+void PairList::make_pair_ext(Variables* vars) {
     this->other_list.clear();
     vars->recv_list.clear();
     vars->recv_size.clear();
@@ -43,18 +48,17 @@ void PairList::make_pair(Variables* vars) {
 
 void PairList::set_mesh(Variables* vars) {
     this->limits = calc_limit(vars);
-    this->nmx = static_cast<int>((limits.at(1) - limits.at(0))/sysp::co_margin) - 1;
-    this->nmy = static_cast<int>((limits.at(3) - limits.at(2))/sysp::co_margin) - 1;
+    this->nmx = static_cast<long>((limits.at(1) - limits.at(0))/sysp::co_margin) - 1;
+    this->nmy = static_cast<long>((limits.at(3) - limits.at(2))/sysp::co_margin) - 1;
     if (nmx<3 || nmy<3)
         return;
     this->lmx = (limits.at(1) - limits.at(0))/static_cast<double>(nmx);
     this->lmy = (limits.at(3) - limits.at(2))/static_cast<double>(nmy);
     assert(lmx>sysp::co_margin && lmy>sysp::co_margin);
     this->num_mesh = nmx*nmy;
-    assert((nmx+2)*(nmy+2)< std::numeric_limits<int>::max());
+    assert((nmx+2)*(nmy+2)< std::numeric_limits<long>::max());
     this->counter.resize(num_mesh);
     this->head_index.resize(num_mesh);
-    this->sorted_index.resize(vars->number_of_atoms());
 }
 
 
@@ -63,15 +67,15 @@ void PairList::set_index(Variables* vars) {
     unsigned long pn = vars->number_of_atoms();
     std::vector<unsigned long> position_buffer(pn);
     for (unsigned long i=0; i<pn; i++) {
-        int ix = static_cast<int>((vars->atoms.at(i).x-limits.at(0))/lmx);
-        int iy = static_cast<int>((vars->atoms.at(i).y-limits.at(2))/lmy);
+        long ix = static_cast<long>((vars->atoms.at(i).x-limits.at(0))/lmx);
+        long iy = static_cast<long>((vars->atoms.at(i).y-limits.at(2))/lmy);
         if (vars->atoms.at(i).x==limits.at(1))
             ix = nmx-1;
         if (vars->atoms.at(i).y==limits.at(3))
             iy = nmy-1;
         assert(0<=ix && ix<nmx);
         assert(0<=iy && iy<nmy);
-        int im = ix + iy*nmx;
+        long im = ix + iy*nmx;
         assert(0<=im && im<num_mesh);
         counter.at(im)++;
         position_buffer.at(i) = im;
@@ -81,34 +85,33 @@ void PairList::set_index(Variables* vars) {
 
     head_index.at(0) = 0;
     unsigned long sum = 0;
-    for (int i=1; i<num_mesh; i++) {
+    for (long i=1; i<num_mesh; i++) {
         sum += counter.at(i-1);
         head_index.at(i) = sum;
     }
 
     std::vector<unsigned long> indexes(num_mesh);
     std::fill(indexes.begin(), indexes.end(), 0);
+    sorted_atoms.resize(pn);
     for (unsigned long i=0; i<pn; i++) {
-        int im = position_buffer.at(i);
+        long im = position_buffer.at(i);
         unsigned long j = head_index.at(im) + indexes.at(im);
-        assert(sorted_index.at(j) == 0);
-        sorted_index.at(j) = i;
+        sorted_atoms.at(j) = vars->atoms.at(i);
         indexes.at(im)++;
     }
+    std::copy(sorted_atoms.begin(), sorted_atoms.end(), vars->atoms.begin());
 }
 
 
 
-void PairList::search(int im, Variables* vars) {
-    int ih = head_index.at(im);
+void PairList::search(long im, Variables* vars) {
+    unsigned long ih = head_index.at(im);
     unsigned long pnm = counter.at(im);
     Atom *atoms = vars->atoms.data();
-    for (unsigned long m=ih; m<ih+pnm; m++) {
-        for (unsigned long n=m+1; n<ih+pnm; n++) {
-            if (m==n)
+    for (unsigned long i=ih; i<ih+pnm; i++) {
+        for (unsigned long j=i+1; j<ih+pnm; j++) {
+            if (i==j)
                 continue;
-            unsigned long i = sorted_index.at(m);
-            unsigned long j = sorted_index.at(n);
             double dx = atoms[j].x - atoms[i].x;
             double dy = atoms[j].y - atoms[i].y;
             periodic_distance(dx, dy);
@@ -125,7 +128,7 @@ void PairList::search(int im, Variables* vars) {
 
 
 
-void PairList::search_neighbor(int im, int jmx, int jmy, Variables* vars) {
+void PairList::search_neighbor(long im, long jmx, long jmy, Variables* vars) {
     if (jmx<0) {
         jmx += nmx;
     } else if (jmx>=nmx) {
@@ -136,12 +139,10 @@ void PairList::search_neighbor(int im, int jmx, int jmy, Variables* vars) {
     } else if (jmy>=nmy) {
         jmy -= nmy;
     }
-    int jm = jmx + jmy*nmx;
+    long jm = jmx + jmy*nmx;
     Atom *atoms = vars->atoms.data();
-    for (unsigned long m=head_index[im]; m<head_index[im]+counter[im]; m++) {
-        for (unsigned long n=head_index[jm]; n<head_index[jm]+counter[jm]; n++) {
-            unsigned long i = sorted_index.at(m);
-            unsigned long j = sorted_index.at(n);
+    for (unsigned long i=head_index[im]; i<head_index[im]+counter[im]; i++) {
+        for (unsigned long j=head_index[jm]; j<head_index[jm]+counter[jm]; j++) {
             double dx = atoms[j].x - atoms[i].x;
             double dy = atoms[j].y - atoms[i].y;
             periodic_distance(dx, dy);
@@ -162,10 +163,10 @@ void PairList::mesh_search(Variables* vars) {
     set_mesh(vars);
     if (nmx>2 && nmy>2) {
         set_index(vars);
-        for (int i=0; i<num_mesh; i++) {
+        for (long i=0; i<num_mesh; i++) {
             search(i, vars);
-            int ix = i%nmx;
-            int iy = i/nmx;
+            long ix = i%nmx;
+            long iy = i/nmx;
             search_neighbor(i, ix+1, iy  , vars);
             search_neighbor(i, ix, iy+1  , vars);
             search_neighbor(i, ix+1, iy+1, vars);
@@ -186,7 +187,7 @@ void PairList::clear_all(void) {
     num_mesh = 0;
     counter.clear();
     head_index.clear();
-    sorted_index.clear();
+    sorted_atoms.clear();
     limits.clear();
 }
 
@@ -198,7 +199,7 @@ void PairList::arrange_pairs(unsigned long pn) {
     std::vector<unsigned long> pair_counter(pn);
     std::fill(pair_counter.begin(), pair_counter.end(), 0);
     for (auto p : list) {
-        pair_counter.at(p.i);
+        pair_counter.at(p.i)++;
     }
 
     std::vector<unsigned long> head_index_pair(pn);
@@ -265,9 +266,9 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms) {
     for (unsigned long i=0; i<pn; i++) {
         double dx = atoms.at(i).x - limits.at(0);
         double dy = atoms.at(i).y - limits.at(2);
-        int ix = std::floor(dx/lmx)+1;
-        int iy = std::floor(dy/lmy)+1;
-        int im = -1;
+        long ix = std::floor(dx/lmx)+1;
+        long iy = std::floor(dy/lmy)+1;
+        long im = -1;
         if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
             im = ix+iy*nmx_ext;
         } else {
@@ -307,7 +308,7 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms) {
     }
     head_index_ext.at(0) = 0;
     unsigned long sum = 0;
-    for (int i=1; i<num_mesh_ext; i++) {
+    for (long i=1; i<num_mesh_ext; i++) {
         sum += counter_ext.at(i-1);
         head_index_ext.at(i) = sum;
     }
@@ -316,7 +317,7 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms) {
     std::vector<unsigned long> indexes(num_mesh_ext);
     std::fill(indexes.begin(), indexes.end(), 0);
     for (unsigned long i=0; i<inside_mesh_index.size(); i++) {
-        int im = position_buffer.at(i);
+        long im = position_buffer.at(i);
         unsigned long j = head_index_ext.at(im) + indexes.at(im);
         assert(sorted_index_ext.at(j) == 0);
         sorted_index_ext.at(j) = inside_mesh_index.at(i);
@@ -326,7 +327,7 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms) {
 
 
 
-void PairList::search_ext(int im, int jmex, int jmey, const std::vector<Atom> &my_atoms, const std::vector<Atom> &ext_atoms) {
+void PairList::search_ext(long im, long jmex, long jmey, const std::vector<Atom> &my_atoms, const std::vector<Atom> &ext_atoms) {
     if (jmex<0) {
         jmex += nmx_ext;
     } else if (jmex>=nmx_ext) {
@@ -337,12 +338,11 @@ void PairList::search_ext(int im, int jmex, int jmey, const std::vector<Atom> &m
     } else if (jmey>=nmy_ext) {
         jmey -= nmy_ext;
     }
-    int jme = jmex + jmey*nmx_ext;
+    long jme = jmex + jmey*nmx_ext;
     for (unsigned long n=head_index_ext.at(jme); n<head_index_ext.at(jme)+counter_ext.at(jme); n++) {
         bool survive = false;
         unsigned long j = sorted_index_ext.at(n);
-        for (unsigned long m=head_index.at(im); m<head_index.at(im)+counter.at(im); m++) {
-            unsigned long i = sorted_index.at(m);
+        for (unsigned long i=head_index.at(im); i<head_index.at(im)+counter.at(im); i++) {
             double dx = ext_atoms.at(j).x - my_atoms.at(i).x;
             double dy = ext_atoms.at(j).y - my_atoms.at(i).y;
             periodic_distance(dx, dy);
@@ -370,9 +370,9 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
     survivor_list.resize(ext_atoms.size());
     std::fill(survivor_list.begin(), survivor_list.end(), false);
     if (nmx>2 && nmy>2) {
-        for (int i=0; i<num_mesh; i++) {
-            int jmex = i%nmx + 1;
-            int jmey = i/nmx + 1;
+        for (long i=0; i<num_mesh; i++) {
+            long jmex = i%nmx + 1;
+            long jmey = i/nmx + 1;
             for (int m=-1; m<2; m++) {
                 for (int n=-1; n<2; n++) {
                     this->search_ext(i, jmex+m, jmey+n, my_atoms, ext_atoms);

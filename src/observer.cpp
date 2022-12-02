@@ -94,7 +94,7 @@ double Observer::kinetic_energy(Variables *vars) {
     }
 
     double k_global;
-    MPI_Allreduce(&k, &k_global, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Reduce(&k, &k_global, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     k_global /= static_cast<double>(sysp::N)*2;
     return k_global;
 }
@@ -107,39 +107,43 @@ double Observer::potential_energy(Variables *vars, PairList *pl) {
     double v = 0;
 
     for (auto& l : pl->list) {
-        Atom ia = vars->atoms.at(l.i);
-        Atom ja = vars->atoms.at(l.j);
-        assert(ia.id == l.idi);
-        assert(ja.id == l.idj);
+        Atom ia = vars->atoms[l.i];
+        Atom ja = vars->atoms[l.j];
+        // assert(ia.id == l.idi);
+        // assert(ja.id == l.idj);
         double dx = ja.x - ia.x;
         double dy = ja.y - ia.y;
         periodic_distance(dx, dy);
         double r = sqrt(dx*dx + dy*dy);
-        if (r > sysp::cutoff)
-            continue;
-        double r6 = pow(r, 6);
-        double r12 = r6*r6;
-        v += 4.0 * (1.0/r12 - 1.0/r6) + sysp::C0;
+        double dv = 0.0;
+        if (r <= sysp::cutoff) {
+            double r6 = pow(r, 6);
+            double r12 = r6*r6;
+            dv = 4.0 * (1.0/r12 - 1.0/r6) + sysp::C0;
+        }
+        v += dv;
     }
     for (std::size_t i=0; i<pl->other_list.size(); i++) {
         for (auto& l : pl->other_list.at(i)) {
-            Atom ia = vars->atoms.at(l.i);
-            Atom ja = vars->other_atoms.at(i).at(l.j);
-            assert(ia.id == l.idi);
-            assert(ja.id == l.idj);
+            Atom ia = vars->atoms[l.i];
+            Atom ja = vars->other_atoms[i][l.j];
+            // assert(ia.id == l.idi);
+            // assert(ja.id == l.idj);
             double dx = ja.x - ia.x;
             double dy = ja.y - ia.y;
             periodic_distance(dx, dy);
             double r = sqrt(dx*dx + dy*dy);
-            if (r > sysp::cutoff)
-                continue;
-            double r6 = pow(r, 6);
-            double r12 = r6*r6;
-            v += 4.0 * (1.0/r12 - 1.0/r6) + sysp::C0;
+            double dv = 0.0;
+            if (r <= sysp::cutoff) {
+                double r6 = pow(r, 6);
+                double r12 = r6*r6;
+                dv = 4.0 * (1.0/r12 - 1.0/r6) + sysp::C0;
+            }
+            v += dv;
         }
     }
     double v_global;
-    MPI_Allreduce(&v, &v_global, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Reduce(&v, &v_global, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     v_global /= static_cast<double>(sysp::N);
     return v_global;
 }
