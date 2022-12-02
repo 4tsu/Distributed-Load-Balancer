@@ -105,7 +105,7 @@ void PairList::set_index(Variables* vars) {
 
 
 void PairList::search(int im, Variables* vars) {
-    int ih = head_index.at(im);
+    unsigned long ih = head_index.at(im);
     unsigned long pnm = counter.at(im);
     Atom *atoms = vars->atoms.data();
     for (unsigned long i=ih; i<ih+pnm; i++) {
