@@ -47,7 +47,6 @@ void MD::set_box(unsigned long N, double xl, double yl) {
 
 void MD::set_cutoff(double cutoff) {
     sysp::cutoff = cutoff;
-    sysp::calc_params();
 }
 
 
@@ -727,10 +726,12 @@ void MD::run(int trial) {
     /// MD
     // 初期配置orデータ読み込み
     if (this->config=="make") {
+        sysp::calc_params();
         makeconf();
         vars->set_initial_velocity(1.0, mi); // 初速決定
     } else {
         this->read_data(config, vars, mi);
+        sysp::calc_params();
     }
 
      // ロードバランサー選択

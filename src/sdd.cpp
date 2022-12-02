@@ -45,7 +45,7 @@ void Sdd::run(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
         global_sort(vars, mi);
 
     } else if (sdd_type==2) {
-        voronoi(vars, mi, sr, 900, 0.030, 0.02);
+        voronoi(vars, mi, sr, 900, 0.050, 0.02);
     }
 }
 
@@ -292,25 +292,40 @@ void Sdd::voronoi_init(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
 
 void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
                   int iteration, double alpha, double early_stop_range) {
-    std::vector<double> biases(mi.procs);
-    std::vector<double> send_biases(mi.procs);
-    std::vector<double> recv_biases(mi.procs);
     std::vector<unsigned long> counts(mi.procs);
     unsigned long ideal_count_max = std::ceil(ideal_count*(1+early_stop_range));
 
-    MPI_Allgather(&sr->bias, 1, MPI_DOUBLE, biases.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+    all_biases.clear();
+    all_biases.resize(mi.procs);
+    MPI_Allgather(&sr->bias, 1, MPI_DOUBLE, all_biases.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
     sr->calc_center(vars);
     sr->calc_radius(vars);
     Sdd::voronoi_allocate(vars, mi, sr);
     sr->calc_center(vars);
     sr->calc_radius(vars);
-  
+
+    // ボロノイの分割最適化の様子出力
+    // voronoi_figure(vars, mi);
+
     for (int s=1; s<=iteration; s++) {
         unsigned long pn = vars->number_of_atoms();
         MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
         unsigned long max_count = *std::max_element(counts.begin(), counts.end());
-        if (max_count <= ideal_count_max) {
-            // fprintf(stderr, "early stop (iter #%d)\n", s);
+
+        /*
+        // ボロノイ最適化中のロードバランスの変化を出力
+        if (mi.rank==0) {
+            printf("%d ", s);
+            for (auto c : counts) {
+                printf("%ld ", c);
+            }
+            printf("\n");
+        }
+        */
+        
+        // early stop
+       if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
+            // fprintf(stderr, "***early stop (iter #%d)***\n", s);
             break;
         }
 
@@ -321,18 +336,15 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         for (auto dp:sr->dplist_reverse)
             dp_all.push_back(dp);
         
-        std::fill(send_biases.begin(), send_biases.end(), 0);
         for (auto dp : dp_all) {
             int i = dp.i;
             int j = dp.j;
             assert(i==mi.rank);
-            double db = pow((alpha*(counts.at(i)-counts.at(j))), 3);
-            sr->bias         -= db;
-            send_biases.at(j) = db;
+            double c_i = static_cast<double>(counts.at(i));
+            double c_j = static_cast<double>(counts.at(j));
+            double db = pow((alpha*(c_i-c_j)), 3);
+            sr->bias -= db;
         }
-        std::fill(recv_biases.begin(), recv_biases.end(), 0);
-        MPI_Allreduce(send_biases.data(), recv_biases.data(), mi.procs, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        sr->bias += recv_biases.at(mi.rank);
         std::vector<double> limits(4);
         limits = calc_limit(vars);
         double min_xyl = std::min(limits.at(1)-limits.at(0), limits.at(3)-limits.at(2));
@@ -341,10 +353,27 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         } else if (sr->bias > min_xyl) {
             sr->bias = min_xyl;
         }
+        all_biases.clear();
+        all_biases.resize(mi.procs);
+        MPI_Allgather(&sr->bias, 1, MPI_DOUBLE, all_biases.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
 
+        /*
+        // ボロノイ最適化中のバイアスの変化を出力
+        if (mi.rank==0) {
+            printf("%d ", s);
+            for (auto b : all_biases) {
+                printf("%lf ", b);
+            }
+            printf("\n");
+        }
+        */
+        
         voronoi_allocate(vars, mi, sr);
         sr->calc_center(vars);
         sr->calc_radius(vars);
+
+        // voronoi_figure(vars, mi);
+
     }
 }
 
@@ -389,11 +418,38 @@ void Sdd::center_atom_distance(int rank, double & min_distance, int & closest_pr
     double dx = atom.x - sr->centers.at(rank).at(0);
     double dy = atom.y - sr->centers.at(rank).at(1);
     periodic_distance(dx, dy);
-    double r2 = dx*dx + dy*dy;
+    double r2 = dx*dx + dy*dy - all_biases.at(rank);
     if (r2<min_distance) {
         min_distance = r2;
         closest_proc = rank;
     }
+}
+
+
+
+void Sdd::voronoi_figure(Variables* vars, const MPIinfo &mi) {
+    static int s = 0;
+    char filename[256];
+    sprintf(filename, "voronoi_%03d.cdv", s);
+    std::ofstream ofs(filename, std::ios::app);
+    if (mi.rank==0) {
+        ofs << "#box_sx=" << sysp::x_min << std::endl;
+        ofs << "#box_sy=" << sysp::y_min << std::endl;
+        ofs << "#box_ex=" << sysp::x_max << std::endl;
+        ofs << "#box_ey=" << sysp::y_max << std::endl;
+        ofs << "#box_sz=0" << std::endl;
+        ofs << "#box_ez=0" << std::endl;
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    for (auto &a : vars->atoms) {
+        ofs << a.id       << " ";
+        ofs << mi.rank%9  << " ";   // cdviewの描画色が9色なので
+        ofs << a.x        << " ";
+        ofs << a.y        << " ";
+        ofs << "0"        << " ";
+        ofs << std::endl;
+    }
+    s++;
 }
 
 // ============================================
