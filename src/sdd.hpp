@@ -25,6 +25,7 @@ class Sdd {
         int sdd_type = -1;
         double top, bottom, right, left;
         unsigned long ideal_count;
+        std::vector<double> all_biases;
         void set_limits(double, double, double, double);
         void migrate_atoms(std::vector<std::vector<Atom>>, Variables*, const MPIinfo &);
         void calc_bounds(const MPIinfo &);
@@ -34,6 +35,7 @@ class Sdd {
         void voronoi(Variables*, const MPIinfo &, SubRegion*, int, double, double);
         void voronoi_allocate(Variables*, const MPIinfo &, SubRegion*);
         void center_atom_distance(int, double &, int &, const Atom, SubRegion*);
+        void voronoi_figure(Variables*, const MPIinfo &);
 };
 
 // ============================================
