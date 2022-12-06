@@ -20,6 +20,10 @@ MD::~MD(void){
     delete sr;
     delete pl;
     delete sdd;
+    delete calctimer;
+    delete grosstimer;
+    delete sddtimer;
+    delete wholetimer;
 }
 
 // -----------------------------------------------------
