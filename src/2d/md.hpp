@@ -20,6 +20,7 @@ private:
     Sdd *sdd;
     CalcTimer *calctimer;
     CalcTimer *grosstimer;
+    CalcTimer *commtimer;
     CalcTimer *sddtimer;
     CalcTimer *wholetimer;
     void makeconf(void);
