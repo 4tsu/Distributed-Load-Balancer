@@ -39,10 +39,11 @@ void MD::set_params(int steps, int ob_interval, double dt) {
 
 
 
-void MD::set_box(unsigned long N, double xl, double yl) {
+void MD::set_box(unsigned long N, double xl, double yl, double zl) {
     sysp::N = N;
     sysp::xl = xl;
     sysp::yl = yl;
+    sysp::zl = zl;
     if (N<std::numeric_limits<unsigned long>::min() || std::numeric_limits<unsigned long>::max()<N) {
         fprintf(stderr, "=== input 'N' is too large! ===\n");
         exit(EXIT_FAILURE);

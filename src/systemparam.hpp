@@ -3,8 +3,10 @@
 namespace systemparam {
     extern double xl;
     extern double yl;
+    extern double zl;
     extern double xlh;
     extern double ylh;
+    extern double zlh;
     extern unsigned long N;
     extern double cutoff;
     extern double margin;
@@ -20,6 +22,8 @@ namespace systemparam {
     extern double x_min;
     extern double y_max;
     extern double y_min;
+    extern double z_max;
+    extern double z_min;
 
     void calc_params();
     void calc_margin();
@@ -32,11 +36,13 @@ namespace sysp = systemparam;
 
 
 inline
-void periodic_distance(double &dx, double &dy) {
+void periodic_distance(double &dx, double &dy, double &dz) {
     if (dx < -sysp::xlh) dx += sysp::xl;
     else if (dx >  sysp::xlh) dx -= sysp::xl;
     if (dy < -sysp::ylh) dy += sysp::yl;
     else if (dy >  sysp::ylh) dy -= sysp::yl;
+    if (dz < -sysp::zlh) dz += sysp::zl;
+    else if (dz >  sysp::zlh) dz -= sysp::zl;
 }
 
 
