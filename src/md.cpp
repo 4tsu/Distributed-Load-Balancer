@@ -9,6 +9,7 @@ MD::MD(MPIinfo mi){
     pl = new PairList();
     calctimer = new CalcTimer();
     grosstimer = new CalcTimer();
+    commtimer = new CalcTimer();
     sddtimer = new CalcTimer();
     wholetimer = new CalcTimer();
     this->mi = mi;
@@ -22,6 +23,7 @@ MD::~MD(void){
     delete sdd;
     delete calctimer;
     delete grosstimer;
+    delete commtimer;
     delete sddtimer;
     delete wholetimer;
 }
@@ -420,6 +422,7 @@ void MD::calculate_force(void) {
 // 変化した座標を他領域と共有する
 /// ペアリストにある粒子はすべてやりとりする
 void MD::communicate_atoms(void) {
+    commtimer->start();
     // 必要な通信サイズを予め共有 <- ペアリスト構築時点で共有できるはず
     MPI_Request ireq;
     MPI_Status st;
@@ -466,6 +469,7 @@ void MD::communicate_atoms(void) {
         std::copy(recvbuf.begin()+recv_index, recvbuf.begin()+recv_index+range, vars->other_atoms.at(i).begin());
         recv_index += range;
     }
+    commtimer->stop();
 }
 
 
@@ -474,6 +478,7 @@ void MD::communicate_atoms(void) {
 /// ペアリストにある粒子全部 or 実際に相互作用した粒子のみ？
 /// 事前に、粒子リストの行先とそのサイズ、送信元とそのサイズがわかっていればよい。
 void MD::communicate_force(void) {
+    commtimer->start();
     MPI_Request ireq;
     MPI_Status st;
     // まず、sending_forceのサイズを共有する
@@ -555,6 +560,7 @@ void MD::communicate_force(void) {
         }
         assert(f_index == recv_force.size());
     }
+    commtimer->stop();
 }
 
 
@@ -697,6 +703,8 @@ void MD::run(int trial) {
                 std::filesystem::remove(path);
             } else if (path == "./time_whole.dat") {
                 std::filesystem::remove(path);
+            } else if (path == "./time_comm.dat") {
+                std::filesystem::remove(path);
             } else if (path == "./load_balance.dat") {
                 std::filesystem::remove(path);
             }
@@ -716,16 +724,19 @@ void MD::run(int trial) {
     std::string gross_time_out = "time_gross";
     std::string sdd_time_out   = "time_sdd";
     std::string whole_time_out = "time_whole";
+    std::string comm_time_out  = "time_comm";
     if (trial > 0) {
         net_time_out   += "_" + std::to_string(trial);
         gross_time_out += "_" + std::to_string(trial);
         sdd_time_out   += "_" + std::to_string(trial);
         whole_time_out += "_" + std::to_string(trial);
+        comm_time_out  += "_" + std::to_string(trial);
     }
     net_time_out   += ".dat";
     gross_time_out += ".dat";
     sdd_time_out   += ".dat";
     whole_time_out += ".dat";
+    comm_time_out  += ".dat";
 
     /// MD
     // 初期配置orデータ読み込み
@@ -785,8 +796,10 @@ void MD::run(int trial) {
 
         this->get_exec_time(step, grosstimer, gross_time_out);
         this->get_exec_time(step, calctimer,  net_time_out);
+        this->get_exec_time(step, commtimer,  comm_time_out);
         grosstimer->reset();
         calctimer->reset();
+        commtimer->reset();
         obs->export_workload(step, vars, mi);
 
         this->check_pairlist();
