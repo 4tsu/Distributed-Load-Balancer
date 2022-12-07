@@ -306,6 +306,8 @@ avg_time("time_gross")
 plot_time("../time_avg_gross.dat", "time_gross.png")
 avg_time("time_sdd")
 plot_time("../time_avg_sdd.dat", "time_sdd.png")
+avg_time("time_comm")
+plot_time("../time_avg_comm.dat", "time_comm.png")
 
 # load balance plot
 plot_load_balance("../load_balance.dat")
