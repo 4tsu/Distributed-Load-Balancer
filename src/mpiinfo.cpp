@@ -11,18 +11,19 @@ void setup_info(MPIinfo &mi){
     mi.rank = rank;
     mi.procs = procs;
     
-    // int d2[2] = {};
-    // MPI_Dims_create(procs, 2, d2);
-    // mi.npx = d2[0];
-    // mi.npy = d2[1];
-
-    int max_divisor;
-    for (int i=1; i<=std::floor(sqrt(procs)); i++) {
+    int max_divisor1, max_divisor2;
+    for (int i=1; i<=std::floor(cbrt(procs)); i++) {
         if (procs%i==0) {
-            max_divisor = i;
+            max_divisor1 = i;
         }
     }
-    mi.npx = max_divisor;
-    mi.npy = procs/max_divisor;
+    for (int i=1; i<=std::floor(sqrt(procs/max_divisor1)); i++) {
+        if ((procs/max_divisor1)%i==0) {
+            max_divisor2 = i;
+        }
+    }
+    mi.npx = max_divisor1;
+    mi.npy = max_divisor2;
+    mi.npz = procs/(max_divisor1*max_divisor2);
 }
 // ==================================

@@ -4,7 +4,7 @@
 struct MPIinfo {
     int rank;
     int procs;
-    int npx, npy;
+    int npx, npy, npz;
 };
 
 // ------------------------------------------
