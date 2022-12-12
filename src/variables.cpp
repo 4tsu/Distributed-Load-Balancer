@@ -4,13 +4,15 @@ namespace sysp = systemparam;
 
 // =================================
 
-void Variables::add_atoms(unsigned long id, double x, double y) {
+void Variables::add_atoms(unsigned long id, double x, double y, double z) {
     Atom a;
     a.id = id;
     a.x = x;
     a.y = y;
+    a.z = z;
     a.vx = 0.0;
     a.vy = 0.0;
+    a.vz = 0.0;
     atoms.push_back(a);
 }
 
@@ -21,28 +23,36 @@ void Variables::set_initial_velocity(const double V0, MPIinfo mi) {
     std::uniform_real_distribution<double> ud(0.0, 1.0);
     double local_avx = 0.0;
     double local_avy = 0.0;
+    double local_avz = 0.0;
     for (auto &a : atoms) {
+        double z = ud(mt) * 2.0 - 1.0;
         double phi = 2.0 * ud(mt) * M_PI;
-        double vx = V0 * cos(phi);
-        double vy = V0 * sin(phi);
+        double vx = V0 * cos(phi) * sqrt(1-z*z);
+        double vy = V0 * sin(phi) * sqrt(1-z*z);
+        double vz = V0 * z;
         a.vx = vx;
         a.vy = vy;
+        a.vz = vz;
         local_avx += vx;
         local_avy += vy;
+        local_avz += vz;
     }
     
     // 全粒子平均速度を得るための通信
-    double avx_sum, avy_sum;
+    double avx_sum, avy_sum, avz_sum;
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Allreduce(&local_avx, &avx_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(&local_avy, &avy_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_avz, &avz_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     double avx = avx_sum / static_cast<double>(sysp::N);
     double avy = avy_sum / static_cast<double>(sysp::N);
+    double avz = avz_sum / static_cast<double>(sysp::N);
 
     // 全粒子平均速度を引いて、平均速度をゼロにする
     for (auto &a: atoms) {
         a.vx -= avx;
         a.vy -= avy;
+        a.vz -= avz;
     }
 }
 
@@ -51,7 +61,7 @@ void Variables::set_initial_velocity(const double V0, MPIinfo mi) {
 double Variables::max_velocity(void) {
     double max_v = 0;
     for (auto &a : atoms) {
-        double v = sqrt(a.vx*a.vx + a.vy*a.vy);
+        double v = sqrt(a.vx*a.vx + a.vy*a.vy + a.vz*a.vz);
         if (max_v < v)
             max_v = v;
     }

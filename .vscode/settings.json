@@ -9,7 +9,8 @@
         "tconf",
         "Wunused",
         "xppl",
-        "yppl"
+        "yppl",
+        "zppl"
     ],
     "files.associations": {
         "ostream": "cpp",

@@ -26,17 +26,17 @@ void Observer::export_cdview_independent(Variables* vars, MPIinfo &mi) {
     if (mi.rank==0) {
         ofs << "#box_sx=" << sysp::x_min << std::endl;
         ofs << "#box_sy=" << sysp::y_min << std::endl;
+        ofs << "#box_sz=" << sysp::z_min << std::endl;
         ofs << "#box_ex=" << sysp::x_max << std::endl;
         ofs << "#box_ey=" << sysp::y_max << std::endl;
-        ofs << "#box_sz=0" << std::endl;
-        ofs << "#box_ez=0" << std::endl;
+        ofs << "#box_ez=" << sysp::z_max << std::endl;
     }
     for (auto &a : vars->atoms) {
         ofs << a.id       << " ";
         ofs << mi.rank%9  << " ";   // cdviewの描画色が9色なので
         ofs << a.x        << " ";
         ofs << a.y        << " ";
-        ofs << "0"        << " ";
+        ofs << a.z        << " ";
         ofs << std::endl;
     }
 }
@@ -91,6 +91,7 @@ double Observer::kinetic_energy(Variables *vars) {
     for (auto& a : vars->atoms) {
         k += a.vx * a.vx;
         k += a.vy * a.vy;
+        k += a.vz * a.vz;
     }
 
     double k_global;
@@ -113,8 +114,9 @@ double Observer::potential_energy(Variables *vars, PairList *pl) {
         // assert(ja.id == l.idj);
         double dx = ja.x - ia.x;
         double dy = ja.y - ia.y;
-        periodic_distance(dx, dy);
-        double r = sqrt(dx*dx + dy*dy);
+        double dz = ja.z - ia.z;
+        periodic_distance(dx, dy, dz);
+        double r = sqrt(dx*dx + dy*dy + dz*dz);
         double dv = 0.0;
         if (r <= sysp::cutoff) {
             double r6 = pow(r, 6);
@@ -131,8 +133,9 @@ double Observer::potential_energy(Variables *vars, PairList *pl) {
             // assert(ja.id == l.idj);
             double dx = ja.x - ia.x;
             double dy = ja.y - ia.y;
-            periodic_distance(dx, dy);
-            double r = sqrt(dx*dx + dy*dy);
+            double dz = ja.z - ia.z;
+            periodic_distance(dx, dy, dz);
+            double r = sqrt(dx*dx + dy*dy + dz*dz);
             double dv = 0.0;
             if (r <= sysp::cutoff) {
                 double r6 = pow(r, 6);
@@ -175,16 +178,16 @@ void Observer::checkpoint_independent(const int step, Variables* vars, MPIinfo &
         ofs << "ITEM: BOX BOUNDS pp pp pp" << std::endl;
         ofs << sysp::x_min << " " << sysp::x_max << std::endl;
         ofs << sysp::y_min << " " << sysp::y_max << std::endl;
-        ofs << "0 0"                             << std::endl;
+        ofs << sysp::z_min << " " << sysp::z_max << std::endl;
         ofs << "ITEM: ATOMS x y z vx vy vz" << std::endl;
     }
     for (auto &a : vars->atoms) {
         ofs << a.x        << " ";
         ofs << a.y        << " ";
-        ofs << "0"        << " ";
+        ofs << a.z        << " ";
         ofs << a.vx        << " ";
         ofs << a.vy        << " ";
-        ofs << "0"        << " ";
+        ofs << a.vz        << " ";
         ofs << std::endl;
     }
 }
