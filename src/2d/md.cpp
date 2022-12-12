@@ -348,7 +348,7 @@ void MD::update_position(double coefficient) {
         atom.x = x;
         atom.y = y;
         assert(sysp::x_min <= x && x <= sysp::x_max);
-        assert(sysp::y_min <= y && x <= sysp::y_max);
+        assert(sysp::y_min <= y && y <= sysp::y_max);
     }
     calctimer->stop();
 }
