@@ -24,7 +24,7 @@ public:
     std::vector<DomainPair> dplist_reverse;
     void make_dplist(MPIinfo, Variables*);
 
-    double center[2];
+    double center[3];
     double radius;
     void calc_center(Variables*);
     void calc_radius(Variables*);

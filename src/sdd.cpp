@@ -57,11 +57,13 @@ unsigned long Sdd::ideal(const MPIinfo &mi) {
 
 
 
-void Sdd::set_limits(double t, double b, double r, double l) {
+void Sdd::set_limits(double t, double b, double r, double l, double f, double back) {
     this->top    = t;
     this->bottom = b;
     this->right  = r;
     this->left   = l;
+    this->front  = f;
+    this->back   = back;
 }
 
 
@@ -127,9 +129,13 @@ void Sdd::migrate_atoms(std::vector<std::vector<Atom>> migration_atoms, Variable
 
 void Sdd::calc_bounds(const MPIinfo &mi) {
     int ix = mi.rank%mi.npx;
-    int iy = mi.rank/mi.npx;
+    int iy = (mi.rank/mi.npx)%mi.npy;
+    int iz = mi.rank/(mi.npx*mi.npy);
     const double lpx = sysp::xl/static_cast<double>(mi.npx);
     const double lpy = sysp::yl/static_cast<double>(mi.npy);
+    const double lpz = sysp::zl/static_cast<double>(mi.npz);
+    this->front  = lpz*static_cast<double>(iz) + sysp::z_min;
+    this->back   = lpz*static_cast<double>(iz+1) + sysp::z_min;
     this->bottom = lpy*static_cast<double>(iy) + sysp::y_min;
     this->top    = lpy*static_cast<double>(iy+1) + sysp::y_min;
     this->left   = lpx*static_cast<double>(ix) + sysp::x_min;
@@ -143,9 +149,10 @@ void Sdd::simple(Variables* vars, const MPIinfo &mi) {
     std::vector<Atom> new_atoms;
     const double lpx = sysp::xl/static_cast<double>(mi.npx);
     const double lpy = sysp::yl/static_cast<double>(mi.npy);
+    const double lpz = sysp::zl/static_cast<double>(mi.npz);
     for (const Atom atom : vars->atoms) {
-        if (atom.x>right || atom.x<left || atom.y>top || atom.y<bottom) {
-            int new_rank = static_cast<int>(floor((atom.y-sysp::y_min)/lpy)*mi.npx + floor((atom.x-sysp::x_min)/lpx));
+        if (atom.x>right || atom.x<left || atom.y>top || atom.y<bottom || atom.z>back || atom.z<front) {
+            int new_rank = static_cast<int>(floor((atom.z-sysp::z_min)/lpz)*mi.npx*mi.npy + floor((atom.y-sysp::y_min)/lpy)*mi.npx + floor((atom.x-sysp::x_min)/lpx));
             migration_atoms.at(new_rank).push_back(atom);
         } else {
             new_atoms.push_back(atom);
@@ -175,34 +182,47 @@ void Sdd::global_sort(Variables* vars, const MPIinfo &mi) {
     if (mi.rank==0) {
         auto compare_x  = [](const Atom & a1, const Atom & a2) {return a1.x < a2.x;};
         auto compare_y  = [](const Atom & a1, const Atom & a2) {return a1.y < a2.y;};
+        auto compare_z  = [](const Atom & a1, const Atom & a2) {return a1.z < a2.z;};
         unsigned long sum = 0;
         for (int i=0; i<mi.procs; i++) {
             sum += max_l;
             all_atoms.erase(all_atoms.begin()+sum-diffs.at(i), all_atoms.begin()+sum);
             sum -= diffs.at(i);
         }
-        // まずはY軸についてソート
-        std::sort(all_atoms.begin(), all_atoms.end(), compare_y);
-        unsigned long nay = std::floor(sysp::N/mi.npy) + 1;
+        // まずはZ軸についてソート
+        std::sort(all_atoms.begin(), all_atoms.end(), compare_z);
+        unsigned long naz = std::floor(sysp::N/mi.npz) + 1;
         unsigned long head = 0;
-        unsigned long y_count = nay;
-        for (int i=0; i<mi.npy; i++) {
-            if (head+y_count>sysp::N)
-                y_count = sysp::N - head;
-            // X軸についてソート
-            std::sort(all_atoms.begin()+head, all_atoms.begin()+head+y_count, compare_x);
-            unsigned long nax = std::floor(y_count/mi.npx) + 1;
-            unsigned long x_count = nax;
-            unsigned long x_sum = 0;
-            for (int j=0; j<mi.npx; j++) {
-                int p = j + i*mi.npx;
-                if (x_sum+x_count>y_count)
-                    x_count = y_count-x_sum;
-                migration_atoms.at(p).resize(x_count);
-                std::copy(all_atoms.begin()+head+x_sum, all_atoms.begin()+head+x_sum+x_count, migration_atoms.at(p).data());
-                x_sum += x_count;
+        unsigned long z_count = naz;
+        for (int i=0; i<mi.npz; i++) {
+            if (head+z_count>sysp::N)
+                z_count = sysp::N - head;
+
+            // Y軸についてソート
+            std::sort(all_atoms.begin()+head, all_atoms.begin()+head+z_count, compare_y);
+            unsigned long nay = std::floor(z_count/mi.npy) + 1;
+            unsigned long y_count = nay;
+            unsigned long y_sum = 0;
+            for (int j=0; j<mi.npy; j++) {
+                if (y_sum+y_count>z_count)
+                    y_count = z_count-y_sum;
+
+                // Z軸についてソート
+                std::sort(all_atoms.begin()+head, all_atoms.begin()+head+y_count, compare_x);
+                unsigned long nax = std::floor(y_count/mi.npx) + 1;
+                unsigned long x_count = nax;
+                unsigned long x_sum = 0;
+                for (int k=0; k<mi.npx; k++) {
+                    int p = k + j*mi.npx + i*(mi.npx*mi.npy);
+                    if (x_sum+x_count>y_count)
+                        x_count = y_count-x_sum;
+                    migration_atoms.at(p).resize(x_count);
+                    std::copy(all_atoms.begin()+head+y_sum+x_sum, all_atoms.begin()+head+y_sum+x_sum+x_count, migration_atoms.at(p).data());
+                    x_sum += x_count;
+                }
+                y_sum += y_count;
             }
-            head += y_count;
+            head += z_count;
         }
     vars->atoms.clear();
     vars->atoms.resize(migration_atoms.at(0).size());
@@ -345,13 +365,13 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
             double db = pow((alpha*(c_i-c_j)), 3);
             sr->bias -= db;
         }
-        std::vector<double> limits(4);
+        std::vector<double> limits(6);
         limits = calc_limit(vars);
-        double min_xyl = std::min(limits.at(1)-limits.at(0), limits.at(3)-limits.at(2));
+        double min_xyzl = std::min(limits.at(1)-limits.at(0), limits.at(3)-limits.at(2), limits.at(5)-limits.at(4));
         if (sr->bias < -sr->radius) {
             sr->bias = -sr->radius;
-        } else if (sr->bias > min_xyl) {
-            sr->bias = min_xyl;
+        } else if (sr->bias > min_xyzl) {
+            sr->bias = min_xyzl;
         }
         all_biases.clear();
         all_biases.resize(mi.procs);
@@ -396,7 +416,7 @@ void Sdd::voronoi_allocate(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
     int closest_proc;
     double min_distance;
     for (const Atom atom : vars->atoms) {
-        min_distance = sysp::xl*sysp::xl+sysp::yl*sysp::yl;
+        min_distance = sysp::xl*sysp::xl+sysp::yl*sysp::yl+sysp::zl*sysp::zl;
         for (auto dp : dp_all) {
             center_atom_distance(dp.j, min_distance, closest_proc, atom, sr);
         }
@@ -417,8 +437,9 @@ void Sdd::center_atom_distance(int rank, double & min_distance, int & closest_pr
                                const Atom atom, SubRegion* sr) {
     double dx = atom.x - sr->centers.at(rank).at(0);
     double dy = atom.y - sr->centers.at(rank).at(1);
-    periodic_distance(dx, dy);
-    double r2 = dx*dx + dy*dy - all_biases.at(rank);
+    double dz = atom.z - sr->centers.at(rank).at(2);
+    periodic_distance(dx, dy, dz);
+    double r2 = dx*dx + dy*dy + dz*dz - all_biases.at(rank);
     if (r2<min_distance) {
         min_distance = r2;
         closest_proc = rank;
@@ -435,10 +456,10 @@ void Sdd::voronoi_figure(Variables* vars, const MPIinfo &mi) {
     if (mi.rank==0) {
         ofs << "#box_sx=" << sysp::x_min << std::endl;
         ofs << "#box_sy=" << sysp::y_min << std::endl;
+        ofs << "#box_sz=" << sysp::z_min << std::endl;
         ofs << "#box_ex=" << sysp::x_max << std::endl;
         ofs << "#box_ey=" << sysp::y_max << std::endl;
-        ofs << "#box_sz=0" << std::endl;
-        ofs << "#box_ez=0" << std::endl;
+        ofs << "#box_ez=" << sysp::z_max << std::endl;
     }
     MPI_Barrier(MPI_COMM_WORLD);
     for (auto &a : vars->atoms) {
@@ -446,7 +467,7 @@ void Sdd::voronoi_figure(Variables* vars, const MPIinfo &mi) {
         ofs << mi.rank%9  << " ";   // cdviewの描画色が9色なので
         ofs << a.x        << " ";
         ofs << a.y        << " ";
-        ofs << "0"        << " ";
+        ofs << a.z        << " ";
         ofs << std::endl;
     }
     s++;

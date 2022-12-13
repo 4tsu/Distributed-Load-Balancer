@@ -17,6 +17,8 @@ std::vector<double> calc_limit(Variables* vars) {
         double x_max = vars->atoms.at(0).x;
         double y_min = vars->atoms.at(0).y;
         double y_max = vars->atoms.at(0).y;
+        double z_min = vars->atoms.at(0).z;
+        double z_max = vars->atoms.at(0).z;
         for (auto atom : vars->atoms) {
             if      (atom.x < x_min)
                 x_min = atom.x;
@@ -26,11 +28,15 @@ std::vector<double> calc_limit(Variables* vars) {
                 y_min = atom.y;
             else if (atom.y > y_max)
                 y_max = atom.y;
+            if      (atom.z < z_min)
+                z_min = atom.z;
+            else if (atom.z > z_max)
+                z_max = atom.z;
         }
-        std::vector<double> v{x_min, x_max, y_min, y_max};
+        std::vector<double> v{x_min, x_max, y_min, y_max, z_min, z_max};
         return v;
     } else {
-        std::vector<double> v{0, 0, 0, 0};
+        std::vector<double> v{0, 0, 0, 0, 0, 0};
         return v;
     }
 }
@@ -122,8 +128,9 @@ bool SubRegion::judge(int i, int j) {
         return true;
     double dx = centers.at(i).at(0) - centers.at(j).at(0);
     double dy = centers.at(i).at(1) - centers.at(j).at(1);
-    periodic_distance(dx, dy);
-    double gap = sqrt(dx*dx + dy*dy) - radii.at(i) - radii.at(j);
+    double dz = centers.at(i).at(2) - centers.at(j).at(2);
+    periodic_distance(dx, dy, dz);
+    double gap = sqrt(dx*dx + dy*dy + dz*dz) - radii.at(i) - radii.at(j);
     if (gap > sysp::co_margin)
         return true;
     return false;
@@ -137,14 +144,16 @@ void SubRegion::communicate_centradi(const MPIinfo &mi) {
     this->is_empties.clear();
     std::vector<double> recvbuf_x(mi.procs);
     std::vector<double> recvbuf_y(mi.procs);
+    std::vector<double> recvbuf_z(mi.procs);
     std::vector<double> recvbuf_r(mi.procs);
     std::vector<int> recvbuf_e(mi.procs);
     MPI_Allgather(&center[0], 1, MPI_DOUBLE, recvbuf_x.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
     MPI_Allgather(&center[1], 1, MPI_DOUBLE, recvbuf_y.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
+    MPI_Allgather(&center[2], 1, MPI_DOUBLE, recvbuf_z.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
     MPI_Allgather(&radius, 1, MPI_DOUBLE, recvbuf_r.data(), 1, MPI_DOUBLE, MPI_COMM_WORLD);
     MPI_Allgather(&is_empty, 1, MPI_INT, recvbuf_e.data(), 1, MPI_INT, MPI_COMM_WORLD);
     for (int i=0; i<mi.procs; i++) {
-        std::vector<double> one_center = {recvbuf_x.at(i), recvbuf_y.at(i)};
+        std::vector<double> one_center = {recvbuf_x.at(i), recvbuf_y.at(i), recvbuf_z.at(i)};
         this->centers.push_back(one_center);
         this->radii.push_back(recvbuf_r.at(i));
         this->is_empties.push_back(recvbuf_e.at(i));
@@ -159,6 +168,7 @@ void SubRegion::calc_center(Variables* vars) {
     if (pn == 0) {
         this->center[0] = 0.0;
         this->center[1] = 0.0;
+        this->center[2] = 0.0;
         this->is_empty = true;
         return;
     }
@@ -166,22 +176,29 @@ void SubRegion::calc_center(Variables* vars) {
     is_empty = false;
     const double origin_ax = vars->atoms.at(0).x;
     const double origin_ay = vars->atoms.at(0).y;
+    const double origin_az = vars->atoms.at(0).z;
     double sx = 0;
     double sy = 0;
+    double sz = 0;
     for (auto atom: vars->atoms) {
         double dx = atom.x - origin_ax;
         double dy = atom.y - origin_ay;
-        periodic_distance(dx, dy);
+        double dz = atom.z - origin_az;
+        periodic_distance(dx, dy, dz);
         sx += dx;
         sy += dy;
+        sz += dz;
     }
     sx /= static_cast<double>(pn);
     sy /= static_cast<double>(pn);
+    sz /= static_cast<double>(pn);
     sx += origin_ax;
     sy += origin_ay;
-    periodic_coordinate(sx, sy);
+    sz += origin_az;
+    periodic_coordinate(sx, sy, sz);
     this->center[0] = sx;
     this->center[1] = sy;
+    this->center[2] = sz;
 }
 
 
@@ -191,8 +208,9 @@ void SubRegion::calc_radius(Variables* vars) {
     for (auto atom: vars->atoms) {
         double dx = atom.x - this->center[0];
         double dy = atom.y - this->center[1];
-        periodic_distance(dx, dy);
-        double r = sqrt(dx*dx + dy*dy);
+        double dz = atom.z - this->center[2];
+        periodic_distance(dx, dy, dz);
+        double r = sqrt(dx*dx + dy*dy + dz*dz);
         if (r>r_max) {
             r_max = r;
         }
