@@ -96,7 +96,7 @@ void MD::makeconf(void) {
     const unsigned long xppl = ceil(cbrt(rho)*xl);
     const unsigned long yppl = ceil(cbrt(rho)*yl);
     const unsigned long zppl = ceil(cbrt(rho)*zl);
-    const double pitch = std::min(xl/xppl, yl/yppl, zl/zppl);
+    const double pitch = std::min({xl/xppl, yl/yppl, zl/zppl});
 
    // 等間隔配置・分割
     for (unsigned long i=0; i<N; i++) {

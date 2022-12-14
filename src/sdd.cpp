@@ -367,7 +367,7 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         }
         std::vector<double> limits(6);
         limits = calc_limit(vars);
-        double min_xyzl = std::min(limits.at(1)-limits.at(0), limits.at(3)-limits.at(2), limits.at(5)-limits.at(4));
+        double min_xyzl = std::min({limits.at(1)-limits.at(0), limits.at(3)-limits.at(2), limits.at(5)-limits.at(4)});
         if (sr->bias < -sr->radius) {
             sr->bias = -sr->radius;
         } else if (sr->bias > min_xyzl) {
