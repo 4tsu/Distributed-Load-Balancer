@@ -395,6 +395,7 @@ void MD::calculate_force(void) {
         atoms[pl.i].vy += df * dy;
         atoms[pl.i].vz += df * dz;
         atoms[pl.j].vx -= df * dx;
+        atoms[pl.j].vy -= df * dy;
         atoms[pl.j].vz -= df * dz;
     }
 
