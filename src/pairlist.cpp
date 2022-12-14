@@ -304,34 +304,24 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms) {
         if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
             im = ix+iy*nmx_ext;
         } else {
-            periodic_distance(dx, dy);
-            ix = std::floor(dx/lmx)+1;
-            iy = std::floor(dy/lmy)+1;
-            if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
-                im = ix+iy*nmx_ext;
-            } else {
-                dy = atoms.at(i).y - limits.at(3);
-                periodic_distance(dx, dy);
-                iy = std::floor(dy/lmy)+nmy+1;
-                if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
-                    im = ix+iy*nmx_ext;
-                } else {
-                    dx = atoms.at(i).x - limits.at(1);
+            bool flag = false;
+            for (int xc=0; xc<2; xc++) {
+                for (int yc=2; yc<4; yc++) {
+                    dx = atoms.at(i).x - limits.at(xc);
+                    dy = atoms.at(i).y - limits.at(yc);
                     periodic_distance(dx, dy);
-                    ix = std::floor(dx/lmx)+nmx+1;
+                    ix = std::floor(dx/lmx)+nmx*xc+1;
+                    iy = std::floor(dy/lmy)+nmy*(yc-2)+1;
                     if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
                         im = ix+iy*nmx_ext;
-                    } else {
-                        dy = atoms.at(i).y - limits.at(2);
-                        periodic_distance(dx, dy);
-                        iy = std::floor(dy/lmy)+1;
-                        if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext) {
-                            im = ix+iy*nmx_ext;
-                        }
+                        flag = true;
+                        break;
                     }
                 }
+                if (flag) break;
             }
         }
+        
         if (im>=0) {
             inside_mesh_index.push_back(i);
             counter_ext.at(im)++;
