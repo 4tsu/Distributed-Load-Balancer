@@ -304,7 +304,7 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms) {
         long iz = std::floor(dz/lmz)+1;
         long im = -1;
         if (0<=ix && ix<nmx_ext && 0<=iy && iy<nmy_ext && 0<=iz && iz<nmz_ext) {
-            im = ix+iy*nmx_ext;
+            im = ix+iy*nmx_ext+iz*nmx_ext*nmy_ext;
         } else {
             bool flag = false;
             for (int xc=0; xc<2; xc++) {
@@ -417,7 +417,7 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
             }
             
             // 拡張メッシュ領域が周期境界によってつながっている場合を考慮。
-            if (i%nmx<2) {
+            if (i%nmx<1) {
                 for (int m=-1; m<2; m++) {
                     for (int n=-1; n<2; n++) {
                         this->search_ext(i, jmex-2, jmey+m, jmez+n, my_atoms, ext_atoms);
@@ -425,7 +425,7 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
                     }
                 }
             }
-            if (i%nmx>nmx-3) {
+            if (i%nmx>nmx-2) {
                 for (int m=-1; m<2; m++) {
                     for (int n=-1; n<2; n++) {
                         this->search_ext(i, jmex+2, jmey+m, jmez+n, my_atoms, ext_atoms);
@@ -433,7 +433,7 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
                     }
                 }
             }
-            if ((i%nmx)/nmy<2) {
+            if ((i/nmx)%nmy<1) {
                 for (int m=-1; m<2; m++) {
                     for (int n=-1; n<2; n++) {
                         this->search_ext(i, jmex+m, jmey-2, jmez+n, my_atoms, ext_atoms);
@@ -441,7 +441,7 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
                     }
                 }
             }
-            if ((i%nmx)/nmy>nmy-3) {
+            if ((i/nmx)%nmy>nmy-2) {
                 for (int m=-1; m<2; m++) {
                     for (int n=-1; n<2; n++) {
                         this->search_ext(i, jmex+m, jmey+2, jmez+n, my_atoms, ext_atoms);
@@ -449,7 +449,7 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
                     }
                 }
             }
-            if (i/(nmx*nmy)<2) {
+            if (i/(nmx*nmy)<1) {
                 for (int m=-1; m<2; m++) {
                     for (int n=-1; n<2; n++) {
                         this->search_ext(i, jmex+m, jmey+n, jmez-2, my_atoms, ext_atoms);
@@ -457,7 +457,7 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
                     }
                 }
             }
-            if (i/(nmx*nmy)>nmz-3) {
+            if (i/(nmx*nmy)>nmz-2) {
                 for (int m=-1; m<2; m++) {
                     for (int n=-1; n<2; n++) {
                         this->search_ext(i, jmex+m, jmey+n, jmez+2, my_atoms, ext_atoms);
@@ -468,6 +468,99 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
 
             // 角の周期境界補正
             std::vector<std::vector<int>> intvec;
+            for (int m=0; m<2; m++) {
+                for (int n=0; n<2; n++) {
+                    std::vector<int> vec{m,n};
+                    intvec.push_back(vec);
+                }
+            }
+
+            if (i%nmx<1 && (i/nmx)%nmy<1) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, nmx_ext-1-e.at(0), nmy_ext-1-e.at(1), jmez+l, my_atoms, ext_atoms);
+                    }
+                }
+            }
+            else if(i%nmx>nmx-2 && (i/nmx)%nmy<1) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, e.at(0), nmy_ext-1-e.at(1), jmez+l, my_atoms, ext_atoms);
+                    }
+                }
+            }
+            else if(i%nmx<1 && (i/nmx)%nmy>nmy-2) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, nmx_ext-1-e.at(0), e.at(1), jmez+l, my_atoms, ext_atoms);
+                    }
+                }
+            }
+            else if(i%nmx>nmx-2 && (i/nmx)%nmy>nmy-2) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, e.at(0), e.at(1), jmez+l, my_atoms, ext_atoms);
+                    }
+                }
+            }
+            if(i%nmx<1 && i/(nmx*nmy)<1) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, nmx_ext-1-e.at(0), jmey+l, nmz_ext-1-e.at(1), my_atoms, ext_atoms);
+                    }
+                }
+            }
+            else if(i%nmx>nmx-2 && i/(nmx*nmy)<1) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, e.at(0), jmey+l, nmz_ext-1-e.at(1), my_atoms, ext_atoms);
+                    }
+                }
+            }
+            else if(i%nmx<1 && i/(nmx*nmy)>nmz-2) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, nmx_ext-1-e.at(0), jmey+l, e.at(1), my_atoms, ext_atoms);
+                    }
+                }
+            }
+            else if(i%nmx>nmx-2 && i/(nmx*nmy)>nmz-2) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, e.at(0), jmey+l, e.at(1), my_atoms, ext_atoms);
+                    }
+                }
+            }
+            if((i/nmx)%nmy<1 && i/(nmx*nmy)<1) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, jmex+l, nmx_ext-1-e.at(0), nmy_ext-1-e.at(1), my_atoms, ext_atoms);
+                    }
+                }
+            }
+            else if((i/nmx)%nmy>nmy-2 && i/(nmx*nmy)<1) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, jmex+l, e.at(0), nmy_ext-1-e.at(1), my_atoms, ext_atoms);
+                    }
+                }
+            }
+            else if((i/nmx)%nmy<1 && i/(nmx*nmy)>nmz-2) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, jmex+l, nmx_ext-1-e.at(0), e.at(1), my_atoms, ext_atoms);
+                    }
+                }
+            }
+            else if((i/nmx)%nmy>nmy-2 && i/(nmx*nmy)>nmz-2) {
+                for (int l=-1; l<2; l++) {
+                    for (auto e:intvec) {
+                        this->search_ext(i, jmex+l, e.at(0), e.at(1), my_atoms, ext_atoms);
+                    }
+                }
+            }
+
+            intvec.clear();
             for (int l=0; l<2; l++) {
                 for (int m=0; m<2; m++) {
                     for (int n=0; n<2; n++) {
@@ -483,37 +576,37 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
             }
             if(i==nmx-1) {
                 for (auto e : intvec) {
-                    this->search_ext(i, nmx_ext+e.at(0), nmy_ext-1-e.at(1), nmz_ext-1-e.at(2), my_atoms, ext_atoms);
+                    this->search_ext(i, e.at(0), nmy_ext-1-e.at(1), nmz_ext-1-e.at(2), my_atoms, ext_atoms);
                 }
             }
             if(i==nmx*(nmy-1)) {
                 for (auto e : intvec) {
-                    this->search_ext(i, nmx_ext-1-e.at(0), nmy_ext+e.at(1), nmz_ext-1-e.at(2), my_atoms, ext_atoms);
+                    this->search_ext(i, nmx_ext-1-e.at(0), e.at(1), nmz_ext-1-e.at(2), my_atoms, ext_atoms);
                 }
             }
             if(i==nmx*nmy-1) {
                 for (auto e : intvec) {
-                    this->search_ext(i, nmx_ext+e.at(0), nmy_ext+e.at(1), nmz_ext-1-e.at(2), my_atoms, ext_atoms);
+                    this->search_ext(i, e.at(0), e.at(1), nmz_ext-1-e.at(2), my_atoms, ext_atoms);
                 }
             }
             if(i==num_mesh-(nmx*nmy)) {
                 for (auto e : intvec) {
-                    this->search_ext(i, nmx_ext-1-e.at(0), nmy_ext-1-e.at(1), nmz_ext+e.at(2), my_atoms, ext_atoms);
+                    this->search_ext(i, nmx_ext-1-e.at(0), nmy_ext-1-e.at(1), e.at(2), my_atoms, ext_atoms);
                 }
             }
             if(i==num_mesh-(nmx*nmy)+nmx-1) {
                 for (auto e : intvec) {
-                    this->search_ext(i, nmx_ext+e.at(0), nmy_ext-1-e.at(1), nmz_ext+e.at(2), my_atoms, ext_atoms);
+                    this->search_ext(i, e.at(0), nmy_ext-1-e.at(1), e.at(2), my_atoms, ext_atoms);
                 }
             }
             if(i==num_mesh-nmx) {
                 for (auto e : intvec) {
-                    this->search_ext(i, nmx_ext-1-e.at(0), nmy_ext+e.at(1), nmz_ext+e.at(2), my_atoms, ext_atoms);
+                    this->search_ext(i, nmx_ext-1-e.at(0), e.at(1), e.at(2), my_atoms, ext_atoms);
                 }
             }
             if(i==num_mesh-1) {
                 for (auto e : intvec) {
-                    this->search_ext(i, nmx_ext+e.at(0), nmy_ext+e.at(1), nmz_ext+e.at(2), my_atoms, ext_atoms);
+                    this->search_ext(i, e.at(0), e.at(1), e.at(2), my_atoms, ext_atoms);
                 }
             }
         }
