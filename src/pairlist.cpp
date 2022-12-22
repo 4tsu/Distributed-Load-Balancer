@@ -323,6 +323,7 @@ void PairList::set_index_ext(const std::vector<Atom> &atoms) {
                             break;
                         }
                     }
+                    if (flag) break;
                 }
                 if (flag) break;
             }
@@ -534,21 +535,21 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
             if((i/nmx)%nmy<1 && i/(nmx*nmy)<1) {
                 for (int l=-1; l<2; l++) {
                     for (auto e:intvec) {
-                        this->search_ext(i, jmex+l, nmx_ext-1-e.at(0), nmy_ext-1-e.at(1), my_atoms, ext_atoms);
+                        this->search_ext(i, jmex+l, nmy_ext-1-e.at(0), nmz_ext-1-e.at(1), my_atoms, ext_atoms);
                     }
                 }
             }
             else if((i/nmx)%nmy>nmy-2 && i/(nmx*nmy)<1) {
                 for (int l=-1; l<2; l++) {
                     for (auto e:intvec) {
-                        this->search_ext(i, jmex+l, e.at(0), nmy_ext-1-e.at(1), my_atoms, ext_atoms);
+                        this->search_ext(i, jmex+l, e.at(0), nmz_ext-1-e.at(1), my_atoms, ext_atoms);
                     }
                 }
             }
             else if((i/nmx)%nmy<1 && i/(nmx*nmy)>nmz-2) {
                 for (int l=-1; l<2; l++) {
                     for (auto e:intvec) {
-                        this->search_ext(i, jmex+l, nmx_ext-1-e.at(0), e.at(1), my_atoms, ext_atoms);
+                        this->search_ext(i, jmex+l, nmy_ext-1-e.at(0), e.at(1), my_atoms, ext_atoms);
                     }
                 }
             }
