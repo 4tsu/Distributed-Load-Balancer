@@ -44,7 +44,7 @@ void MD::set_box(unsigned long N, double xl, double yl) {
     sysp::xl = xl;
     sysp::yl = yl;
     if (N<std::numeric_limits<unsigned long>::min() || std::numeric_limits<unsigned long>::max()<N) {
-        fprintf(stderr, "=== input 'N' is too large! ===\n");
+        std::fprintf(stderr, "=== input 'N' is too large! ===\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -339,7 +339,7 @@ void MD::update_position(double coefficient) {
     calctimer->start();
     for (auto& atom : vars->atoms) {
         if (atom.vx>9 || atom.vy>9) {
-            fprintf(stderr, "Abnormal velocity!(rank#%d atom#%ld:[%lf, %lf])",mi.rank, atom.id, atom.vx, atom.vy);
+            std::fprintf(stderr, "Abnormal velocity!(rank#%d atom#%ld:[%lf, %lf])",mi.rank, atom.id, atom.vx, atom.vy);
             abort();
         }
         double x = atom.x + atom.vx * dt * coefficient;
@@ -373,7 +373,7 @@ void MD::calculate_force(void) {
             df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
         }
         // if ((df*df)>1.5) {
-        //    fprintf(stderr, "Abnormal Force! (rank#%d pair[%ld-%ld])\n", mi.rank, ia.id, ja.id);
+        //    std::fprintf(stderr, "Abnormal Force! (rank#%d pair[%ld-%ld])\n", mi.rank, ia.id, ja.id);
         //    abort();
         // }
         atoms[pl.i].vx += df * dx;
@@ -716,7 +716,7 @@ void MD::run(int trial) {
     
     
     if (mi.procs<std::numeric_limits<int>::min() || std::numeric_limits<int>::max()<mi.procs) {
-        fprintf(stderr, "=== Too many processes! ===\n");
+        std::fprintf(stderr, "=== Too many processes! ===\n");
         exit(EXIT_FAILURE);
     }
     
@@ -766,7 +766,7 @@ void MD::run(int trial) {
 
     // 計算ループ
     for (int step=1+begin_step; step<=steps+begin_step; step++) {
-        if (mi.rank==0 && step%ob_interval==0) fprintf(stderr, "step %d\n", step);
+        if (mi.rank==0 && step%ob_interval==0) std::fprintf(stderr, "step %d\n", step);
         wholetimer->start();
         vars->time += dt;
 

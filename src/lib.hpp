@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cassert>
-#include <stdio.h>
+#include <cstdio>
 #include <math.h>
 #include <unistd.h>
 #include <cassert>

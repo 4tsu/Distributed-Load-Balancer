@@ -315,17 +315,17 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         /*
         // ボロノイ最適化中のロードバランスの変化を出力
         if (mi.rank==0) {
-            printf("%d ", s);
+            std::printf("%d ", s);
             for (auto c : counts) {
-                printf("%ld ", c);
+                std::printf("%ld ", c);
             }
-            printf("\n");
+            std::printf("\n");
         }
         */
         
         // early stop
        if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
-            // fprintf(stderr, "***early stop (iter #%d)***\n", s);
+            // std::fprintf(stderr, "***early stop (iter #%d)***\n", s);
             break;
         }
 
@@ -360,11 +360,11 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         /*
         // ボロノイ最適化中のバイアスの変化を出力
         if (mi.rank==0) {
-            printf("%d ", s);
+            std::printf("%d ", s);
             for (auto b : all_biases) {
-                printf("%lf ", b);
+                std::printf("%lf ", b);
             }
-            printf("\n");
+            std::printf("\n");
         }
         */
         
@@ -430,7 +430,7 @@ void Sdd::center_atom_distance(int rank, double & min_distance, int & closest_pr
 void Sdd::voronoi_figure(Variables* vars, const MPIinfo &mi) {
     static int s = 0;
     char filename[256];
-    sprintf(filename, "voronoi_%03d.cdv", s);
+    std::sprintf(filename, "voronoi_%03d.cdv", s);
     std::ofstream ofs(filename, std::ios::app);
     if (mi.rank==0) {
         ofs << "#box_sx=" << sysp::x_min << std::endl;

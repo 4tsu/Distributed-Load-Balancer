@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     double avg_time;
     MPI_Allreduce(&time, &avg_time, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     if (mi.rank == 0)
-        fprintf(stderr, "avg.time %lf[ms] (%d procs)\n", avg_time/static_cast<double>(mi.procs), mi.procs);
+        std::fprintf(stderr, "avg.time %lf[ms] (%d procs)\n", avg_time/static_cast<double>(mi.procs), mi.procs);
 
     MPI_Finalize();
 }

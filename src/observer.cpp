@@ -17,9 +17,9 @@ void Observer::export_cdview_independent(Variables* vars, MPIinfo &mi) {
     char filename[256];
 #ifdef FS
     std::filesystem::create_directory("./cdv");
-    sprintf(filename, "cdv/tconf%04d_%d.temp", count, mi.rank);
+    std::sprintf(filename, "cdv/tconf%04d_%d.temp", count, mi.rank);
 #else
-    sprintf(filename, "tconf%04d_%d.temp", count, mi.rank);
+    std::sprintf(filename, "tconf%04d_%d.temp", count, mi.rank);
 #endif
     ++count;
     std::ofstream ofs(filename, std::ios::out);
@@ -49,17 +49,17 @@ void Observer::concatenate_cdview(MPIinfo &mi, int count_begin) {
 		static int count = 0;
 		char output[256];
 #ifdef FS
-		sprintf(output, "cdv/conf%04d.cdv", cdv_count);
+		std::sprintf(output, "cdv/conf%04d.cdv", cdv_count);
 #else
-		sprintf(output, "conf%04d.cdv", cdv_count);
+		std::sprintf(output, "conf%04d.cdv", cdv_count);
 #endif
         std::ofstream ofs(output, std::ios::out);
 		for (int i=0; i<mi.procs; i++) {
             char filename[256];
 #ifdef FS
-            sprintf(filename, "cdv/tconf%04d_%d.temp", count, i);
+            std::sprintf(filename, "cdv/tconf%04d_%d.temp", count, i);
 #else
-            sprintf(filename, "tconf%04d_%d.temp", count, i);
+            std::sprintf(filename, "tconf%04d_%d.temp", count, i);
 #endif
             std::ifstream reading_file;
             reading_file.open(filename, std::ios::in);
@@ -162,9 +162,9 @@ void Observer::checkpoint_independent(const int step, Variables* vars, MPIinfo &
     char filename[256];
 #ifdef FS
     std::filesystem::create_directory("./ckpt");
-    sprintf(filename, "ckpt/ckpt%d.temp", mi.rank);
+    std::sprintf(filename, "ckpt/ckpt%d.temp", mi.rank);
 #else
-    sprintf(filename, "ckpt%d.temp", mi.rank);
+    std::sprintf(filename, "ckpt%d.temp", mi.rank);
 #endif
     std::ofstream ofs(filename, std::ios::out);
     if (mi.rank==0) {
@@ -198,9 +198,9 @@ void Observer::concatenate_checkpoint(std::string filename, MPIinfo & mi) {
 		for (int i=0; i<mi.procs; i++) {
             char filename[256];
 #ifdef FS
-            sprintf(filename, "ckpt/ckpt%d.temp", i);
+            std::sprintf(filename, "ckpt/ckpt%d.temp", i);
 #else
-            sprintf(filename, "ckpt%d.temp", i);
+            std::sprintf(filename, "ckpt%d.temp", i);
 #endif
             std::ifstream reading_file;
             reading_file.open(filename, std::ios::in);
