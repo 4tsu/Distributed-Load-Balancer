@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <cassert>
 #include <algorithm>
-#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -25,19 +24,19 @@
 //デバッグ用
 inline void ckpt() {
     static int c = 1;
-    fprintf(stderr, "c.%d\n", c);
+    std::fprintf(stderr, "c.%d\n", c);
     MPI_Barrier(MPI_COMM_WORLD);
     c++;
 }
 inline void ckpt2() {
     static int d = 1;
-    fprintf(stderr, "d.%d\n", d);
+    std::fprintf(stderr, "d.%d\n", d);
     MPI_Barrier(MPI_COMM_WORLD);
     d++;
 }
 inline void ckpt3() {
     static int e = 1;
-    fprintf(stderr, "e.%d\n", e);
+    std::fprintf(stderr, "e.%d\n", e);
     MPI_Barrier(MPI_COMM_WORLD);
     e++;
 }
