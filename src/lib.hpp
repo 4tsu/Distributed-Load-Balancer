@@ -1,6 +1,5 @@
 #pragma once
 
-#include <time.h>
 #include <assert.h>
 #include <stdio.h>
 #include <math.h>
