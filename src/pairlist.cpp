@@ -115,7 +115,7 @@ void PairList::search(long im, Variables* vars) {
             double dx = atoms[j].x - atoms[i].x;
             double dy = atoms[j].y - atoms[i].y;
             periodic_distance(dx, dy);
-            double r = sqrt(dx*dx + dy*dy);
+            double r = std::sqrt(dx*dx + dy*dy);
             if (r > sysp::co_margin)
                 continue;
             Pair p;
@@ -146,7 +146,7 @@ void PairList::search_neighbor(long im, long jmx, long jmy, Variables* vars) {
             double dx = atoms[j].x - atoms[i].x;
             double dy = atoms[j].y - atoms[i].y;
             periodic_distance(dx, dy);
-            double r = sqrt(dx*dx + dy*dy);
+            double r = std::sqrt(dx*dx + dy*dy);
             if (r>sysp::co_margin)
                 continue;
             Pair p;
@@ -236,7 +236,7 @@ void PairList::search_all(Variables* vars) {
             double dx = atoms[j].x - ix;
             double dy = atoms[j].y - iy;
             periodic_distance(dx, dy);
-            double r = sqrt(dx*dx + dy*dy);
+            double r = std::sqrt(dx*dx + dy*dy);
             if (r > sysp::co_margin) {
                 continue;
             }
@@ -336,7 +336,7 @@ void PairList::search_ext(long im, long jmex, long jmey, const std::vector<Atom>
             double dx = ext_atoms.at(j).x - my_atoms.at(i).x;
             double dy = ext_atoms.at(j).y - my_atoms.at(i).y;
             periodic_distance(dx, dy);
-            double r = sqrt(dx*dx + dy*dy);
+            double r = std::sqrt(dx*dx + dy*dy);
             if (r > sysp::co_margin)
                 continue;
             Pair p;
@@ -450,7 +450,7 @@ void PairList::search_all_ext(const std::vector<Atom> &my_atoms, const std::vect
             double dx = my_atoms[j].x - ix;
             double dy = my_atoms[j].y - iy;
             periodic_distance(dx, dy);
-            double r = sqrt(dx*dx + dy*dy);
+            double r = std::sqrt(dx*dx + dy*dy);
             if (r > sysp::co_margin) {
                 continue;
             }

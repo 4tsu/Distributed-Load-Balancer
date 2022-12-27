@@ -114,7 +114,7 @@ double Observer::potential_energy(Variables *vars, PairList *pl) {
         double dx = ja.x - ia.x;
         double dy = ja.y - ia.y;
         periodic_distance(dx, dy);
-        double r = sqrt(dx*dx + dy*dy);
+        double r = std::sqrt(dx*dx + dy*dy);
         double dv = 0.0;
         if (r <= sysp::cutoff) {
             double r6 = pow(r, 6);
@@ -132,7 +132,7 @@ double Observer::potential_energy(Variables *vars, PairList *pl) {
             double dx = ja.x - ia.x;
             double dy = ja.y - ia.y;
             periodic_distance(dx, dy);
-            double r = sqrt(dx*dx + dy*dy);
+            double r = std::sqrt(dx*dx + dy*dy);
             double dv = 0.0;
             if (r <= sysp::cutoff) {
                 double r6 = pow(r, 6);

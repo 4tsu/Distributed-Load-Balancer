@@ -2,7 +2,7 @@
 
 #include <cassert>
 #include <cstdio>
-#include <math.h>
+#include <cmath>
 #include <unistd.h>
 #include <cassert>
 #include <algorithm>

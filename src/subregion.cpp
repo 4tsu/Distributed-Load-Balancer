@@ -123,7 +123,7 @@ bool SubRegion::judge(int i, int j) {
     double dx = centers.at(i).at(0) - centers.at(j).at(0);
     double dy = centers.at(i).at(1) - centers.at(j).at(1);
     periodic_distance(dx, dy);
-    double gap = sqrt(dx*dx + dy*dy) - radii.at(i) - radii.at(j);
+    double gap = std::sqrt(dx*dx + dy*dy) - radii.at(i) - radii.at(j);
     if (gap > sysp::co_margin)
         return true;
     return false;
@@ -192,7 +192,7 @@ void SubRegion::calc_radius(Variables* vars) {
         double dx = atom.x - this->center[0];
         double dy = atom.y - this->center[1];
         periodic_distance(dx, dy);
-        double r = sqrt(dx*dx + dy*dy);
+        double r = std::sqrt(dx*dx + dy*dy);
         if (r>r_max) {
             r_max = r;
         }

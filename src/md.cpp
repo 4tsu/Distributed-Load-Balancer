@@ -87,8 +87,8 @@ void MD::makeconf(void) {
     const double y_max = sysp::y_max;
     const double lpx = sysp::xl/mi.npx;
     const double lpy = sysp::yl/mi.npy;
-    const unsigned long xppl = ceil(sqrt(xl*N/yl));
-    const unsigned long yppl = ceil(sqrt(yl*N/xl));
+    const unsigned long xppl = ceil(std::sqrt(xl*N/yl));
+    const unsigned long yppl = ceil(std::sqrt(yl*N/xl));
     const double pitch = std::min(xl/xppl, yl/yppl);
 
    // 等間隔配置・分割
@@ -367,7 +367,7 @@ void MD::calculate_force(void) {
         double dx = ja.x - ia.x;
         double dy = ja.y - ia.y;
         periodic_distance(dx, dy);
-        double r = sqrt(dx*dx + dy*dy);
+        double r = std::sqrt(dx*dx + dy*dy);
         double df = 0.0;
         if (r <= sysp::cutoff) {
             df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
@@ -398,7 +398,7 @@ void MD::calculate_force(void) {
             double dx = ja.x - ia.x;
             double dy = ja.y - ia.y;
             periodic_distance(dx, dy);
-            double r = sqrt(dx*dx + dy*dy);
+            double r = std::sqrt(dx*dx + dy*dy);
             Force sf;
             sf.id = ja.id;
             sf.vx = 0.0;
