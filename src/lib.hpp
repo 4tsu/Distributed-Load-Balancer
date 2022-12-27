@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cstdio>
 #include <cmath>
-#include <unistd.h>
 #include <cassert>
 #include <algorithm>
 #include <fstream>
@@ -13,6 +12,7 @@
 #include <limits>
 #include <chrono>
 
+#include <unistd.h>
 #include <mpi.h>
 
 #ifdef FS
