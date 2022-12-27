@@ -79,11 +79,11 @@ void Sdd::migrate_atoms(std::vector<std::vector<Atom>> migration_atoms, Variable
     std::vector<std::vector<unsigned long>> migration_table(mi.procs, std::vector<unsigned long>(mi.procs));
     std::vector<unsigned long> recvbuf(mi.procs*mi.procs);
     MPI_Allgather(num_migration.data(), mi.procs, MPI_UNSIGNED_LONG, recvbuf.data(), mi.procs, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
-    int bias = 0;
+    int head = 0;
     unsigned long sum_recv = 0;
     for (auto& one_mt : migration_table) {
-        std::copy(recvbuf.begin()+bias, recvbuf.begin()+bias+mi.procs, one_mt.begin());
-        bias += mi.procs;
+        std::copy(recvbuf.begin()+head, recvbuf.begin()+head+mi.procs, one_mt.begin());
+        head += mi.procs;
         sum_recv += one_mt.at(mi.rank);
     }
 
