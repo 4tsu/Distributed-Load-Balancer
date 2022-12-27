@@ -348,7 +348,7 @@ void MD::update_position(double coefficient) {
         atom.x = x;
         atom.y = y;
         assert(sysp::x_min <= x && x <= sysp::x_max);
-        assert(sysp::y_min <= y && x <= sysp::y_max);
+        assert(sysp::y_min <= y && y <= sysp::y_max);
     }
     calctimer->stop();
 }
@@ -573,7 +573,7 @@ void MD::read_data(const std::string filename, Variables* vars, const MPIinfo &m
     bool is_init = false;
     bool is_num = false;
     int is_bounds = 0;
-    double lpx;
+    double lpx, lpy;
     unsigned long id = 0;
     while(std::getline(reading_file, line)) {
         // LAMMPS出力ではじめに出てくる初期配置のdumpであれば無視する。
@@ -627,6 +627,7 @@ void MD::read_data(const std::string filename, Variables* vars, const MPIinfo &m
                 sysp::y_min = std::stod(var1);
                 sysp::y_max = std::stod(var2);
                 sysp::yl = sysp::y_max - sysp::y_min;
+                lpy = sysp::yl/mi.npy;
             }
             is_bounds++;
             continue;
@@ -649,7 +650,7 @@ void MD::read_data(const std::string filename, Variables* vars, const MPIinfo &m
         vx = std::stod(var.at(3));
         vy = std::stod(var.at(4));
         periodic_coordinate(x, y);
-        int ip = static_cast<int>(floor((y-sysp::y_min)/lpx)*mi.npx + floor((x-sysp::x_min)/lpx));
+        int ip = static_cast<int>(floor((y-sysp::y_min)/lpy)*mi.npx + floor((x-sysp::x_min)/lpx));
         if (ip==mi.rank) {
             Atom a;
             a.id = id;
