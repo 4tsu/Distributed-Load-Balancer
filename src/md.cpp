@@ -359,11 +359,11 @@ void MD::calculate_force(void) {
     calctimer->start();
     // 自領域内粒子同士
     Atom *atoms = vars->atoms.data();
-    for (auto &pl : pl->list) {
-        Atom ia = atoms[pl.i];
-        Atom ja = atoms[pl.j];
-        assert(pl.idi == ia.id);
-        assert(pl.idj == ja.id);
+    for (auto &pair : pl->list) {
+        Atom ia = atoms[pair.i];
+        Atom ja = atoms[pair.j];
+        assert(pair.idi == ia.id);
+        assert(pair.idj == ja.id);
         double dx = ja.x - ia.x;
         double dy = ja.y - ia.y;
         periodic_distance(dx, dy);
@@ -376,10 +376,10 @@ void MD::calculate_force(void) {
         //    std::fprintf(stderr, "Abnormal Force! (rank#%d pair[%ld-%ld])\n", mi.rank, ia.id, ja.id);
         //    abort();
         // }
-        atoms[pl.i].vx += df * dx;
-        atoms[pl.i].vy += df * dy;
-        atoms[pl.j].vx -= df * dx;
-        atoms[pl.j].vy -= df * dy;
+        atoms[pair.i].vx += df * dx;
+        atoms[pair.i].vy += df * dy;
+        atoms[pair.j].vx -= df * dx;
+        atoms[pair.j].vy -= df * dy;
     }
 
     vars->sending_force.clear();
