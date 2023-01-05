@@ -237,13 +237,13 @@ void Sdd::voronoi_init(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
         int non_zero_regions = 0;
         int my_position;
         for (int i=0; i<mi.procs; i++) {
-            wl = loads.at(i);
-            if (wl.counts==0) {
+            Workload wlt = loads.at(i);
+            if (wlt.counts==0) {
                 zero_regions++;
             } else {
                 non_zero_regions++;
             }
-            if(wl.rank==mi.rank)
+            if(wlt.rank==mi.rank)
                 my_position = i;
         }
         int zero_head = mi.procs - zero_regions;
@@ -260,8 +260,9 @@ void Sdd::voronoi_init(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
             MPI_Recv(vars->atoms.data(), num_recv*sizeof(Atom), MPI_CHAR, source_proc, 0, MPI_COMM_WORLD, &st);
         } else if (my_position < zero_regions) {
             // 相手に半分渡す作業
-            int target_proc = zero_head + my_position;
-            double center_line = (right+left)/2;
+            int target_proc = loads.at(zero_head + my_position).rank;
+            std::vector<double> ls = calc_limit(vars);
+            double center_line = (ls.at(0)+ls.at(1))/2;
             std::vector<Atom> send_atoms;
             std::vector<Atom> new_atoms;
             for (const auto &a : vars->atoms) {
