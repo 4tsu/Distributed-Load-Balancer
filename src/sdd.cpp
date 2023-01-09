@@ -31,6 +31,15 @@ void Sdd::init(Variables* vars
         this->top    = v.at(3);
         voronoi_init(vars, mi, sr);
         return;
+
+    } else if (sdd_type==3) {
+        return;
+
+    } else if (sdd_type==4) {
+        return;
+
+    } else if (sdd_type==5) {
+        return;
     }
 }
 
@@ -45,7 +54,14 @@ void Sdd::run(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
         global_sort(vars, mi);
 
     } else if (sdd_type==2) {
-        voronoi(vars, mi, sr, 900, 0.050, 0.02);
+        voronoi(vars, mi, sr, 500, 0.050, 0.02);
+    
+    } else if (sdd_type==3) {
+        rcb(vars, mi);
+
+    } else if (sdd_type==4) {
+    
+    } else if (sdd_type==5) {
     }
 }
 
@@ -451,6 +467,60 @@ void Sdd::voronoi_figure(Variables* vars, const MPIinfo &mi) {
         ofs << std::endl;
     }
     s++;
+}
+
+
+
+void Sdd::rcb(Variables* vars, const MPIinfo &mi) {
+    // 初期分割
+    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
+    if (mi.rank!=0) {
+        migration_atoms.at(0).resize(vars->number_of_atoms());
+        std::copy(vars->atoms.begin(), vars->atoms.end(), migration_atoms.begin());
+        vars->atoms.clear();
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    migrate_atoms(migration_atoms, vars, mi);
+
+    std::vector<int> directions;
+    std::fill(directions.begin(), directions.end(), 0);
+            
+    // 準備
+    auto compare_x  = [](const Atom & a1, const Atom & a2) {return a1.x < a2.x;};
+    auto compare_y  = [](const Atom & a1, const Atom & a2) {return a1.y < a2.y;};
+
+    for (int i=1; i<mi.procs; i++) {
+        std::vector<unsigned long> counts(mi.procs);
+        unsigned long pn = vars->number_of_atoms();
+        MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+        std::vector<unsigned long>::iterator max_it = std::max_element(counts.begin(), counts.end());
+        int target = static_cast<int>(std::distance(counts.begin(), max_it));
+
+        migration_atoms.resize(mi.procs);
+        migration_atoms.clear();
+        
+        if (target==mi.rank) {
+            // ヨコ分割
+            if (directions.at(target) == 0) {
+                directions.at(target) = 1;
+                directions.at(i)      = 1;
+                std::sort(vars->atoms.begin(), vars->atoms.end(), compare_x);
+            // タテ分割
+            } else {
+                directions.at(target) = 0;
+                directions.at(i)      = 0;
+                std::sort(vars->atoms.begin(), vars->atoms.end(), compare_y);
+            }
+                unsigned long hi = vars->number_of_atoms()/2;
+                migration_atoms.at(i).resize(hi);
+                std::copy(vars->atoms.begin(), vars->atoms.begin()+hi, migration_atoms.at(i).begin());
+                vars->atoms.erase(vars->atoms.begin(), vars->atoms.begin()+hi);
+                vars->atoms.shrink_to_fit();
+        }
+        
+        MPI_Barrier(MPI_COMM_WORLD);
+        migrate_atoms(migration_atoms, vars, mi);
+    }
 }
 
 // ============================================
