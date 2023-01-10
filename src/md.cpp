@@ -690,24 +690,19 @@ void MD::run(int trial) {
     if (mi.rank == 0) {
         for (const auto & file : std::filesystem::directory_iterator("./")) {
             std::string path = file.path();
-            size_t word_pos = path.find("/cdv");
-            if (word_pos != std::string::npos) {
+            size_t word_pos1 = path.find("/cdv");
+            size_t word_pos2 = path.find("/time");
+            size_t word_pos3 = path.find(".dat");
+            size_t word_pos4 = path.find("/load_balance");
+            if (word_pos1 != std::string::npos) {
                 std::filesystem::remove_all(path);
                 continue;
-            } else if (path == "./energy.dat") {
+            } else if (word_pos2!=std::string::npos && word_pos3!=std::string::npos) {
                 std::filesystem::remove(path);
-            } else if (path == "./time_gross.dat") {
+                continue;
+            } else if (word_pos4!=std::string::npos && word_pos3!=std::string::npos) {
                 std::filesystem::remove(path);
-            } else if (path == "./time_net.dat") {
-                std::filesystem::remove(path);
-            } else if (path == "./time_sdd.dat") {
-                std::filesystem::remove(path);
-            } else if (path == "./time_whole.dat") {
-                std::filesystem::remove(path);
-            } else if (path == "./time_comm.dat") {
-                std::filesystem::remove(path);
-            } else if (path == "./load_balance.dat") {
-                std::filesystem::remove(path);
+                continue;
             }
         }
     }
