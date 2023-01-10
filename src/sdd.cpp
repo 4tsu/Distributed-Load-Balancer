@@ -542,10 +542,10 @@ void Sdd::set_np(Neighbor_Process &proc, int rank, unsigned long counts, double 
 void Sdd::odp_init(Variables* vars, const MPIinfo &mi) {
     double lxp = sysp::xl/static_cast<double>(mi.procs);
     this->top    = sysp::y_max;
-    this-> bottom = sysp::y_min;
+    this->bottom = sysp::y_min;
     double rank_double = static_cast<double>(mi.rank);
-    this-> right  = (rank_double+1)*lxp + sysp::x_min;
-    this-> left   = rank_double*lxp + sysp::x_min;
+    this->right  = (rank_double+1)*lxp + sysp::x_min;
+    this->left   = rank_double*lxp + sysp::x_min;
 
     std::vector<std::vector<Atom>> migration_atoms(mi.procs);
     for (auto& a : vars->atoms) {
