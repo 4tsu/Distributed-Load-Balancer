@@ -63,7 +63,16 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "cinttypes": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "cstring": "cpp",
+        "strstream": "cpp",
+        "bitset": "cpp",
+        "complex": "cpp",
+        "list": "cpp",
+        "cfenv": "cpp",
+        "typeindex": "cpp",
+        "filesystem": "cpp",
+        "set": "cpp"
     },
     "C_Cpp.default.includePath": [
         "src/lib.hpp"

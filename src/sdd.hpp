@@ -11,6 +11,14 @@ struct Workload {
     unsigned long counts;
 };
 
+
+
+struct Neighbor_Process {
+    int rank;
+    double counts;
+    double left, right;
+};
+
 // ============================================
 
 class Sdd {
@@ -37,6 +45,7 @@ class Sdd {
         void center_atom_distance(int, double &, int &, const Atom, SubRegion*);
         void voronoi_figure(Variables*, const MPIinfo &);
         void rcb(Variables*, const MPIinfo &);
+        void set_np(Neighbor_Process&, int, unsigned long, double, double);
         void odp_init(Variables*, const MPIinfo &);
         void one_d_parallel(Variables*, const MPIinfo &, int, double, double);
         void sb_init(Variables*, const MPIinfo &);
