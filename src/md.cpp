@@ -721,18 +721,21 @@ void MD::run(int trial) {
     }
     
     // 出力ファイル準備
+    std::string energy_out = "energy";
     std::string net_time_out   = "time_net";
     std::string gross_time_out = "time_gross";
     std::string sdd_time_out   = "time_sdd";
     std::string whole_time_out = "time_whole";
     std::string comm_time_out  = "time_comm";
     if (trial > 0) {
-        net_time_out   += "_" + std::to_string(trial);
-        gross_time_out += "_" + std::to_string(trial);
-        sdd_time_out   += "_" + std::to_string(trial);
-        whole_time_out += "_" + std::to_string(trial);
-        comm_time_out  += "_" + std::to_string(trial);
+        energy_out += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
+        net_time_out   += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
+        gross_time_out += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
+        sdd_time_out   += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
+        whole_time_out += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
+        comm_time_out  += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
     }
+    energy_out += ".dat";
     net_time_out   += ".dat";
     gross_time_out += ".dat";
     sdd_time_out   += ".dat";
@@ -784,7 +787,7 @@ void MD::run(int trial) {
         double k = obs->kinetic_energy(vars);   // rank0が値を受け取る
         double v = obs->potential_energy(vars, pl);   // rank0が値を受け取る
         if (mi.rank==0) {
-            export_three("energy.dat", step, k, v, k+v);
+            export_three(energy_out, step, k, v, k+v);
         }
         if (step % ob_interval == 0) {
             obs->export_cdview(vars, mi);
@@ -801,7 +804,7 @@ void MD::run(int trial) {
         grosstimer->reset();
         calctimer->reset();
         commtimer->reset();
-        obs->export_workload(step, vars, mi);
+        obs->export_workload(step, vars, mi, sdd->sdd_type, trial);
 
         this->check_pairlist();
         this->get_exec_time(step, sddtimer, sdd_time_out);

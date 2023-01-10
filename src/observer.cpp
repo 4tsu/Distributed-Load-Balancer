@@ -224,7 +224,7 @@ void Observer::concatenate_checkpoint(std::string filename, MPIinfo & mi) {
 
 
 
-void Observer::export_workload(const int step, Variables* vars, MPIinfo &mi) {
+void Observer::export_workload(const int step, Variables* vars, MPIinfo &mi, int sdd_type, int trial) {
     const unsigned long pn = vars->number_of_atoms();
     std::vector<unsigned long> all_pns(mi.procs);
     MPI_Gather(&pn, 1, MPI_UNSIGNED_LONG, all_pns.data(), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
@@ -232,7 +232,15 @@ void Observer::export_workload(const int step, Variables* vars, MPIinfo &mi) {
         unsigned long max_pn = *std::max_element(all_pns.begin(), all_pns.end());
         unsigned long min_pn = *std::min_element(all_pns.begin(), all_pns.end());
         unsigned long ideal_pn = std::accumulate(all_pns.begin(), all_pns.end(), 0)/mi.procs;
-        std::ofstream ofs("load_balance.dat", std::ios::app);
+        std::string outputfile = "load_balance";
+        if (trial != 0) {
+            outputfile += "_";
+            outputfile += std::to_string(sdd_type);
+            outputfile += "_";
+            outputfile += std::to_string(trial);
+        }
+        outputfile += ".dat";
+        std::ofstream ofs(outputfile, std::ios::app);
         ofs << step     << " ";
         ofs << min_pn   << " ";
         ofs << max_pn   << " ";

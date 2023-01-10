@@ -25,12 +25,12 @@ class Sdd {
     public:
         Sdd(const int sdd_type);
         ~Sdd(void);
+        int sdd_type = -1;
         void init(Variables*, const MPIinfo &, SubRegion*);
         void run(Variables*, const MPIinfo &, SubRegion*);
         unsigned long ideal(const MPIinfo &);
     
     private:
-        int sdd_type = -1;
         double top, bottom, right, left;
         unsigned long ideal_count;
         std::vector<double> all_biases;
