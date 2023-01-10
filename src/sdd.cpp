@@ -476,13 +476,13 @@ void Sdd::rcb(Variables* vars, const MPIinfo &mi) {
     std::vector<std::vector<Atom>> migration_atoms(mi.procs);
     if (mi.rank!=0) {
         migration_atoms.at(0).resize(vars->number_of_atoms());
-        std::copy(vars->atoms.begin(), vars->atoms.end(), migration_atoms.begin());
+        std::copy(vars->atoms.begin(), vars->atoms.end(), migration_atoms.at(0).begin());
         vars->atoms.clear();
     }
     MPI_Barrier(MPI_COMM_WORLD);
     migrate_atoms(migration_atoms, vars, mi);
 
-    std::vector<int> directions;
+    std::vector<int> directions(mi.procs);
     std::fill(directions.begin(), directions.end(), 0);
             
     // 準備
@@ -493,11 +493,13 @@ void Sdd::rcb(Variables* vars, const MPIinfo &mi) {
         std::vector<unsigned long> counts(mi.procs);
         unsigned long pn = vars->number_of_atoms();
         MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+        unsigned long s = std::accumulate(counts.begin(), counts.end(), 0);
+        assert(s==sysp::N);
         std::vector<unsigned long>::iterator max_it = std::max_element(counts.begin(), counts.end());
         int target = static_cast<int>(std::distance(counts.begin(), max_it));
 
-        migration_atoms.resize(mi.procs);
         migration_atoms.clear();
+        migration_atoms.resize(mi.procs);
         
         if (target==mi.rank) {
             // ヨコ分割
@@ -511,11 +513,11 @@ void Sdd::rcb(Variables* vars, const MPIinfo &mi) {
                 directions.at(i)      = 0;
                 std::sort(vars->atoms.begin(), vars->atoms.end(), compare_y);
             }
-                unsigned long hi = vars->number_of_atoms()/2;
-                migration_atoms.at(i).resize(hi);
-                std::copy(vars->atoms.begin(), vars->atoms.begin()+hi, migration_atoms.at(i).begin());
-                vars->atoms.erase(vars->atoms.begin(), vars->atoms.begin()+hi);
-                vars->atoms.shrink_to_fit();
+            unsigned long hi = vars->number_of_atoms()/2;
+            migration_atoms.at(i).resize(hi);
+            std::copy(vars->atoms.begin(), vars->atoms.begin()+hi, migration_atoms.at(i).begin());
+            vars->atoms.erase(vars->atoms.begin(), vars->atoms.begin()+hi);
+            vars->atoms.shrink_to_fit();
         }
         
         MPI_Barrier(MPI_COMM_WORLD);
