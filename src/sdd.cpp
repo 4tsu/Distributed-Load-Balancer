@@ -711,24 +711,43 @@ void Sdd::sb_init(Variables* vars, const MPIinfo& mi) {
 
 void Sdd::skew_boundary(Variables* vars, const MPIinfo& mi, int iteration, double alpha, double early_stop_range) {
     unsigned long ideal_count_max = std::ceil(static_cast<double>(sysp::N/mi.procs)*(1+early_stop_range));
-    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
     const double lpx = sysp::xl/static_cast<double>(mi.npx);
-
-    for (int s=0; s<iteration; s++) {
-        std::vector<unsigned long> counts(mi.procs);
-        unsigned long pn = vars->number_of_atoms();
-        MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
-        unsigned long sum_counts = std::accumulate(counts.begin(), counts.end(), 0);
-        assert(sum_counts==sysp::N);
-        
-        // early stop
-        unsigned long max_count = *std::max_element(counts.begin(), counts.end());
-        if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
-            // std::fprintf(stderr, "***early stop (iter #%d)***\n", s);
-            break;
+    
+    // いったん領域境界をはみ出た粒子を整理する
+    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
+    Neighbor_Process my_proc, next_proc, previous_proc;
+    unsigned long pn = vars->number_of_atoms();
+    set_np(my_proc, mi.rank, pn, this->left, this->right);
+    std::vector<Neighbor_Process> all_procs(mi.procs);
+    MPI_Allgather(&my_proc, sizeof(Neighbor_Process), MPI_CHAR, all_procs.data(), sizeof(Neighbor_Process), MPI_CHAR, MPI_COMM_WORLD);
+    for (auto& a : vars->atoms) {
+        double sbx = std::floor((a.y-sysp::y_min)/lpx)*sysp::xl + a.x-sysp::x_min;
+        if (my_proc.left <= sbx && sbx <= my_proc.right) {
+            migration_atoms.at(mi.rank).push_back(a);
+        } else {
+            for (int i=1; i<mi.procs/2; i++) {
+                int next = ((mi.rank-i)%mi.procs+mi.procs)%mi.procs;
+                int prev = (mi.rank+i)%mi.procs;
+                if (all_procs.at(next).left <= sbx && sbx <= all_procs.at(next).right) {
+                    migration_atoms.at(next).push_back(a);
+                    break;
+                } else if (all_procs.at(prev).left <= sbx && sbx <= all_procs.at(prev).right) {
+                    migration_atoms.at(prev).push_back(a);
+                    break;
+                }
+            }
         }
+    }
+    vars->atoms.clear();
+    vars->atoms.resize(migration_atoms.at(mi.rank).size());
+    std::copy(migration_atoms.at(mi.rank).begin(), migration_atoms.at(mi.rank).end(), vars->atoms.begin());
+    migration_atoms.at(mi.rank).clear();
+    MPI_Barrier(MPI_COMM_WORLD);
+    migrate_atoms(migration_atoms, vars, mi);
 
-        Neighbor_Process my_proc, next_proc, previous_proc;
+    // iteration
+    for (int s=0; s<iteration; s++) {
+        pn = vars->number_of_atoms();
         set_np(my_proc, mi.rank, pn, this->left, this->right);
         std::vector<MPI_Request> mpi_sendlist, mpi_recvlist;
         MPI_Request ireq;
@@ -798,6 +817,19 @@ void Sdd::skew_boundary(Variables* vars, const MPIinfo& mi, int iteration, doubl
         migration_atoms.at(mi.rank).clear();
         MPI_Barrier(MPI_COMM_WORLD);
         migrate_atoms(migration_atoms, vars, mi);
+
+        std::vector<unsigned long> counts(mi.procs);
+        pn = vars->number_of_atoms();
+        MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+        unsigned long sum_counts = std::accumulate(counts.begin(), counts.end(), 0);
+        assert(sum_counts==sysp::N);
+        
+        // early stop
+        unsigned long max_count = *std::max_element(counts.begin(), counts.end());
+        if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
+            // std::fprintf(stderr, "***early stop (iter #%d)***\n", s);
+            break;
+        }
     }
 }
 
