@@ -10,7 +10,6 @@ MD::MD(MPIinfo mi){
     calctimer = new CalcTimer();
     grosstimer = new CalcTimer();
     commtimer = new CalcTimer();
-    commtimer = new CalcTimer();
     sddtimer = new CalcTimer();
     wholetimer = new CalcTimer();
     this->mi = mi;
@@ -22,11 +21,6 @@ MD::~MD(void){
     delete sr;
     delete pl;
     delete sdd;
-    delete calctimer;
-    delete grosstimer;
-    delete commtimer;
-    delete sddtimer;
-    delete wholetimer;
     delete calctimer;
     delete grosstimer;
     delete commtimer;
