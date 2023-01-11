@@ -20,6 +20,7 @@ void PairList::make_pair(Variables* vars) {
     list.clear();
     this->mesh_search(vars);
     this->arrange_pairs(vars->number_of_atoms());
+
 }
 
 
@@ -361,24 +362,24 @@ void PairList::mesh_search_ext(const std::vector<Atom> &my_atoms, std::vector<At
     this->set_index_ext(ext_atoms);
     survivor_list.resize(ext_atoms.size());
     if (nmx>2 && nmy>2) {
+        // 拡張メッシュでは、はみ出し領域と周期境界条件の関係が非常にややこしい
+        // そこで、相互作用する可能性のあるメッシュは、自動で探索する
         std::vector<std::vector<long>> mesh_pairlist;
         std::fill(survivor_list.begin(), survivor_list.end(), false);
-        double diagonal2 = (lmx*lmx + lmy*lmy)*1.1;
+        double diagonal2 = (lmx*2*lmx*2 + lmy*2*lmy*2)*1.0001;
         for (long i=0; i<num_mesh; i++) {
             if (counter.at(i)==0) continue;
-            // 拡張メッシュでは、はみ出し領域と周期境界条件の関係が非常にややこしい
-            // そこで、相互作用する可能性のあるメッシュは、自動で探索する
             mesh_pairlist.clear();
-            long imx = i%nmx;
-            long imy = i/nmx;
+            double imx = static_cast<double>(i%nmx);
+            double imy = static_cast<double>(i/nmx);
             double cix = imx*lmx + 0.5*lmx + limits.at(0);
             double ciy = imy*lmy + 0.5*lmy + limits.at(2);
             for (long j=0; j<num_mesh_ext; j++) {
                 if (counter_ext.at(j)==0) continue;
-                long jmex = j%nmx_ext;
-                long jmey = j/nmx_ext;
-                double cjx = (jmex-1)*lmx + 0.5*lmx + limits.at(0);
-                double cjy = (jmey-1)*lmy + 0.5*lmy + limits.at(2);
+                double jmex = static_cast<double>(j%nmx_ext);
+                double jmey = static_cast<double>(j/nmx_ext);
+                double cjx = (jmex-1.0)*lmx + 0.5*lmx + limits.at(0);
+                double cjy = (jmey-1.0)*lmy + 0.5*lmy + limits.at(2);
                 double dx = cix - cjx;
                 double dy = ciy - cjy;
                 periodic_distance(dx, dy);
