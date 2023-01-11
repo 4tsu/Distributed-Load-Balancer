@@ -17,7 +17,7 @@ void setup_info(MPIinfo &mi){
     // mi.npy = d2[1];
 
     int max_divisor;
-    for (int i=1; i<=std::floor(sqrt(procs)); i++) {
+    for (int i=1; i<=std::floor(std::sqrt(procs)); i++) {
         if (procs%i==0) {
             max_divisor = i;
         }
