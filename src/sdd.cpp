@@ -582,7 +582,7 @@ void Sdd::one_d_parallel(Variables* vars, const MPIinfo &mi, int iteration, doub
         if (my_proc.left <= a.x && a.x <= my_proc.right) {
             migration_atoms.at(mi.rank).push_back(a);
         } else {
-            for (int i=1; i<mi.procs/2; i++) {
+            for (int i=1; i<=mi.procs/2; i++) {
                 int next = ((mi.rank-i)%mi.procs+mi.procs)%mi.procs;
                 int prev = (mi.rank+i)%mi.procs;
                 if (all_procs.at(next).left <= a.x && a.x <= all_procs.at(next).right) {
@@ -725,7 +725,7 @@ void Sdd::skew_boundary(Variables* vars, const MPIinfo& mi, int iteration, doubl
         if (my_proc.left <= sbx && sbx <= my_proc.right) {
             migration_atoms.at(mi.rank).push_back(a);
         } else {
-            for (int i=1; i<mi.procs/2; i++) {
+            for (int i=1; i<=mi.procs/2; i++) {
                 int next = ((mi.rank-i)%mi.procs+mi.procs)%mi.procs;
                 int prev = (mi.rank+i)%mi.procs;
                 if (all_procs.at(next).left <= sbx && sbx <= all_procs.at(next).right) {
