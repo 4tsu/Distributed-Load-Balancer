@@ -119,9 +119,12 @@ def plot_energy(inputfile):
 
     
 
-def avg_time(base_filename):
+def avg_time(base_filename, lb_num = None):
     num_samples = 0
     num_steps = 0
+    org_base_filename = base_filename
+    if not (lb_num==None):
+        base_filename += f"_{lb_num}_"
     for filename in os.listdir("../"):
         if base_filename in filename and ".dat" in filename:
             num_samples += 1
@@ -161,7 +164,7 @@ def avg_time(base_filename):
                     T2s[sample_count, l] = float(t2)
                     T3s[sample_count, l] = float(t3)
             sample_count += 1
-    output = "../{}.dat".format(base_filename.replace("time", "time_avg"))
+    output = f"../{org_base_filename}_{lb_num}.dat"
     T1 = np.mean(T1s, axis=0)
     T2 = np.mean(T2s, axis=0)
     T3 = np.mean(T3s, axis=0)
@@ -234,7 +237,62 @@ def plot_time(inputfile, outputfile):
     ax.legend()
     plt.savefig(outputfile)
 
-    
+
+
+def avg_lb(base_filename, lb_num = None):
+    num_samples = 0
+    num_steps = 0
+    org_base_filename = base_filename
+    if not (lb_num==None):
+        base_filename += f"_{lb_num}_"
+    for filename in os.listdir("../"):
+        if base_filename in filename and ".dat" in filename:
+            num_samples += 1
+            filename = "../{}".format(filename)
+            with open(filename) as f:
+                Line = [s.strip() for s in f.readlines()]
+                num_steps = len(Line)
+
+    T1s = np.zeros((num_samples, num_steps))
+    T2s = np.zeros((num_samples, num_steps))
+    T3s = np.zeros((num_samples, num_steps))
+    sample_count = 0
+    for filename in sorted(os.listdir("../")):
+        if base_filename in filename and ".dat" in filename:
+            filename = "../{}".format(filename)
+            with open(filename) as f:
+                Line = [s.strip() for s in f.readlines()]
+                for l in range(0,len(Line)):
+                    step = ''
+                    t1   = ''
+                    t2   = ''
+                    t3   = ''
+                    index = 0
+                    for s in Line[l]:
+                        if s == ' ':
+                            index += 1
+                            continue
+                        if index == 0:
+                            step += s
+                        elif index == 1:
+                            t1 += s
+                        elif index == 2:
+                            t2 += s
+                        elif index == 3:
+                            t3 += s
+                    T1s[sample_count, l] = int(t1)
+                    T2s[sample_count, l] = int(t2)
+                    T3s[sample_count, l] = int(t3)
+            sample_count += 1
+    output = f"../{org_base_filename}_{lb_num}.dat"
+    T1 = np.mean(T1s, axis=0)
+    T2 = np.mean(T2s, axis=0)
+    T3 = np.mean(T3s, axis=0)
+    with open(output, 'w') as f:
+        for i in range(num_steps):
+            f.write("{} {:.6f} {:.6f} {:.6f}\n".format(i+1, T1[i], T2[i], T3[i]))
+
+
     
 def plot_load_balance(inputfile):
     STEP   = []
@@ -309,9 +367,22 @@ plot_time("../time_avg_sdd.dat", "time_sdd.png")
 avg_time("time_comm")
 plot_time("../time_avg_comm.dat", "time_comm.png")
 
-# load balance plot
-plot_load_balance("../load_balance.dat")
+"""
 
+load_balancer_list = [0,1,2,3,4,5]
+for lb in load_balancer_list:
+    avg_time("time_whole", lb)
+    avg_time("time_net", lb)
+    avg_time("time_gross", lb)
+    avg_time("time_sdd", lb)
+    avg_time("time_comm", lb)
+    avg_lb("load_balance", lb)
+"""
+
+# load balance plot
+# plot_load_balance("../load_balance.dat")
+
+"""
 # .cdv animation
 plt.close()
 fig = plt.figure(facecolor='black')
@@ -325,5 +396,6 @@ gifname = "cdview.gif"
 print("exporting",gifname,"...")
 ani.save(gifname, writer="imagemagick")
 # ani.save(gifname, writer="pillow")
+"""
 
 ###=============================================
