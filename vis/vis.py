@@ -164,7 +164,10 @@ def avg_time(base_filename, lb_num = None, level = 1):
                     T2s[sample_count, l] = float(t2)
                     T3s[sample_count, l] = float(t3)
             sample_count += 1
-    output = f"../{org_base_filename}_{lb_num}.dat"
+    output = f"../{org_base_filename}"
+    if not (lb_num==None):
+        output += f"_{lb_num}"
+    output += ".dat"
     T1 = np.mean(T1s, axis=0)
     T2 = np.mean(T2s, axis=0)
     T3 = np.mean(T3s, axis=0)
