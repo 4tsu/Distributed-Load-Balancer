@@ -56,7 +56,7 @@ void Sdd::run(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
         global_sort(vars, mi);
 
     } else if (sdd_type==2) {
-        voronoi(vars, mi, sr, 500, 0.050, 0.02);
+        voronoi(vars, mi, sr, 300, 0.050, 0.02);
     
     } else if (sdd_type==3) {
         rcb(vars, mi);
@@ -333,7 +333,6 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
         unsigned long max_count = *std::max_element(counts.begin(), counts.end());
 
-        /*
         // ボロノイ最適化中のロードバランスの変化を出力
         if (mi.rank==0) {
             std::printf("%d ", s);
@@ -342,7 +341,6 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
             }
             std::printf("\n");
         }
-        */
         
         // early stop
        if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
