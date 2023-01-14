@@ -711,7 +711,7 @@ void Sdd::sb_init(Variables* vars, const MPIinfo& mi) {
 
 void Sdd::skew_boundary(Variables* vars, const MPIinfo& mi, int iteration, double alpha, double early_stop_range) {
     unsigned long ideal_count_max = std::ceil(static_cast<double>(sysp::N/mi.procs)*(1+early_stop_range));
-    const double lpx = sysp::xl/static_cast<double>(mi.npx);
+    const double lpy = sysp::xl/static_cast<double>(mi.npy);
     
     // いったん領域境界をはみ出た粒子を整理する
     std::vector<std::vector<Atom>> migration_atoms(mi.procs);
@@ -721,7 +721,7 @@ void Sdd::skew_boundary(Variables* vars, const MPIinfo& mi, int iteration, doubl
     std::vector<Neighbor_Process> all_procs(mi.procs);
     MPI_Allgather(&my_proc, sizeof(Neighbor_Process), MPI_CHAR, all_procs.data(), sizeof(Neighbor_Process), MPI_CHAR, MPI_COMM_WORLD);
     for (auto& a : vars->atoms) {
-        double sbx = std::floor((a.y-sysp::y_min)/lpx)*sysp::xl + a.x-sysp::x_min;
+        double sbx = std::floor((a.y-sysp::y_min)/lpy)*sysp::xl + a.x-sysp::x_min;
         if (my_proc.left <= sbx && sbx <= my_proc.right) {
             migration_atoms.at(mi.rank).push_back(a);
         } else {
@@ -801,7 +801,7 @@ void Sdd::skew_boundary(Variables* vars, const MPIinfo& mi, int iteration, doubl
         migration_atoms.clear();
         migration_atoms.resize(mi.procs);
         for (auto& a : vars->atoms) {
-            double sbx = std::floor((a.y-sysp::y_min)/lpx)*sysp::xl + a.x-sysp::x_min;
+            double sbx = std::floor((a.y-sysp::y_min)/lpy)*sysp::xl + a.x-sysp::x_min;
             if (sbx < this->left) {
                 migration_atoms.at(mi.rank-1).push_back(a);
             } else if(sbx > this->right) {
