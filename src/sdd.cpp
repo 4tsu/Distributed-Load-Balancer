@@ -58,16 +58,16 @@ void Sdd::run(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
         global_sort(vars, mi);
 
     } else if (sdd_type==2) {
-        voronoi(vars, mi, sr, 500, 0.050, 0.02);
+        voronoi(vars, mi, sr, 300, 0.050, 0.02);
     
     } else if (sdd_type==3) {
         rcb(vars, mi);
 
     } else if (sdd_type==4) {
-        one_d_parallel(vars, mi, 300, 0.0003, 0.02);
+        one_d_parallel(vars, mi, 300, 0.0001, 0.02);
 
     } else if (sdd_type==5) {
-        skew_boundary(vars, mi, 300, 0.0003, 0.02);
+        skew_boundary(vars, mi, 300, 0.0001, 0.02);
     }
 }
 
