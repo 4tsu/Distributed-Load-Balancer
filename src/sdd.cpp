@@ -23,13 +23,26 @@ void Sdd::init(Variables* vars
         global_sort(vars, mi);
 
     } else if (sdd_type==2) {
-        std::vector<double> v(4);
+        std::vector<double> v(6);
         v = calc_limit(vars);
         this->left   = v.at(0);
         this->right  = v.at(1);
-        this->bottom = v.at(2);
-        this->top    = v.at(3);
+        this->front  = v.at(2);
+        this->back   = v.at(3);
+        this->bottom = v.at(4);
+        this->top    = v.at(5);
         voronoi_init(vars, mi, sr);
+        return;
+
+    } else if (sdd_type==3) {
+        return;
+
+    } else if (sdd_type==4) {
+        odp_init(vars, mi);
+        return;
+
+    } else if (sdd_type==5) {
+        sb_init(vars, mi);
         return;
     }
 }
@@ -45,7 +58,16 @@ void Sdd::run(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
         global_sort(vars, mi);
 
     } else if (sdd_type==2) {
-        voronoi(vars, mi, sr, 900, 0.050, 0.02);
+        voronoi(vars, mi, sr, 500, 0.050, 0.02);
+    
+    } else if (sdd_type==3) {
+        rcb(vars, mi);
+
+    } else if (sdd_type==4) {
+        one_d_parallel(vars, mi, 300, 0.0003, 0.02);
+
+    } else if (sdd_type==5) {
+        skew_boundary(vars, mi, 300, 0.0003, 0.02);
     }
 }
 
@@ -53,17 +75,6 @@ void Sdd::run(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
 
 unsigned long Sdd::ideal(const MPIinfo &mi) {
     return static_cast<unsigned long>(sysp::N/mi.procs);
-}
-
-
-
-void Sdd::set_limits(double t, double b, double r, double l, double f, double back) {
-    this->top    = t;
-    this->bottom = b;
-    this->right  = r;
-    this->left   = l;
-    this->front  = f;
-    this->back   = back;
 }
 
 
@@ -81,11 +92,11 @@ void Sdd::migrate_atoms(std::vector<std::vector<Atom>> migration_atoms, Variable
     std::vector<std::vector<unsigned long>> migration_table(mi.procs, std::vector<unsigned long>(mi.procs));
     std::vector<unsigned long> recvbuf(mi.procs*mi.procs);
     MPI_Allgather(num_migration.data(), mi.procs, MPI_UNSIGNED_LONG, recvbuf.data(), mi.procs, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
-    int bias = 0;
+    int head = 0;
     unsigned long sum_recv = 0;
     for (auto& one_mt : migration_table) {
-        std::copy(recvbuf.begin()+bias, recvbuf.begin()+bias+mi.procs, one_mt.begin());
-        bias += mi.procs;
+        std::copy(recvbuf.begin()+head, recvbuf.begin()+head+mi.procs, one_mt.begin());
+        head += mi.procs;
         sum_recv += one_mt.at(mi.rank);
     }
 
@@ -134,12 +145,12 @@ void Sdd::calc_bounds(const MPIinfo &mi) {
     const double lpx = sysp::xl/static_cast<double>(mi.npx);
     const double lpy = sysp::yl/static_cast<double>(mi.npy);
     const double lpz = sysp::zl/static_cast<double>(mi.npz);
-    this->front  = lpz*static_cast<double>(iz) + sysp::z_min;
-    this->back   = lpz*static_cast<double>(iz+1) + sysp::z_min;
-    this->bottom = lpy*static_cast<double>(iy) + sysp::y_min;
-    this->top    = lpy*static_cast<double>(iy+1) + sysp::y_min;
     this->left   = lpx*static_cast<double>(ix) + sysp::x_min;
     this->right  = lpx*static_cast<double>(ix+1) + sysp::x_min;
+    this->back   = lpy*static_cast<double>(iy+1) + sysp::y_min;
+    this->front  = lpy*static_cast<double>(iy) + sysp::y_min;
+    this->bottom = lpz*static_cast<double>(iz) + sysp::z_min;
+    this->top    = lpz*static_cast<double>(iz+1) + sysp::z_min;
 }
 
 
@@ -151,7 +162,7 @@ void Sdd::simple(Variables* vars, const MPIinfo &mi) {
     const double lpy = sysp::yl/static_cast<double>(mi.npy);
     const double lpz = sysp::zl/static_cast<double>(mi.npz);
     for (const Atom atom : vars->atoms) {
-        if (atom.x>right || atom.x<left || atom.y>top || atom.y<bottom || atom.z>back || atom.z<front) {
+        if (atom.x>right || atom.x<left || atom.y>back || atom.y<front || atom.z>top || atom.z<bottom) {
             int new_rank = static_cast<int>(floor((atom.z-sysp::z_min)/lpz)*mi.npx*mi.npy + floor((atom.y-sysp::y_min)/lpy)*mi.npx + floor((atom.x-sysp::x_min)/lpx));
             migration_atoms.at(new_rank).push_back(atom);
         } else {
@@ -257,13 +268,13 @@ void Sdd::voronoi_init(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
         int non_zero_regions = 0;
         int my_position;
         for (int i=0; i<mi.procs; i++) {
-            wl = loads.at(i);
-            if (wl.counts==0) {
+            Workload wlt = loads.at(i);
+            if (wlt.counts==0) {
                 zero_regions++;
             } else {
                 non_zero_regions++;
             }
-            if(wl.rank==mi.rank)
+            if(wlt.rank==mi.rank)
                 my_position = i;
         }
         int zero_head = mi.procs - zero_regions;
@@ -280,8 +291,9 @@ void Sdd::voronoi_init(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
             MPI_Recv(vars->atoms.data(), num_recv*sizeof(Atom), MPI_CHAR, source_proc, 0, MPI_COMM_WORLD, &st);
         } else if (my_position < zero_regions) {
             // 相手に半分渡す作業
-            int target_proc = zero_head + my_position;
-            double center_line = (right+left)/2;
+            int target_proc = loads.at(zero_head + my_position).rank;
+            std::vector<double> ls = calc_limit(vars);
+            double center_line = (ls.at(0)+ls.at(1))/2;
             std::vector<Atom> send_atoms;
             std::vector<Atom> new_atoms;
             for (const auto &a : vars->atoms) {
@@ -335,17 +347,17 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         /*
         // ボロノイ最適化中のロードバランスの変化を出力
         if (mi.rank==0) {
-            printf("%d ", s);
+            std::printf("%d ", s);
             for (auto c : counts) {
-                printf("%ld ", c);
+                std::printf("%ld ", c);
             }
-            printf("\n");
+            std::printf("\n");
         }
         */
         
         // early stop
        if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
-            // fprintf(stderr, "***early stop (iter #%d)***\n", s);
+            // std::fprintf(stderr, "***early stop (iter #%d)***\n", s);
             break;
         }
 
@@ -380,11 +392,11 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         /*
         // ボロノイ最適化中のバイアスの変化を出力
         if (mi.rank==0) {
-            printf("%d ", s);
+            std::printf("%d ", s);
             for (auto b : all_biases) {
-                printf("%lf ", b);
+                std::printf("%lf ", b);
             }
-            printf("\n");
+            std::printf("\n");
         }
         */
         
@@ -451,7 +463,7 @@ void Sdd::center_atom_distance(int rank, double & min_distance, int & closest_pr
 void Sdd::voronoi_figure(Variables* vars, const MPIinfo &mi) {
     static int s = 0;
     char filename[256];
-    sprintf(filename, "voronoi_%03d.cdv", s);
+    std::sprintf(filename, "voronoi_%03d.cdv", s);
     std::ofstream ofs(filename, std::ios::app);
     if (mi.rank==0) {
         ofs << "#box_sx=" << sysp::x_min << std::endl;
@@ -471,6 +483,374 @@ void Sdd::voronoi_figure(Variables* vars, const MPIinfo &mi) {
         ofs << std::endl;
     }
     s++;
+}
+
+
+
+void Sdd::rcb(Variables* vars, const MPIinfo &mi) {
+    // 初期分割
+    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
+    if (mi.rank!=0) {
+        migration_atoms.at(0).resize(vars->number_of_atoms());
+        std::copy(vars->atoms.begin(), vars->atoms.end(), migration_atoms.at(0).begin());
+        vars->atoms.clear();
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    migrate_atoms(migration_atoms, vars, mi);
+
+    std::vector<int> directions(mi.procs);
+    std::fill(directions.begin(), directions.end(), 0);
+            
+    // 準備
+    auto compare_x  = [](const Atom & a1, const Atom & a2) {return a1.x < a2.x;};
+    auto compare_y  = [](const Atom & a1, const Atom & a2) {return a1.y < a2.y;};
+    auto compare_z  = [](const Atom & a1, const Atom & a2) {return a1.z < a2.z;};
+
+    for (int i=1; i<mi.procs; i++) {
+        std::vector<unsigned long> counts(mi.procs);
+        unsigned long pn = vars->number_of_atoms();
+        MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+        unsigned long s = std::accumulate(counts.begin(), counts.end(), 0);
+        assert(s==sysp::N);
+        std::vector<unsigned long>::iterator max_it = std::max_element(counts.begin(), counts.end());
+        int target = static_cast<int>(std::distance(counts.begin(), max_it));
+
+        migration_atoms.clear();
+        migration_atoms.resize(mi.procs);
+        
+        if (target==mi.rank) {
+            // x軸分割
+            if (directions.at(target) == 0) {
+                directions.at(target) = 1;
+                directions.at(i)      = 1;
+                std::sort(vars->atoms.begin(), vars->atoms.end(), compare_x);
+            // y軸分割
+            } else if (directions.at(target) == 1) {
+                directions.at(target) = 2;
+                directions.at(i)      = 2;
+                std::sort(vars->atoms.begin(), vars->atoms.end(), compare_y);
+            } else {
+                directions.at(target) = 0;
+                directions.at(i)      = 0;
+                std::sort(vars->atoms.begin(), vars->atoms.end(), compare_y);
+            }
+            unsigned long hi = vars->number_of_atoms()/2;
+            migration_atoms.at(i).resize(hi);
+            std::copy(vars->atoms.begin(), vars->atoms.begin()+hi, migration_atoms.at(i).begin());
+            vars->atoms.erase(vars->atoms.begin(), vars->atoms.begin()+hi);
+            vars->atoms.shrink_to_fit();
+        }
+        
+        MPI_Barrier(MPI_COMM_WORLD);
+        migrate_atoms(migration_atoms, vars, mi);
+    }
+}
+
+
+
+void Sdd::set_np(Neighbor_Process &proc, int rank, unsigned long counts, double left, double right) {
+    proc.rank = rank;
+    proc.counts = static_cast<double>(counts);
+    proc.left  = left;
+    proc.right = right;
+}
+
+
+
+// 初期分割
+void Sdd::odp_init(Variables* vars, const MPIinfo &mi) {
+    double lxp = sysp::xl/static_cast<double>(mi.procs);
+    this->back   = sysp::y_max;
+    this->front  = sysp::y_min;
+    this->top    = sysp::z_max;
+    this->bottom = sysp::z_min;
+    double rank_double = static_cast<double>(mi.rank);
+    this->right  = (rank_double+1)*lxp + sysp::x_min;
+    this->left   = rank_double*lxp + sysp::x_min;
+
+    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
+    for (auto& a : vars->atoms) {
+        migration_atoms.at(static_cast<int>((a.x-sysp::x_min)/lxp)).push_back(a);
+    }
+    vars->atoms.clear();
+    vars->atoms.resize(migration_atoms.at(mi.rank).size());
+    std::copy(migration_atoms.at(mi.rank).begin(), migration_atoms.at(mi.rank).end(), vars->atoms.begin());
+    migration_atoms.at(mi.rank).clear();
+    MPI_Barrier(MPI_COMM_WORLD);
+    migrate_atoms(migration_atoms, vars, mi);
+
+    std::vector<unsigned long> counts(mi.procs);
+    unsigned long pn = vars->number_of_atoms();
+    MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+    unsigned long s = std::accumulate(counts.begin(), counts.end(), 0);
+    assert(s==sysp::N);
+}
+
+
+
+void Sdd::one_d_parallel(Variables* vars, const MPIinfo &mi, int iteration, double alpha, double early_stop_range) {
+    // いったん領域境界をはみ出た粒子を整理する
+    unsigned long ideal_count_max = std::ceil(static_cast<double>(sysp::N/mi.procs)*(1+early_stop_range));
+    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
+    Neighbor_Process my_proc, next_proc, previous_proc;
+    unsigned long pn = vars->number_of_atoms();
+    set_np(my_proc, mi.rank, pn, this->left, this->right);
+    std::vector<Neighbor_Process> all_procs(mi.procs);
+    MPI_Allgather(&my_proc, sizeof(Neighbor_Process), MPI_CHAR, all_procs.data(), sizeof(Neighbor_Process), MPI_CHAR, MPI_COMM_WORLD);
+    for (auto& a : vars->atoms) {
+        if (my_proc.left <= a.x && a.x <= my_proc.right) {
+            migration_atoms.at(mi.rank).push_back(a);
+        } else {
+            for (int i=1; i<=mi.procs/2; i++) {
+                int next = ((mi.rank-i)%mi.procs+mi.procs)%mi.procs;
+                int prev = (mi.rank+i)%mi.procs;
+                if (all_procs.at(next).left <= a.x && a.x <= all_procs.at(next).right) {
+                    migration_atoms.at(next).push_back(a);
+                    break;
+                } else if (all_procs.at(prev).left <= a.x && a.x <= all_procs.at(prev).right) {
+                    migration_atoms.at(prev).push_back(a);
+                    break;
+                }
+            }
+        }
+    }
+    vars->atoms.clear();
+    vars->atoms.resize(migration_atoms.at(mi.rank).size());
+    std::copy(migration_atoms.at(mi.rank).begin(), migration_atoms.at(mi.rank).end(), vars->atoms.begin());
+    migration_atoms.at(mi.rank).clear();
+    MPI_Barrier(MPI_COMM_WORLD);
+    migrate_atoms(migration_atoms, vars, mi);
+
+    // iteration
+    for (int s=0; s<iteration; s++) {
+        pn = vars->number_of_atoms();
+        set_np(my_proc, mi.rank, pn, this->left, this->right);
+        std::vector<MPI_Request> mpi_sendlist, mpi_recvlist;
+        MPI_Request ireq;
+        MPI_Status st;
+
+        if (0<mi.rank) {
+            MPI_Isend(&my_proc, sizeof(Neighbor_Process), MPI_CHAR, mi.rank-1, 0, MPI_COMM_WORLD, &ireq);
+            mpi_sendlist.push_back(ireq);
+            MPI_Irecv(&previous_proc, sizeof(Neighbor_Process), MPI_CHAR, mi.rank-1, 0, MPI_COMM_WORLD, &ireq);
+            mpi_recvlist.push_back(ireq);
+        }
+        if (mi.rank<mi.procs-1) {
+            MPI_Isend(&my_proc, sizeof(Neighbor_Process), MPI_CHAR, mi.rank+1, 0, MPI_COMM_WORLD, &ireq);
+            mpi_sendlist.push_back(ireq);
+            MPI_Irecv(&next_proc, sizeof(Neighbor_Process), MPI_CHAR, mi.rank+1, 0, MPI_COMM_WORLD, &ireq);
+            mpi_recvlist.push_back(ireq);
+        }
+        for (auto& ireq : mpi_sendlist) {
+            MPI_Wait(&ireq, &st);
+        }
+        for (auto& ireq : mpi_recvlist) {
+            MPI_Wait(&ireq, &st);
+        }
+        
+        double dx;
+        double left_limit;
+        double right_limit;
+        if (0<mi.rank) {
+            dx = -1.0*std::pow(alpha*(previous_proc.counts - my_proc.counts), 1);
+            left_limit = -1.0*(previous_proc.right - previous_proc.left)/2.0;
+            right_limit = (my_proc.right - my_proc.left)/2.0;
+            if (dx < left_limit) {
+                dx = left_limit;
+            } else if (dx > right_limit) {
+                dx = right_limit;
+            }
+            this->left += dx;
+        }
+        if (mi.rank<mi.procs-1) {
+            dx = -1.0*std::pow(alpha*(my_proc.counts - next_proc.counts), 1);
+            left_limit = -1.0*(my_proc.right - my_proc.left)/2.0;
+            right_limit = (next_proc.right - next_proc.left)/2.0;
+            if (dx < left_limit) {
+                dx = left_limit;
+            } else if (dx > right_limit) {
+                dx = right_limit;
+            }
+            this->right += dx;
+        }
+
+        migration_atoms.clear();
+        migration_atoms.resize(mi.procs);
+        for (auto& a : vars->atoms) {
+            if (a.x < this->left) {
+                migration_atoms.at(mi.rank-1).push_back(a);
+            } else if(a.x > this->right) {
+                migration_atoms.at(mi.rank+1).push_back(a);
+            } else {
+                migration_atoms.at(mi.rank).push_back(a);
+            }
+        }
+
+        vars->atoms.clear();
+        vars->atoms.resize(migration_atoms.at(mi.rank).size());
+        std::copy(migration_atoms.at(mi.rank).begin(), migration_atoms.at(mi.rank).end(), vars->atoms.begin());
+        migration_atoms.at(mi.rank).clear();
+        MPI_Barrier(MPI_COMM_WORLD);
+        migrate_atoms(migration_atoms, vars, mi);
+
+        std::vector<unsigned long> counts(mi.procs);
+        pn = vars->number_of_atoms();
+        MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+        unsigned long sum_counts = std::accumulate(counts.begin(), counts.end(), 0);
+        assert(sum_counts==sysp::N);
+        
+        // early stop
+        unsigned long max_count = *std::max_element(counts.begin(), counts.end());
+        if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
+            // std::fprintf(stderr, "***early stop (iter #%d)***\n", s);
+            break;
+        }
+    }
+}
+
+
+
+void Sdd::sb_init(Variables* vars, const MPIinfo& mi) {
+    // 初期分割は等間隔
+    calc_bounds(mi);
+    simple(vars, mi);
+    // ただし、境界の定義だけ変更する
+    double py = static_cast<double>(mi.rank/mi.npx);
+    this->right += py*sysp::xl - sysp::x_min;
+    this->left  += py*sysp::xl - sysp::x_min;
+
+    std::vector<unsigned long> counts(mi.procs);
+    unsigned long pn = vars->number_of_atoms();
+    MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+    unsigned long s = std::accumulate(counts.begin(), counts.end(), 0);
+    assert(s==sysp::N);
+}
+
+
+
+void Sdd::skew_boundary(Variables* vars, const MPIinfo& mi, int iteration, double alpha, double early_stop_range) {
+    unsigned long ideal_count_max = std::ceil(static_cast<double>(sysp::N/mi.procs)*(1+early_stop_range));
+    const double lpy = sysp::yl/static_cast<double>(mi.npy);
+    const double lpz = sysp::zl/static_cast<double>(mi.npz);
+    
+    // いったん領域境界をはみ出た粒子を整理する
+    std::vector<std::vector<Atom>> migration_atoms(mi.procs);
+    Neighbor_Process my_proc, next_proc, previous_proc;
+    unsigned long pn = vars->number_of_atoms();
+    set_np(my_proc, mi.rank, pn, this->left, this->right);
+    std::vector<Neighbor_Process> all_procs(mi.procs);
+    MPI_Allgather(&my_proc, sizeof(Neighbor_Process), MPI_CHAR, all_procs.data(), sizeof(Neighbor_Process), MPI_CHAR, MPI_COMM_WORLD);
+    for (auto& a : vars->atoms) {
+        double sbx = std::floor((a.z-sysp::z_min)/lpz)*mi.npy*sysp::xl + std::floor((a.y-sysp::y_min)/lpy)*sysp::xl + a.x-sysp::x_min;
+        if (my_proc.left <= sbx && sbx <= my_proc.right) {
+            migration_atoms.at(mi.rank).push_back(a);
+        } else {
+            for (int i=1; i<=mi.procs/2; i++) {
+                int next = ((mi.rank-i)%mi.procs+mi.procs)%mi.procs;
+                int prev = (mi.rank+i)%mi.procs;
+                if (all_procs.at(next).left <= sbx && sbx <= all_procs.at(next).right) {
+                    migration_atoms.at(next).push_back(a);
+                    break;
+                } else if (all_procs.at(prev).left <= sbx && sbx <= all_procs.at(prev).right) {
+                    migration_atoms.at(prev).push_back(a);
+                    break;
+                }
+            }
+        }
+    }
+    vars->atoms.clear();
+    vars->atoms.resize(migration_atoms.at(mi.rank).size());
+    std::copy(migration_atoms.at(mi.rank).begin(), migration_atoms.at(mi.rank).end(), vars->atoms.begin());
+    migration_atoms.at(mi.rank).clear();
+    MPI_Barrier(MPI_COMM_WORLD);
+    migrate_atoms(migration_atoms, vars, mi);
+
+    // iteration
+    for (int s=0; s<iteration; s++) {
+        pn = vars->number_of_atoms();
+        set_np(my_proc, mi.rank, pn, this->left, this->right);
+        std::vector<MPI_Request> mpi_sendlist, mpi_recvlist;
+        MPI_Request ireq;
+        MPI_Status st;
+
+        if (0<mi.rank) {
+            MPI_Isend(&my_proc, sizeof(Neighbor_Process), MPI_CHAR, mi.rank-1, 0, MPI_COMM_WORLD, &ireq);
+            mpi_sendlist.push_back(ireq);
+            MPI_Irecv(&previous_proc, sizeof(Neighbor_Process), MPI_CHAR, mi.rank-1, 0, MPI_COMM_WORLD, &ireq);
+            mpi_recvlist.push_back(ireq);
+        }
+        if (mi.rank<mi.procs-1) {
+            MPI_Isend(&my_proc, sizeof(Neighbor_Process), MPI_CHAR, mi.rank+1, 0, MPI_COMM_WORLD, &ireq);
+            mpi_sendlist.push_back(ireq);
+            MPI_Irecv(&next_proc, sizeof(Neighbor_Process), MPI_CHAR, mi.rank+1, 0, MPI_COMM_WORLD, &ireq);
+            mpi_recvlist.push_back(ireq);
+        }
+        for (auto& ireq : mpi_sendlist) {
+            MPI_Wait(&ireq, &st);
+        }
+        for (auto& ireq : mpi_recvlist) {
+            MPI_Wait(&ireq, &st);
+        }
+        
+        double dx;
+        double left_limit;
+        double right_limit;
+        if (0<mi.rank) {
+            dx = -1.0*std::pow(alpha*(previous_proc.counts - my_proc.counts), 3);
+            left_limit = -1.0*(previous_proc.right - previous_proc.left)/2.0;
+            right_limit = (my_proc.right - my_proc.left)/2.0;
+            if (dx < left_limit) {
+                dx = left_limit;
+            } else if (dx > right_limit) {
+                dx = right_limit;
+            }
+            this->left += dx;
+        }
+        if (mi.rank<mi.procs-1) {
+            dx = -1.0*std::pow(alpha*(my_proc.counts - next_proc.counts), 3);
+            left_limit = -1.0*(my_proc.right - my_proc.left)/2.0;
+            right_limit = (next_proc.right - next_proc.left)/2.0;
+            if (dx < left_limit) {
+                dx = left_limit;
+            } else if (dx > right_limit) {
+                dx = right_limit;
+            }
+            this->right += dx;
+        }
+
+        migration_atoms.clear();
+        migration_atoms.resize(mi.procs);
+        for (auto& a : vars->atoms) {
+            double sbx = std::floor((a.z-sysp::z_min)/lpz)*mi.npy*sysp::xl + std::floor((a.y-sysp::y_min)/lpy)*sysp::xl + a.x-sysp::x_min;
+            if (sbx < this->left) {
+                migration_atoms.at(mi.rank-1).push_back(a);
+            } else if(sbx > this->right) {
+                migration_atoms.at(mi.rank+1).push_back(a);
+            } else {
+                migration_atoms.at(mi.rank).push_back(a);
+            }
+        }
+
+        vars->atoms.clear();
+        vars->atoms.resize(migration_atoms.at(mi.rank).size());
+        std::copy(migration_atoms.at(mi.rank).begin(), migration_atoms.at(mi.rank).end(), vars->atoms.begin());
+        migration_atoms.at(mi.rank).clear();
+        MPI_Barrier(MPI_COMM_WORLD);
+        migrate_atoms(migration_atoms, vars, mi);
+
+        std::vector<unsigned long> counts(mi.procs);
+        pn = vars->number_of_atoms();
+        MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+        unsigned long sum_counts = std::accumulate(counts.begin(), counts.end(), 0);
+        assert(sum_counts==sysp::N);
+        
+        // early stop
+        unsigned long max_count = *std::max_element(counts.begin(), counts.end());
+        if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
+            // std::fprintf(stderr, "***early stop (iter #%d)***\n", s);
+            break;
+        }
+    }
 }
 
 // ============================================
