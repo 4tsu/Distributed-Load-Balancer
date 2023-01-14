@@ -23,8 +23,8 @@ void Variables::set_initial_velocity(const double V0, MPIinfo mi) {
     double local_avy = 0.0;
     for (auto &a : atoms) {
         double phi = 2.0 * ud(mt) * M_PI;
-        double vx = V0 * cos(phi);
-        double vy = V0 * sin(phi);
+        double vx = V0 * std::cos(phi);
+        double vy = V0 * std::sin(phi);
         a.vx = vx;
         a.vy = vy;
         local_avx += vx;
@@ -51,7 +51,7 @@ void Variables::set_initial_velocity(const double V0, MPIinfo mi) {
 double Variables::max_velocity(void) {
     double max_v = 0;
     for (auto &a : atoms) {
-        double v = sqrt(a.vx*a.vx + a.vy*a.vy);
+        double v = std::sqrt(a.vx*a.vx + a.vy*a.vy);
         if (max_v < v)
             max_v = v;
     }

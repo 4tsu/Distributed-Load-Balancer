@@ -45,7 +45,7 @@ public:
     ~MD(void);
     void run(int trial = 0);
     void set_params(int steps, int ob_interval, double dt);
-    void set_box(unsigned long N, double xl, double yl);
+    void set_box(unsigned long N, double xl, double y);
     void set_cutoff(double cutoff);
     void set_margin(double margin);
     void set_sdd(int sdd_type);
