@@ -391,12 +391,12 @@ void MD::calculate_force(void) {
         //    std::fprintf(stderr, "Abnormal Force! (rank#%d pair[%ld-%ld])\n", mi.rank, ia.id, ja.id);
         //    abort();
         // }
-        atoms[pl.i].vx += df * dx;
-        atoms[pl.i].vy += df * dy;
-        atoms[pl.i].vz += df * dz;
-        atoms[pl.j].vx -= df * dx;
-        atoms[pl.j].vy -= df * dy;
-        atoms[pl.j].vz -= df * dz;
+        atoms[pair.i].vx += df * dx;
+        atoms[pair.i].vy += df * dy;
+        atoms[pair.i].vz += df * dz;
+        atoms[pair.j].vx -= df * dx;
+        atoms[pair.j].vy -= df * dy;
+        atoms[pair.j].vz -= df * dz;
     }
 
     vars->sending_force.clear();

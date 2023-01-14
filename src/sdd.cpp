@@ -532,7 +532,7 @@ void Sdd::rcb(Variables* vars, const MPIinfo &mi) {
             } else {
                 directions.at(target) = 0;
                 directions.at(i)      = 0;
-                std::sort(vars->atoms.begin(), vars->atoms.end(), compare_y);
+                std::sort(vars->atoms.begin(), vars->atoms.end(), compare_z);
             }
             unsigned long hi = vars->number_of_atoms()/2;
             migration_atoms.at(i).resize(hi);
