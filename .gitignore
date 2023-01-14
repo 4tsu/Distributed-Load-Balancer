@@ -34,6 +34,8 @@
 ## User Defined
 *.temp
 *.ckpt
+log/*
+*.sh.*
 
 # Incremental Compile
 *.depend

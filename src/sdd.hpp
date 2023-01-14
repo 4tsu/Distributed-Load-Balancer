@@ -11,18 +11,26 @@ struct Workload {
     unsigned long counts;
 };
 
+
+
+struct Neighbor_Process {
+    int rank;
+    double counts;
+    double left, right;
+};
+
 // ============================================
 
 class Sdd {
     public:
         Sdd(const int sdd_type);
         ~Sdd(void);
+        int sdd_type = -1;
         void init(Variables*, const MPIinfo &, SubRegion*);
         void run(Variables*, const MPIinfo &, SubRegion*);
         unsigned long ideal(const MPIinfo &);
     
     private:
-        int sdd_type = -1;
         double top, bottom, right, left, front, back;
         unsigned long ideal_count;
         std::vector<double> all_biases;
@@ -36,6 +44,12 @@ class Sdd {
         void voronoi_allocate(Variables*, const MPIinfo &, SubRegion*);
         void center_atom_distance(int, double &, int &, const Atom, SubRegion*);
         void voronoi_figure(Variables*, const MPIinfo &);
+        void rcb(Variables*, const MPIinfo &);
+        void set_np(Neighbor_Process&, int, unsigned long, double, double);
+        void odp_init(Variables*, const MPIinfo &);
+        void one_d_parallel(Variables*, const MPIinfo &, int, double, double);
+        void sb_init(Variables*, const MPIinfo &);
+        void skew_boundary(Variables*, const MPIinfo &, int, double, double);
 };
 
 // ============================================

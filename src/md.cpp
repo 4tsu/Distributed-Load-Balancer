@@ -45,7 +45,7 @@ void MD::set_box(unsigned long N, double xl, double yl, double zl) {
     sysp::yl = yl;
     sysp::zl = zl;
     if (N<std::numeric_limits<unsigned long>::min() || std::numeric_limits<unsigned long>::max()<N) {
-        fprintf(stderr, "=== input 'N' is too large! ===\n");
+        std::fprintf(stderr, "=== input 'N' is too large! ===\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -373,11 +373,11 @@ void MD::calculate_force(void) {
     calctimer->start();
     // 自領域内粒子同士
     Atom *atoms = vars->atoms.data();
-    for (auto &pl : pl->list) {
-        Atom ia = atoms[pl.i];
-        Atom ja = atoms[pl.j];
-        assert(pl.idi == ia.id);
-        assert(pl.idj == ja.id);
+    for (auto &pair : pl->list) {
+        Atom ia = atoms[pair.i];
+        Atom ja = atoms[pair.j];
+        assert(pair.idi == ia.id);
+        assert(pair.idj == ja.id);
         double dx = ja.x - ia.x;
         double dy = ja.y - ia.y;
         double dz = ja.z - ia.z;
@@ -388,7 +388,7 @@ void MD::calculate_force(void) {
             df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
         }
         // if ((df*df)>1.5) {
-        //    fprintf(stderr, "Abnormal Force! (rank#%d pair[%ld-%ld])\n", mi.rank, ia.id, ja.id);
+        //    std::fprintf(stderr, "Abnormal Force! (rank#%d pair[%ld-%ld])\n", mi.rank, ia.id, ja.id);
         //    abort();
         // }
         atoms[pl.i].vx += df * dx;
@@ -721,24 +721,19 @@ void MD::run(int trial) {
     if (mi.rank == 0) {
         for (const auto & file : std::filesystem::directory_iterator("./")) {
             std::string path = file.path();
-            size_t word_pos = path.find("/cdv");
-            if (word_pos != std::string::npos) {
+            size_t word_pos1 = path.find("/cdv");
+            size_t word_pos2 = path.find("/time");
+            size_t word_pos3 = path.find(".dat");
+            size_t word_pos4 = path.find("/load_balance");
+            if (word_pos1 != std::string::npos) {
                 std::filesystem::remove_all(path);
                 continue;
-            } else if (path == "./energy.dat") {
+            } else if (word_pos2!=std::string::npos && word_pos3!=std::string::npos) {
                 std::filesystem::remove(path);
-            } else if (path == "./time_gross.dat") {
+                continue;
+            } else if (word_pos4!=std::string::npos && word_pos3!=std::string::npos) {
                 std::filesystem::remove(path);
-            } else if (path == "./time_net.dat") {
-                std::filesystem::remove(path);
-            } else if (path == "./time_sdd.dat") {
-                std::filesystem::remove(path);
-            } else if (path == "./time_whole.dat") {
-                std::filesystem::remove(path);
-            } else if (path == "./time_comm.dat") {
-                std::filesystem::remove(path);
-            } else if (path == "./load_balance.dat") {
-                std::filesystem::remove(path);
+                continue;
             }
         }
     }
@@ -747,23 +742,26 @@ void MD::run(int trial) {
     
     
     if (mi.procs<std::numeric_limits<int>::min() || std::numeric_limits<int>::max()<mi.procs) {
-        fprintf(stderr, "=== Too many processes! ===\n");
+        std::fprintf(stderr, "=== Too many processes! ===\n");
         exit(EXIT_FAILURE);
     }
     
     // 出力ファイル準備
+    std::string energy_out = "energy";
     std::string net_time_out   = "time_net";
     std::string gross_time_out = "time_gross";
     std::string sdd_time_out   = "time_sdd";
     std::string whole_time_out = "time_whole";
     std::string comm_time_out  = "time_comm";
     if (trial > 0) {
-        net_time_out   += "_" + std::to_string(trial);
-        gross_time_out += "_" + std::to_string(trial);
-        sdd_time_out   += "_" + std::to_string(trial);
-        whole_time_out += "_" + std::to_string(trial);
-        comm_time_out  += "_" + std::to_string(trial);
+        energy_out += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
+        net_time_out   += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
+        gross_time_out += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
+        sdd_time_out   += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
+        whole_time_out += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
+        comm_time_out  += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
     }
+    energy_out += ".dat";
     net_time_out   += ".dat";
     gross_time_out += ".dat";
     sdd_time_out   += ".dat";
@@ -797,7 +795,7 @@ void MD::run(int trial) {
 
     // 計算ループ
     for (int step=1+begin_step; step<=steps+begin_step; step++) {
-        if (mi.rank==0 && step%ob_interval==0) fprintf(stderr, "step %d\n", step);
+        if (mi.rank==0 && step%ob_interval==0) std::fprintf(stderr, "step %d\n", step);
         wholetimer->start();
         vars->time += dt;
 
@@ -815,7 +813,7 @@ void MD::run(int trial) {
         double k = obs->kinetic_energy(vars);   // rank0が値を受け取る
         double v = obs->potential_energy(vars, pl);   // rank0が値を受け取る
         if (mi.rank==0) {
-            export_three("energy.dat", step, k, v, k+v);
+            export_three(energy_out, step, k, v, k+v);
         }
         if (step % ob_interval == 0) {
             obs->export_cdview(vars, mi);
@@ -832,7 +830,7 @@ void MD::run(int trial) {
         grosstimer->reset();
         calctimer->reset();
         commtimer->reset();
-        obs->export_workload(step, vars, mi);
+        obs->export_workload(step, vars, mi, sdd->sdd_type, trial);
 
         this->check_pairlist();
         this->get_exec_time(step, sddtimer, sdd_time_out);
