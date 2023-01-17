@@ -186,7 +186,10 @@ void Sdd::global_sort(Variables* vars, const MPIinfo &mi) {
     std::vector<unsigned long> diffs(mi.procs);
     MPI_Gather(&diff_n, 1, MPI_UNSIGNED_LONG, diffs.data(), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-    std::vector<Atom> all_atoms(max_l*mi.procs);
+    std::vector<Atom> all_atoms;
+    if (mi.rank==0) {
+        all_atoms.resize(max_l*mi.procs);
+    }
     unsigned long s = max_l*sizeof(Atom);
     MPI_Gather(vars->atoms.data(), s, MPI_CHAR, all_atoms.data(), s, MPI_CHAR, 0, MPI_COMM_WORLD);
 
