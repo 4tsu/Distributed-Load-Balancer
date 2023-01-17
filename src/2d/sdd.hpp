@@ -31,9 +31,10 @@ class Sdd {
         unsigned long ideal(const MPIinfo &);
     
     private:
-        double top, bottom, right, left, front, back;
+        double top, bottom, right, left;
         unsigned long ideal_count;
         std::vector<double> all_biases;
+        void set_limits(double, double, double, double);
         void migrate_atoms(std::vector<std::vector<Atom>>, Variables*, const MPIinfo &);
         void calc_bounds(const MPIinfo &);
         void simple(Variables*, const MPIinfo &);

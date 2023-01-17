@@ -1,4 +1,5 @@
 #include "md.hpp"
+// #include "2d/md.hpp"
 
 // ========================================
 
@@ -11,8 +12,8 @@ int main(int argc, char **argv) {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
     MD *md = new MD(mi);
-    md->set_params(2000, 20, 0.0020); // int steps, int ob_interval, double dt
-    md->set_box(1600, 40, 40); // unsigned long N, double xl, double yl
+    md->set_params(20, 20, 0.0020); // int steps, int ob_interval, double dt
+    md->set_box(8000, 20, 20, 20); // unsigned long N, double xl, double yl(, double zl)
     md->set_cutoff(3.5); // double cutoff
     md->set_margin(0.5);
     md->set_config("make");

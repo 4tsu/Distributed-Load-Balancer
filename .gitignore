@@ -35,6 +35,7 @@
 *.temp
 *.ckpt
 log/*
+*.sh.*
 
 # Incremental Compile
 *.depend

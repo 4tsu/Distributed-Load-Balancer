@@ -6,8 +6,8 @@
 
 struct Atom {
     unsigned long id;
-    double  x,  y,  z;
-    double vx, vy, vz;
+    double  x,  y;
+    double vx, vy;
 };
 
 
@@ -15,7 +15,7 @@ struct Atom {
 
 struct Force {
     unsigned long id;
-    double vx, vy, vz;
+    double vx, vy;
 };
 
 
@@ -36,7 +36,7 @@ public:
     
     double time;
     Variables(void) {time = 0.0;}
-    void add_atoms(unsigned long id, double x, double y, double z);
+    void add_atoms(unsigned long id, double x, double y);
     void export_cdview(void);
     unsigned long number_of_atoms(void) {return atoms.size();}
     void set_initial_velocity(const double, MPIinfo);
@@ -49,8 +49,6 @@ public:
     double xp_min;
     double yp_max;
     double yp_min;
-    double zp_max;
-    double zp_min;
 
 };
 

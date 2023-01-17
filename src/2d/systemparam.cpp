@@ -6,10 +6,8 @@
 namespace systemparam {
     double xl;
     double yl;
-    double zl;
     double xlh;
     double ylh;
-    double zlh;
     unsigned long N = 0;
     double cutoff;
     double margin;
@@ -25,8 +23,6 @@ namespace systemparam {
     double x_min;
     double y_max;
     double y_min;
-    double z_max;
-    double z_min;
 
 
 
@@ -41,11 +37,8 @@ namespace systemparam {
         x_min = -xl/2;
         y_max =  yl/2;
         y_min = -yl/2;
-        z_max =  zl/2;
-        z_min = -zl/2;
         xlh = xl/2;
         ylh = yl/2;
-        zlh = zl/2;
     }
 
 

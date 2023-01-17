@@ -119,7 +119,7 @@ def plot_energy(inputfile):
 
     
 
-def avg_time(base_filename, lb_num = None):
+def avg_time(base_filename, lb_num = None, level = 1):
     num_samples = 0
     num_steps = 0
     org_base_filename = base_filename
@@ -164,13 +164,33 @@ def avg_time(base_filename, lb_num = None):
                     T2s[sample_count, l] = float(t2)
                     T3s[sample_count, l] = float(t3)
             sample_count += 1
-    output = f"../{org_base_filename}_{lb_num}.dat"
+    output = f"../{org_base_filename}"
+    if not (lb_num==None):
+        output += f"_{lb_num}"
+    output += ".dat"
     T1 = np.mean(T1s, axis=0)
     T2 = np.mean(T2s, axis=0)
     T3 = np.mean(T3s, axis=0)
+    L1 = []
+    L2 = []
+    L3 = []
+    l1 = 0
+    l2 = 0
+    l3 = 0
+    for i in range(num_steps):
+        l1 += T1[i]
+        l2 += T2[i]
+        l3 += T3[i]
+        if (i+1)%level == 0:
+            L1.append(l1/level)
+            L2.append(l2/level)
+            L3.append(l3/level)
+            l1 = 0
+            l2 = 0
+            l3 = 0
     with open(output, 'w') as f:
-        for i in range(num_steps):
-            f.write("{} {:.6f} {:.6f} {:.6f}\n".format(i+1, T1[i], T2[i], T3[i]))
+        for i in range(num_steps//level):
+            f.write("{} {:.6f} {:.6f} {:.6f}\n".format(i*level+1, L1[i], L2[i], L3[i]))
 
 
 
@@ -357,30 +377,31 @@ plot_energy("../energy.dat")
 
 # exec time plot
 avg_time("time_whole")
-plot_time("../time_avg_whole.dat", "time_whole.png")
+plot_time("../time_whole.dat", "time_whole.png")
 avg_time("time_net")
-plot_time("../time_avg_net.dat", "time_net.png")
+plot_time("../time_net.dat", "time_net.png")
 avg_time("time_gross")
-plot_time("../time_avg_gross.dat", "time_gross.png")
+plot_time("../time_gross.dat", "time_gross.png")
 avg_time("time_sdd")
-plot_time("../time_avg_sdd.dat", "time_sdd.png")
+plot_time("../time_sdd.dat", "time_sdd.png")
 avg_time("time_comm")
-plot_time("../time_avg_comm.dat", "time_comm.png")
+plot_time("../time_comm.dat", "time_comm.png")
+# load balance plot
+plot_load_balance("../load_balance.dat")
 
+# multiple trial process
 """
-
 load_balancer_list = [0,1,2,3,4,5]
+level = 20
 for lb in load_balancer_list:
-    avg_time("time_whole", lb)
-    avg_time("time_net", lb)
-    avg_time("time_gross", lb)
-    avg_time("time_sdd", lb)
-    avg_time("time_comm", lb)
+    avg_time("time_whole", lb, level)
+    avg_time("time_net", lb, level)
+    avg_time("time_gross", lb, level)
+    avg_time("time_sdd", lb, 1)
+    avg_time("time_comm", lb, level)
     avg_lb("load_balance", lb)
 """
 
-# load balance plot
-# plot_load_balance("../load_balance.dat")
 
 """
 # .cdv animation

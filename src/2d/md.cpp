@@ -39,11 +39,10 @@ void MD::set_params(int steps, int ob_interval, double dt) {
 
 
 
-void MD::set_box(unsigned long N, double xl, double yl, double zl) {
+void MD::set_box(unsigned long N, double xl, double yl) {
     sysp::N = N;
     sysp::xl = xl;
     sysp::yl = yl;
-    sysp::zl = zl;
     if (N<std::numeric_limits<unsigned long>::min() || std::numeric_limits<unsigned long>::max()<N) {
         std::fprintf(stderr, "=== input 'N' is too large! ===\n");
         exit(EXIT_FAILURE);
@@ -82,41 +81,31 @@ void MD::makeconf(void) {
     const unsigned long N = sysp::N;
     const double xl = sysp::xl;
     const double yl = sysp::yl;
-    const double zl = sysp::zl;
     const double x_min = sysp::x_min;
     const double y_min = sysp::y_min;
-    const double z_min = sysp::z_min;
     const double x_max = sysp::x_max;
     const double y_max = sysp::y_max;
-    const double z_max = sysp::z_max;
     const double lpx = sysp::xl/mi.npx;
     const double lpy = sysp::yl/mi.npy;
-    const double lpz = sysp::zl/mi.npz;
-    const double rho = N/(xl*yl*zl);
-    const unsigned long xppl = ceil(cbrt(rho)*xl);
-    const unsigned long yppl = ceil(cbrt(rho)*yl);
-    const unsigned long zppl = ceil(cbrt(rho)*zl);
-    const double pitch = std::min({xl/xppl, yl/yppl, zl/zppl});
+    const unsigned long xppl = ceil(std::sqrt(xl*N/yl));
+    const unsigned long yppl = ceil(std::sqrt(yl*N/xl));
+    const double pitch = std::min(xl/xppl, yl/yppl);
 
    // 等間隔配置・分割
     for (unsigned long i=0; i<N; i++) {
-        unsigned long iz = i/(yppl*xppl);
-        unsigned long iy = (i/xppl)%yppl;
+        unsigned long iy = static_cast<unsigned long>(i/xppl);
         unsigned long ix = i%xppl;
         double x = ix * pitch;
         double y = iy * pitch;
-        double z = iz * pitch;
 
         // どのプロセスに分配するかを判断する
-        int ip = static_cast<int>(floor(z/lpz)*mi.npx*mi.npy + floor(y/lpy)*mi.npx + floor(x/lpx));
+        int ip = static_cast<int>(floor(y/lpy)*mi.npx + floor(x/lpx));
         if (ip==mi.rank) {
             x += x_min;
             y += y_min;
-            z += z_min;
-            vars->add_atoms(i,x,y,z);
+            vars->add_atoms(i,x,y);
             assert(x_min<=x && x<=x_max);
             assert(y_min<=y && y<=y_max);
-            assert(z_min<=z && z<=z_max);
         }
     }
 }
@@ -349,20 +338,17 @@ void MD::check_pairlist(void) {
 void MD::update_position(double coefficient) {
     calctimer->start();
     for (auto& atom : vars->atoms) {
-        if (atom.vx>9 || atom.vy>9 || atom.vz>9) {
-            fprintf(stderr, "Abnormal velocity!(rank#%d atom#%ld:[%lf, %lf, %lf])",mi.rank, atom.id, atom.vx, atom.vy, atom.vz);
+        if (atom.vx>9 || atom.vy>9) {
+            std::fprintf(stderr, "Abnormal velocity!(rank#%d atom#%ld:[%lf, %lf])",mi.rank, atom.id, atom.vx, atom.vy);
             abort();
         }
         double x = atom.x + atom.vx * dt * coefficient;
         double y = atom.y + atom.vy * dt * coefficient;
-        double z = atom.z + atom.vz * dt * coefficient;
-        periodic_coordinate(x,y,z);
+        periodic_coordinate(x, y);
         atom.x = x;
         atom.y = y;
-        atom.z = z;
         assert(sysp::x_min <= x && x <= sysp::x_max);
         assert(sysp::y_min <= y && y <= sysp::y_max);
-        assert(sysp::z_min <= z && z <= sysp::z_max);
     }
     calctimer->stop();
 }
@@ -380,9 +366,8 @@ void MD::calculate_force(void) {
         assert(pair.idj == ja.id);
         double dx = ja.x - ia.x;
         double dy = ja.y - ia.y;
-        double dz = ja.z - ia.z;
-        periodic_distance(dx, dy, dz);
-        double r = sqrt(dx*dx + dy*dy + dz*dz);
+        periodic_distance(dx, dy);
+        double r = std::sqrt(dx*dx + dy*dy);
         double df = 0.0;
         if (r <= sysp::cutoff) {
             df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
@@ -393,10 +378,8 @@ void MD::calculate_force(void) {
         // }
         atoms[pair.i].vx += df * dx;
         atoms[pair.i].vy += df * dy;
-        atoms[pair.i].vz += df * dz;
         atoms[pair.j].vx -= df * dx;
         atoms[pair.j].vy -= df * dy;
-        atoms[pair.j].vz -= df * dz;
     }
 
     vars->sending_force.clear();
@@ -414,22 +397,18 @@ void MD::calculate_force(void) {
             assert(pair.idj == ja.id);
             double dx = ja.x - ia.x;
             double dy = ja.y - ia.y;
-            double dz = ja.z - ia.z;
-            periodic_distance(dx, dy, dz);
-            double r = sqrt(dx*dx + dy*dy + dz*dz);
+            periodic_distance(dx, dy);
+            double r = std::sqrt(dx*dx + dy*dy);
             Force sf;
             sf.id = ja.id;
             sf.vx = 0.0;
             sf.vy = 0.0;
-            sf.vz = 0.0;
             if (r <= sysp::cutoff){
                 double df = (24.0 * pow(r, 6) - 48.0) / pow(r, 14) * dt;
                 atoms[pair.i].vx += df * dx;
                 atoms[pair.i].vy += df * dy;
-                atoms[pair.i].vz += df * dz;
                 sf.vx =  - df * dx;
                 sf.vy =  - df * dy;
-                sf.vz =  - df * dz;
             }
            one_sending_force[j] = sf;
         }
@@ -568,7 +547,6 @@ void MD::communicate_force(void) {
                 while (a.id==f.id) {
                     a.vx += f.vx;
                     a.vy += f.vy;
-                    a.vz += f.vz;
                     f_index++;
                     if (f_index >= recv_force.size()){
                         flag = true;
@@ -595,7 +573,7 @@ void MD::read_data(const std::string filename, Variables* vars, const MPIinfo &m
     bool is_init = false;
     bool is_num = false;
     int is_bounds = 0;
-    double lpx, lpy, lpz;
+    double lpx, lpy;
     unsigned long id = 0;
     while(std::getline(reading_file, line)) {
         // LAMMPS出力ではじめに出てくる初期配置のdumpであれば無視する。
@@ -650,17 +628,12 @@ void MD::read_data(const std::string filename, Variables* vars, const MPIinfo &m
                 sysp::y_max = std::stod(var2);
                 sysp::yl = sysp::y_max - sysp::y_min;
                 lpy = sysp::yl/mi.npy;
-            } else if (is_bounds==3) {
-                sysp::z_min = std::stod(var1);
-                sysp::z_max = std::stod(var2);
-                sysp::zl = sysp::z_max - sysp::z_min;
-                lpz = sysp::zl/mi.npz;
             }
             is_bounds++;
             continue;
         }
 
-        double x, y, z, vx, vy, vz;
+        double x, y, vx, vy;
         std::vector<std::string> var;
         auto offset = std::string::size_type(0);
         while (true) {
@@ -674,21 +647,17 @@ void MD::read_data(const std::string filename, Variables* vars, const MPIinfo &m
         }
         x  = std::stod(var.at(0));
         y  = std::stod(var.at(1));
-        z  = std::stod(var.at(2));
         vx = std::stod(var.at(3));
         vy = std::stod(var.at(4));
-        vz = std::stod(var.at(5));
-        periodic_coordinate(x, y, z);
-        int ip = static_cast<int>(floor((z-sysp::z_min)/lpz)*mi.npy*mi.npx + floor((y-sysp::y_min)/lpy)*mi.npx + floor((x-sysp::x_min)/lpx));
+        periodic_coordinate(x, y);
+        int ip = static_cast<int>(floor((y-sysp::y_min)/lpy)*mi.npx + floor((x-sysp::x_min)/lpx));
         if (ip==mi.rank) {
             Atom a;
             a.id = id;
             a.x  = x;
             a.y  = y;
-            a.z  = z;
             a.vx = vx;
             a.vy = vy;
-            a.vz = vz;
             vars->atoms.push_back(a);
         }
         id++;

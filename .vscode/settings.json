@@ -3,13 +3,16 @@
         "ckpt",
         "jmex",
         "jmey",
+        "jmez",
         "sddtimer",
         "smpl",
         "sysp",
         "tconf",
         "Wunused",
         "xppl",
-        "yppl"
+        "xyzl",
+        "yppl",
+        "zppl"
     ],
     "files.associations": {
         "ostream": "cpp",
