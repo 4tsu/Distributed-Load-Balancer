@@ -188,7 +188,10 @@ void Sdd::global_sort(Variables* vars, const MPIinfo &mi) {
     std::vector<unsigned long> diffs(mi.procs);
     MPI_Gather(&diff_n, 1, MPI_UNSIGNED_LONG, diffs.data(), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-    std::vector<Atom> all_atoms(max_l*mi.procs);
+    std::vector<Atom> all_atoms;
+    if (mi.rank==0) {
+        all_atoms.resize(max_l*mi.procs);
+    }
     unsigned long s = max_l*sizeof(Atom);
     MPI_Gather(vars->atoms.data(), s, MPI_CHAR, all_atoms.data(), s, MPI_CHAR, 0, MPI_COMM_WORLD);
 
@@ -333,6 +336,7 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
         unsigned long max_count = *std::max_element(counts.begin(), counts.end());
 
+        /*
         // ボロノイ最適化中のロードバランスの変化を出力
         if (mi.rank==0) {
             std::printf("%d ", s);
@@ -341,9 +345,10 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
             }
             std::printf("\n");
         }
+        */
         
         // early stop
-       if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
+        if (max_count <= ideal_count_max || max_count-ideal_count < 10) {
             // std::fprintf(stderr, "***early stop (iter #%d)***\n", s);
             break;
         }
