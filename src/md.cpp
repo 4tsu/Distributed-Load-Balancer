@@ -693,6 +693,11 @@ void MD::read_data(const std::string filename, Variables* vars, const MPIinfo &m
         }
         id++;
     }
+    std::vector<unsigned long> counts(mi.procs);
+    unsigned long pn = vars->number_of_atoms();
+    MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+    unsigned long s = std::accumulate(counts.begin(), counts.end(), 0);
+    assert(s==sysp::N);
 }
 
 
