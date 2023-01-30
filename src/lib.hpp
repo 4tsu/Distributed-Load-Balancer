@@ -19,7 +19,11 @@
 #include <filesystem>
 #endif
 
+
+
 // ----------------------
+
+
 
 //デバッグ用
 inline void ckpt() {

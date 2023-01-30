@@ -162,7 +162,6 @@ void MD::make_pair(void) {
 
         // まずは自分が送る分
         mpi_send_requests.clear();
-        // 構造体をバラしてから送信する
         std::vector<Atom> sendbuf = vars->atoms;
         unsigned long send_size = sendbuf.size()*sizeof(Atom);
         for (auto &l : sr->dplist_reverse) {
@@ -402,8 +401,6 @@ void MD::calculate_force(void) {
     vars->sending_force.clear();
     // 自領域-他領域粒子ペア
     for (std::size_t i=0; i<pl->other_list.size(); i++) {
-
-        // Atom *one_other_atoms = vars->other_atoms[i].data();
         std::vector<Atom> one_other_atoms = vars->other_atoms.at(i);
         std::vector<Force> one_sending_force(pl->other_list[i].size());
         for (std::size_t j=0; j<pl->other_list[i].size(); j++) {
@@ -444,7 +441,6 @@ void MD::calculate_force(void) {
 /// ペアリストにある粒子はすべてやりとりする
 void MD::communicate_atoms(void) {
     commtimer->start();
-    // 必要な通信サイズを予め共有 <- ペアリスト構築時点で共有できるはず
     MPI_Request ireq;
     MPI_Status st;
     
@@ -496,7 +492,6 @@ void MD::communicate_atoms(void) {
 
 
 // 他領域粒子に関する力積を書き戻すための通信
-/// ペアリストにある粒子全部 or 実際に相互作用した粒子のみ？
 /// 事前に、粒子リストの行先とそのサイズ、送信元とそのサイズがわかっていればよい。
 void MD::communicate_force(void) {
     commtimer->start();
@@ -693,6 +688,11 @@ void MD::read_data(const std::string filename, Variables* vars, const MPIinfo &m
         }
         id++;
     }
+    std::vector<unsigned long> counts(mi.procs);
+    unsigned long pn = vars->number_of_atoms();
+    MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+    unsigned long s = std::accumulate(counts.begin(), counts.end(), 0);
+    assert(s==sysp::N);
 }
 
 

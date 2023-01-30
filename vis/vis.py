@@ -132,7 +132,66 @@ def avg_time(base_filename, lb_num = None, level = 1):
             with open(filename) as f:
                 Line = [s.strip() for s in f.readlines()]
                 num_steps = len(Line)
+    T1s = np.zeros((num_samples, num_steps//level))
+    T2s = np.zeros((num_samples, num_steps//level))
+    T3s = np.zeros((num_samples, num_steps//level))
+    sample_count = 0
+    for filename in sorted(os.listdir("../")):
+        if base_filename in filename and ".dat" in filename:
+            filename = "../{}".format(filename)
+            with open(filename) as f:
+                Line = [s.strip() for s in f.readlines()]
+                for l in range(0,len(Line)):
+                    step = ''
+                    t1   = ''
+                    t2   = ''
+                    t3   = ''
+                    index = 0
+                    for s in Line[l]:
+                        if s == ' ':
+                            index += 1
+                            continue
+                        if index == 0:
+                            step += s
+                        elif index == 1:
+                            t1 += s
+                        elif index == 2:
+                            t2 += s
+                        elif index == 3:
+                            t3 += s
+                    T1s[sample_count, l//level] += float(t1)
+                    T2s[sample_count, l//level] += float(t2)
+                    T3s[sample_count, l//level] += float(t3)
+            sample_count += 1
+    T1s /= level
+    T2s /= level
+    T3s /= level
+    output = f"../{org_base_filename}_{lb_num}.dat"
+    T1 = np.mean(T1s, axis=0)
+    T2 = np.mean(T2s, axis=0)
+    T3 = np.mean(T3s, axis=0)
+    S1 = np.std(T1s, axis=0)
+    S2 = np.std(T1s, axis=0)
+    S3 = np.std(T1s, axis=0)
+    with open(output, 'w') as f:
+        for i in range(num_steps//level):
+            f.write(f"{i*level+1} {T1[i]:.6f} {T2[i]:.6f} {T3[i]:.6f} {S1[i]:.6f} {S2[i]:.6f} {S3[i]:.6f}\n")
 
+
+
+def avg_sdd(base_filename, lb_num = None):
+    num_samples = 0
+    num_steps = 0
+    org_base_filename = base_filename
+    if not (lb_num==None):
+        base_filename += f"_{lb_num}_"
+    for filename in os.listdir("../"):
+        if base_filename in filename and ".dat" in filename:
+            num_samples += 1
+            filename = "../{}".format(filename)
+            with open(filename) as f:
+                Line = [s.strip() for s in f.readlines()]
+                num_steps = len(Line)
     T1s = np.zeros((num_samples, num_steps))
     T2s = np.zeros((num_samples, num_steps))
     T3s = np.zeros((num_samples, num_steps))
@@ -160,9 +219,9 @@ def avg_time(base_filename, lb_num = None, level = 1):
                             t2 += s
                         elif index == 3:
                             t3 += s
-                    T1s[sample_count, l] = float(t1)
-                    T2s[sample_count, l] = float(t2)
-                    T3s[sample_count, l] = float(t3)
+                    T1s[sample_count, l] += float(t1)
+                    T2s[sample_count, l] += float(t2)
+                    T3s[sample_count, l] += float(t3)
             sample_count += 1
     output = f"../{org_base_filename}"
     if not (lb_num==None):
@@ -171,27 +230,12 @@ def avg_time(base_filename, lb_num = None, level = 1):
     T1 = np.mean(T1s, axis=0)
     T2 = np.mean(T2s, axis=0)
     T3 = np.mean(T3s, axis=0)
-    L1 = []
-    L2 = []
-    L3 = []
-    l1 = 0
-    l2 = 0
-    l3 = 0
-    for i in range(num_steps):
-        l1 += T1[i]
-        l2 += T2[i]
-        l3 += T3[i]
-        if (i+1)%level == 0:
-            L1.append(l1/level)
-            L2.append(l2/level)
-            L3.append(l3/level)
-            l1 = 0
-            l2 = 0
-            l3 = 0
+    S1 = np.std(T1s, axis=0)
+    S2 = np.std(T1s, axis=0)
+    S3 = np.std(T1s, axis=0)
     with open(output, 'w') as f:
-        for i in range(num_steps//level):
-            f.write("{} {:.6f} {:.6f} {:.6f}\n".format(i*level+1, L1[i], L2[i], L3[i]))
-
+        for i in range(num_steps):
+            f.write(f"{i+1} {T1[i]:.6f} {T2[i]:.6f} {T3[i]:.6f} {S1[i]:.6f} {S2[i]:.6f} {S3[i]:.6f}\n")
 
 
 def plot_time(inputfile, outputfile):
@@ -376,15 +420,10 @@ for filename in os.listdir(".."):
 plot_energy("../energy.dat")
 
 # exec time plot
-avg_time("time_whole")
 plot_time("../time_whole.dat", "time_whole.png")
-avg_time("time_net")
 plot_time("../time_net.dat", "time_net.png")
-avg_time("time_gross")
 plot_time("../time_gross.dat", "time_gross.png")
-avg_time("time_sdd")
 plot_time("../time_sdd.dat", "time_sdd.png")
-avg_time("time_comm")
 plot_time("../time_comm.dat", "time_comm.png")
 # load balance plot
 plot_load_balance("../load_balance.dat")
@@ -397,7 +436,7 @@ for lb in load_balancer_list:
     avg_time("time_whole", lb, level)
     avg_time("time_net", lb, level)
     avg_time("time_gross", lb, level)
-    avg_time("time_sdd", lb, 1)
+    avg_sdd("time_sdd", lb)
     avg_time("time_comm", lb, level)
     avg_lb("load_balance", lb)
 """

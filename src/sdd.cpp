@@ -601,21 +601,30 @@ void Sdd::one_d_parallel(Variables* vars, const MPIinfo &mi, int iteration, doub
     std::vector<Neighbor_Process> all_procs(mi.procs);
     MPI_Allgather(&my_proc, sizeof(Neighbor_Process), MPI_CHAR, all_procs.data(), sizeof(Neighbor_Process), MPI_CHAR, MPI_COMM_WORLD);
     for (auto& a : vars->atoms) {
+        bool is_in = false;
         if (my_proc.left <= a.x && a.x <= my_proc.right) {
             migration_atoms.at(mi.rank).push_back(a);
+            is_in = true;
         } else {
             for (int i=1; i<=mi.procs/2; i++) {
                 int next = ((mi.rank-i)%mi.procs+mi.procs)%mi.procs;
                 int prev = (mi.rank+i)%mi.procs;
                 if (all_procs.at(next).left <= a.x && a.x <= all_procs.at(next).right) {
                     migration_atoms.at(next).push_back(a);
+                    is_in = true;
                     break;
                 } else if (all_procs.at(prev).left <= a.x && a.x <= all_procs.at(prev).right) {
                     migration_atoms.at(prev).push_back(a);
+                    is_in = true;
                     break;
                 }
             }
         }
+        if (!is_in) {
+            migration_atoms.at(mi.rank).push_back(a);
+            is_in = true;
+        }
+        assert(is_in);
     }
     vars->atoms.clear();
     vars->atoms.resize(migration_atoms.at(mi.rank).size());
@@ -623,6 +632,12 @@ void Sdd::one_d_parallel(Variables* vars, const MPIinfo &mi, int iteration, doub
     migration_atoms.at(mi.rank).clear();
     MPI_Barrier(MPI_COMM_WORLD);
     migrate_atoms(migration_atoms, vars, mi);
+
+    std::vector<unsigned long> counts(mi.procs);
+    pn = vars->number_of_atoms();
+    MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+    unsigned long sum_counts = std::accumulate(counts.begin(), counts.end(), 0);
+    assert(sum_counts==sysp::N);
 
     // iteration
     for (int s=0; s<iteration; s++) {
@@ -744,22 +759,31 @@ void Sdd::skew_boundary(Variables* vars, const MPIinfo& mi, int iteration, doubl
     std::vector<Neighbor_Process> all_procs(mi.procs);
     MPI_Allgather(&my_proc, sizeof(Neighbor_Process), MPI_CHAR, all_procs.data(), sizeof(Neighbor_Process), MPI_CHAR, MPI_COMM_WORLD);
     for (auto& a : vars->atoms) {
+        bool is_in = false;
         double sbx = std::floor((a.z-sysp::z_min)/lpz)*mi.npy*sysp::xl + std::floor((a.y-sysp::y_min)/lpy)*sysp::xl + a.x-sysp::x_min;
         if (my_proc.left <= sbx && sbx <= my_proc.right) {
             migration_atoms.at(mi.rank).push_back(a);
+            is_in = true;
         } else {
             for (int i=1; i<=mi.procs/2; i++) {
                 int next = ((mi.rank-i)%mi.procs+mi.procs)%mi.procs;
                 int prev = (mi.rank+i)%mi.procs;
                 if (all_procs.at(next).left <= sbx && sbx <= all_procs.at(next).right) {
                     migration_atoms.at(next).push_back(a);
+                    is_in = true;
                     break;
                 } else if (all_procs.at(prev).left <= sbx && sbx <= all_procs.at(prev).right) {
                     migration_atoms.at(prev).push_back(a);
+                    is_in = true;
                     break;
                 }
             }
         }
+        if (!is_in) {
+            migration_atoms.at(mi.rank).push_back(a);
+            is_in = true;
+        }
+        assert(is_in);
     }
     vars->atoms.clear();
     vars->atoms.resize(migration_atoms.at(mi.rank).size());
@@ -767,6 +791,12 @@ void Sdd::skew_boundary(Variables* vars, const MPIinfo& mi, int iteration, doubl
     migration_atoms.at(mi.rank).clear();
     MPI_Barrier(MPI_COMM_WORLD);
     migrate_atoms(migration_atoms, vars, mi);
+
+    std::vector<unsigned long> counts(mi.procs);
+    pn = vars->number_of_atoms();
+    MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+    unsigned long sum_counts = std::accumulate(counts.begin(), counts.end(), 0);
+    assert(sum_counts==sysp::N);
 
     // iteration
     for (int s=0; s<iteration; s++) {

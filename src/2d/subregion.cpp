@@ -52,7 +52,6 @@ void SubRegion::make_dplist(MPIinfo mi, Variables* vars) {
     /// O(np^2)で全探索
     /// 作用反作用を考慮して半分に落とすのを、計算が効率よくなるようにやる
     /// なるべく全ての領域で同じくらいの長さの領域ペアリストを持ちたい
-    //// dplistとdplist_reverseを分けて、二重ループを展開できるはず。
     for (int i=0; i<(mi.procs/2); i++) {
         for (int j=i+1; j<(mi.procs/2+i+1); j++) {
             if (i!=mi.rank && j!=mi.rank)
