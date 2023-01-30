@@ -15,9 +15,9 @@ int main(int argc, char **argv) {
     md->set_params(20, 20, 0.0020); // int steps, int ob_interval, double dt
     md->set_box(8000, 20, 20, 20); // unsigned long N, double xl, double yl(, double zl)
     md->set_cutoff(3.5); // double cutoff
-    md->set_margin(0.5);
-    md->set_config("make");
-    md->set_sdd(0);
+    md->set_margin(0.5); // double margin
+    md->set_config("make"); // configuration file name
+    md->set_sdd(0); // Load-Balancer type
     md->run();
     delete md;
 
