@@ -12,6 +12,7 @@ MD::MD(MPIinfo mi){
     commtimer = new CalcTimer();
     sddtimer = new CalcTimer();
     wholetimer = new CalcTimer();
+    memory_usage = new MemoryUsage();
     this->mi = mi;
 }
 
@@ -26,6 +27,7 @@ MD::~MD(void){
     delete commtimer;
     delete sddtimer;
     delete wholetimer;
+    delete memory_usage;
 }
 
 // -----------------------------------------------------
@@ -753,6 +755,7 @@ void MD::run(int trial) {
     std::string sdd_time_out   = "time_sdd";
     std::string whole_time_out = "time_whole";
     std::string comm_time_out  = "time_comm";
+    std::string mem_usage_out  = "mem_usage";
     if (trial > 0) {
         energy_out += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
         net_time_out   += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
@@ -760,6 +763,7 @@ void MD::run(int trial) {
         sdd_time_out   += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
         whole_time_out += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
         comm_time_out  += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
+        mem_usage_out  += "_" + std::to_string(sdd->sdd_type) + "_" + std::to_string(trial);
     }
     energy_out += ".dat";
     net_time_out   += ".dat";
@@ -767,6 +771,7 @@ void MD::run(int trial) {
     sdd_time_out   += ".dat";
     whole_time_out += ".dat";
     comm_time_out  += ".dat";
+    mem_usage_out  += ".dat";
 
     /// MD
     // 初期配置orデータ読み込み
@@ -839,6 +844,22 @@ void MD::run(int trial) {
         wholetimer->stop();
         this->get_exec_time(step, wholetimer, whole_time_out);
         wholetimer->reset();
+				
+				memory_usage->check();
+				memory_usage->get_result();
+				unsigned long mem_usage = memory_usage->get_result();
+				std::vector<unsigned long> memus(mi.procs);
+				MPI_Gather(&mem_usage, 1, MPI_UNSIGNED_LONG, memus.data(), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+				memory_usage->reset();
+				if (mi.rank==0) {
+						std::ofstream ofs(mem_usage_out, std::ios::app);
+						ofs << step << " ";
+						for (auto memu: memus) {
+								std::cout << memu << std::endl;
+								ofs << memu << " ";
+						}
+						ofs << "\n";
+				}
     }
 }
 

@@ -7,6 +7,7 @@
 #include "subregion.hpp"
 #include "sdd.hpp"
 #include "calctimer.hpp"
+#include "memory_usage.hpp"
 
 // =======================================
 
@@ -23,6 +24,7 @@ private:
     CalcTimer *commtimer;
     CalcTimer *sddtimer;
     CalcTimer *wholetimer;
+    MemoryUsage *memory_usage;
     void makeconf(void);
     void periodic(void);
     void update_position(double);

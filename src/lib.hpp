@@ -12,6 +12,7 @@
 #include <limits>
 #include <chrono>
 
+#include <sys/resource.h>
 #include <unistd.h>
 #include <mpi.h>
 
