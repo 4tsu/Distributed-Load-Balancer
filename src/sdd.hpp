@@ -3,6 +3,7 @@
 #include "variables.hpp"
 #include "mpiinfo.hpp"
 #include "subregion.hpp"
+#include "memory_usage.hpp"
 
 // ============================================
 

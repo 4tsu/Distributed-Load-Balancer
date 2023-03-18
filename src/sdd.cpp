@@ -134,6 +134,8 @@ void Sdd::migrate_atoms(std::vector<std::vector<Atom>> migration_atoms, Variable
     for (Atom atom : recvatoms) {
         vars->atoms.push_back(atom);
     }
+
+		memory_usage::check();
 }
 
 
@@ -151,6 +153,8 @@ void Sdd::calc_bounds(const MPIinfo &mi) {
     this->front  = lpy*static_cast<double>(iy) + sysp::y_min;
     this->bottom = lpz*static_cast<double>(iz) + sysp::z_min;
     this->top    = lpz*static_cast<double>(iz+1) + sysp::z_min;
+		
+		memory_usage::check();
 }
 
 
@@ -171,6 +175,8 @@ void Sdd::simple(Variables* vars, const MPIinfo &mi) {
     }
     vars->atoms = new_atoms;
     migrate_atoms(migration_atoms, vars, mi);
+		
+		memory_usage::check();
 }
         
         
@@ -249,6 +255,8 @@ void Sdd::global_sort(Variables* vars, const MPIinfo &mi) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
     migrate_atoms(migration_atoms, vars, mi);
+		
+		memory_usage::check();
 }
 
 
@@ -321,6 +329,8 @@ void Sdd::voronoi_init(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
     } 
     sr->bias = 0;
     this->ideal_count = ideal(mi);
+		
+		memory_usage::check();
 }
 
 
@@ -410,6 +420,8 @@ void Sdd::voronoi(Variables* vars, const MPIinfo &mi, SubRegion* sr,
         // voronoi_figure(vars, mi);
 
     }
+		
+		memory_usage::check();
 }
 
 
@@ -444,6 +456,8 @@ void Sdd::voronoi_allocate(Variables* vars, const MPIinfo &mi, SubRegion* sr) {
     migration_atoms.at(mi.rank).clear();
     MPI_Barrier(MPI_COMM_WORLD);
     migrate_atoms(migration_atoms, vars, mi);
+		
+		memory_usage::check();
 }
 
 
@@ -459,6 +473,8 @@ void Sdd::center_atom_distance(int rank, double & min_distance, int & closest_pr
         min_distance = r2;
         closest_proc = rank;
     }
+		
+		memory_usage::check();
 }
 
 
@@ -486,6 +502,8 @@ void Sdd::voronoi_figure(Variables* vars, const MPIinfo &mi) {
         ofs << std::endl;
     }
     s++;
+		
+		memory_usage::check();
 }
 
 
@@ -547,6 +565,8 @@ void Sdd::rcb(Variables* vars, const MPIinfo &mi) {
         MPI_Barrier(MPI_COMM_WORLD);
         migrate_atoms(migration_atoms, vars, mi);
     }
+		
+		memory_usage::check();
 }
 
 
@@ -556,6 +576,8 @@ void Sdd::set_np(Neighbor_Process &proc, int rank, unsigned long counts, double 
     proc.counts = static_cast<double>(counts);
     proc.left  = left;
     proc.right = right;
+		
+		memory_usage::check();
 }
 
 
@@ -587,6 +609,8 @@ void Sdd::odp_init(Variables* vars, const MPIinfo &mi) {
     MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
     unsigned long s = std::accumulate(counts.begin(), counts.end(), 0);
     assert(s==sysp::N);
+		
+		memory_usage::check();
 }
 
 
@@ -724,6 +748,8 @@ void Sdd::one_d_parallel(Variables* vars, const MPIinfo &mi, int iteration, doub
             break;
         }
     }
+		
+		memory_usage::check();
 }
 
 
@@ -742,6 +768,8 @@ void Sdd::sb_init(Variables* vars, const MPIinfo& mi) {
     MPI_Allgather(&pn, 1, MPI_UNSIGNED_LONG, counts.data(), 1, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
     unsigned long s = std::accumulate(counts.begin(), counts.end(), 0);
     assert(s==sysp::N);
+		
+		memory_usage::check();
 }
 
 
@@ -884,6 +912,8 @@ void Sdd::skew_boundary(Variables* vars, const MPIinfo& mi, int iteration, doubl
             break;
         }
     }
+		
+		memory_usage::check();
 }
 
 // ============================================
