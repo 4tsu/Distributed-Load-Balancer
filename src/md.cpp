@@ -12,7 +12,6 @@ MD::MD(MPIinfo mi){
     commtimer = new CalcTimer();
     sddtimer = new CalcTimer();
     wholetimer = new CalcTimer();
-    memory_usage = new MemoryUsage();
     this->mi = mi;
 }
 
@@ -27,7 +26,6 @@ MD::~MD(void){
     delete commtimer;
     delete sddtimer;
     delete wholetimer;
-    delete memory_usage;
 }
 
 // -----------------------------------------------------
@@ -200,6 +198,7 @@ void MD::make_pair(void) {
             vars->other_atoms.push_back(one_other_atoms);
             bias += recv_range;
         }
+				memory_usage::check();
     }
 
 
@@ -845,17 +844,15 @@ void MD::run(int trial) {
         this->get_exec_time(step, wholetimer, whole_time_out);
         wholetimer->reset();
 				
-				memory_usage->check();
-				memory_usage->get_result();
-				unsigned long mem_usage = memory_usage->get_result();
+				memory_usage::check();
+				unsigned long mem_usage = memory_usage::get_result();
 				std::vector<unsigned long> memus(mi.procs);
 				MPI_Gather(&mem_usage, 1, MPI_UNSIGNED_LONG, memus.data(), 1, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
-				memory_usage->reset();
+				memory_usage::reset();
 				if (mi.rank==0) {
 						std::ofstream ofs(mem_usage_out, std::ios::app);
 						ofs << step << " ";
 						for (auto memu: memus) {
-								std::cout << memu << std::endl;
 								ofs << memu << " ";
 						}
 						ofs << "\n";

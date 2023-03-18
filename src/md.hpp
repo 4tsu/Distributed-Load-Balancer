@@ -24,7 +24,6 @@ private:
     CalcTimer *commtimer;
     CalcTimer *sddtimer;
     CalcTimer *wholetimer;
-    MemoryUsage *memory_usage;
     void makeconf(void);
     void periodic(void);
     void update_position(double);
